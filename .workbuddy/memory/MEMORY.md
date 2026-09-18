@@ -31,6 +31,28 @@
 - 主分支：`main`（用户拍板，与 GitHub 默认一致）
 - `.gitignore` 只含 `.env`（严格按清单，用户未要求扩展）；另建空 `.env` 用于实测忽略生效
 - 本机无 `gh` CLI → 远程仓库只能由用户在网页手动创建；首次 push 需用户浏览器授权一次
+- 仓库地址：`https://github.com/Soren-yeyey/Soren2077.git`，远程名 `origin`，主分支 `main`
+- 首次提交 hash：`d4d5f208e45401968dedb76e0d59999748dee55e`（Day 2，6 文件 / 133 行）
+
+## Day 3 目标项目（用户拍板，2026-09-18）
+
+- 项目性质：**AIGC 生成场景的赛博朋克风格交互式游戏**（网页，玩家可操控角色）
+- MVP 档位（Day 7）：**单场景可玩小样** —— 1 张 AIGC 场景背景 + 角色**点击目的地移动** + 2–3 个物件点击触发固定剧情
+- 目标玩家：**公开发布**，任何人打开链接即玩；电脑与手机都要能玩（靠点击操控，一套代码兼顾，不做两套适配）
+- 一局时长目标：**5–10 分钟**（依据：Hidden Door 官方「每场 5–8 分钟」）
+- 素材策略：**固定 3–5 张高质量场景图**（依据：Hidden Door 官方「少量高质量 > 一大堆平庸的受控生成素材」）
+- 分工原则：**AIGC 管「长相」，脚本管「逻辑」**（反面教材：AI Dungeon 纯自由生成导致剧情漂移、掉用户）
+- 比较对象：Hidden Door / VA-11 HALL-A / AI Dungeon → 成果落在 `research.md`（Day 3 产出，135 行 / 8 节）
+- 文档落点：`research.md` 放仓库根目录（用户拍板，不建 docs/）
+- **命名红线**：「赛博朋克 2077」「Night City」是 CD Projekt Red 商标，标题与界面禁用；「cyberpunk / 赛博朋克」作为风格词可用；仓库名 `Soren2077` 无商标问题
+- 「本期不做」共 13 条：不做 3D / 多地图 / 战斗 / 联机 / 实时自由生成 / 无限素材 / 剧情分支树 / 键盘操控 / 账号登录 / 存档 / 排行榜成就分享 / 声音；标题界面不含商标
+- 用户拍板：**不做声音**（音效与背景乐都不做），氛围靠美术与文本补
+
+## 已知环境异常（Day 2 发现，未解决）
+
+- **本地写不进 `refs/remotes/origin/*`**：`git fetch` 与 `git update-ref` 都返回退出码 0 但引用不落盘，导致 `git status -sb` 显示 `## main...origin/main [gone]`、`git ls-tree origin/main` 报 `Not a valid object name`。
+- 已排除文件系统因素（手动写 `.git/refs/remotes/origin/probe.txt` 可持久化）。
+- **不影响 push / fetch / commit**。查远程事实一律用 `git ls-remote origin` 或匿名调 GitHub API，不要依赖 `origin/main` 这个本地引用。
 
 ## 工作日志
 
