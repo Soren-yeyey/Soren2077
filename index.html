@@ -8,10 +8,12 @@
 /* ==========================================================================
    夜班 SOLITUDE —— 单文件 MVP
    Day 7：能启动的页面骨架 + AIGC 素材 + 三个可互动物件
-   分区：① 基础 ② 舞台与场景 ③ 角色 ④ 开场页 ⑤ 可互动物件
+   Day 8：新增「进店前」的街景首页（场景 / 人物 / 故事 / 动态 / 可互动）
+          首页列表由本地假数据渲染，并补齐 加载 / 空 / 错误 / 正常 四态
+   分区：① 基础 ② 首页（街景） ③ 舞台与场景 ④ 角色 ⑤ 可互动物件
          ⑥ 剧情卡片 ⑦ 进度提示 ⑧ 结束画面
    载体与项目结构见 TECH_DESIGN.md 1.1 / 第 2 节
-   舞台内的元素随舞台等比缩放；文字层（卡片 / 进度 / 结束）用视口单位，保证手机上可读
+   舞台内的元素随舞台等比缩放；文字层（首页列表 / 卡片 / 进度 / 结束）用视口单位，手机上才读得清
    ========================================================================== */
 
 /* ---------- ① 基础 ---------- */
@@ -38,16 +40,319 @@ body {
 }
 
 /* ---------- ② 舞台与场景 ---------- */
-/* 全屏垫底：把同一张场景图放大、模糊、压暗，铺满整个视口。
+/* 全屏垫底：把当前那一屏的图放大、模糊、压暗，铺满整个视口。
    作用只有一个 —— 非 16:9 屏幕上那圈留白不再是纯黑，而是一圈有质感的氛围边框。
    手机竖屏 390x844 实测：舞台只有 390x219，不铺这层就是上下各 312px 的黑板（Day 7 第 4 步拍板）。
    放在 body 第一个子元素且不给 z-index —— 与 #stage 同处"定位元素"层，靠 DOM 顺序垫在它下面 */
 .backdrop {
   position: fixed;
   inset: -8%;                    /* 向外多留一圈，模糊边缘才不会露出透明缝 */
-  background: url("images/scene-laundromat.webp") center / cover no-repeat #05060c;
+  background: url("images/home-street.webp") center / cover no-repeat #05060c;
   filter: blur(26px) brightness(.42) saturate(1.15);
   pointer-events: none;          /* 纯装饰层，不放行任何点击 */
+}
+/* 进店后由 JS 把这层换成洗衣店那张图（两屏各配各的底） */
+
+/* ---------- ② 首页（街景）---------- */
+/* 「进店前」这一屏：场景 / 人物 / 故事 / 动态 / 可互动。
+   与店内同样用 16:9 舞台 —— 只有图上的百分比位置与热区能严格对应；
+   非 16:9 屏幕多出来的留白仍由 .backdrop 填（Day 8 拍板：外霓虹、内暖光） */
+#home {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .8s ease, visibility .8s;
+}
+#home.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+#homeStage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: min(100vw, calc(var(--vh) * 16 / 9));
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* 雨：斜细线整体缓慢平移 —— 让画面"在动"的最小代价做法。
+   调过三次才顺眼：间隔 7px/亮度 .15 时糊成一层灰网；12px 时仍像纱窗。
+   现在 20px 起，并加一道纵向遮罩 —— 近处（画面下半）雨清、远处（上半）雨淡，
+   这样才有纵深，不然连最远的楼都挂着雨丝，一眼假 */
+.home-rain {
+  position: absolute;
+  inset: -22% -6%;
+  background-image:
+    repeating-linear-gradient(104deg, rgba(196, 224, 255, .070) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(104deg, rgba(196, 224, 255, .030) 0 1px, transparent 1px 58px);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .28) 32%, #000 64%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .28) 32%, #000 64%, #000 100%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: rainfall 1.3s linear infinite;
+}
+@keyframes rainfall {
+  from { transform: translateY(-6%); }
+  to   { transform: translateY(6%); }
+}
+
+/* 上下压暗：顶部标题与底部列表在任何画面上都读得清 */
+.home-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 5, 11, .84) 0%, rgba(4, 5, 11, 0) 28%),
+    linear-gradient(0deg,   rgba(4, 5, 11, .70) 0%, rgba(4, 5, 11, 0) 34%);
+  pointer-events: none;
+}
+
+/* 顶栏：作品名 + 氛围文案（原来在开场页，Day 8 迁到这里） */
+.home-top {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  padding: clamp(14px, 3vh, 34px) clamp(16px, 4vw, 56px);
+  pointer-events: none;
+}
+.home-top .eyebrow {
+  font-size: clamp(9px, 1.4vw, 12px);
+  letter-spacing: .34em;
+  color: rgba(160, 200, 255, .70);
+}
+.home-top h1 {
+  margin-top: .42em;
+  font-size: clamp(20px, 3.6vw, 44px);
+  font-weight: 600;
+  letter-spacing: .2em;
+  color: #f2f6ff;
+  animation: neonPulse 4.2s ease-in-out infinite;
+}
+/* 后半截走霓虹渐变字 —— 蓝紫黑基调里的那点"亮" */
+.home-top h1 em {
+  font-style: normal;
+  background: linear-gradient(92deg, #6ee2ff 0%, #a06bff 52%, #ff5ea8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes neonPulse {
+  0%, 100% { text-shadow: 0 0 22px rgba(110, 226, 255, .46), 0 0 56px rgba(160, 107, 255, .30); }
+  50%      { text-shadow: 0 0 36px rgba(110, 226, 255, .78), 0 0 84px rgba(255, 94, 168, .42); }
+}
+.home-top .tagline {
+  margin-top: .7em;
+  font-size: clamp(11px, 1.7vw, 15px);
+  letter-spacing: .14em;
+  color: #a7b8dd;
+}
+
+/* 首页角色：与店内同一套百分比定位，只是可站立范围不同（右边避开店门、下边避开列表）。
+   idleFloat 是"怠速微浮"，让他站着也像在呼吸；位移动画仍走 left/top 的 transition */
+#playerHome {
+  position: absolute;
+  left: 34%;
+  top: 74%;
+  height: 26%;
+  width: auto;
+  transform: translate(-50%, -100%);
+  transition: left .7s ease-in-out, top .7s ease-in-out;
+  filter: drop-shadow(0 0 18px rgba(110, 226, 255, .48))
+          drop-shadow(0 10px 20px rgba(0, 0, 0, .60));
+  animation: idleFloat 3.6s ease-in-out infinite;
+  will-change: left, top;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;          /* 点击穿透到场景，别挡住"点地面走动" */
+}
+#playerHome.no-transition { transition: none; }
+@keyframes idleFloat {
+  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+  50%      { transform: translate(-50%, -100%) translateY(-1.4%); }
+}
+
+/* 店门热区：洗衣店的玻璃幕墙那一块（位置由 Day 8 在成品图上标定，见下方百分比） */
+.home-door {
+  position: absolute;
+  left: 52%; top: 50%;
+  width: 25%; height: 28%;
+  padding: 0 0 8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(110, 226, 255, .05);
+  border: 2px solid rgba(126, 228, 255, .52);
+  border-radius: 10px;
+  cursor: pointer;
+  animation: doorGlow 3.1s ease-in-out infinite;
+  transition: transform .22s ease;
+}
+.home-door span {
+  padding: .34em .9em;
+  font-size: clamp(9.5px, 1.35vw, 14px);
+  letter-spacing: .2em;
+  text-indent: .2em;
+  color: #dff8ff;
+  background: rgba(4, 9, 18, .62);
+  border-radius: 999px;
+  text-shadow: 0 0 12px rgba(110, 226, 255, .95);
+}
+@keyframes doorGlow {
+  0%, 100% { box-shadow: 0 0 26px rgba(110, 226, 255, .22), inset 0 0 40px rgba(110, 226, 255, .10); }
+  50%      { box-shadow: 0 0 46px rgba(110, 226, 255, .58), inset 0 0 62px rgba(160, 107, 255, .24); }
+}
+@media (hover: hover) {
+  .home-door:hover { transform: scale(1.02); }
+}
+.home-door:focus-visible { outline: 3px solid #8ff0dc; outline-offset: 3px; }
+
+/* 底部面板：今夜街上的动静。列表由 JS 从本地假数据渲染，不是写死在 HTML 里 */
+.home-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 7;
+  padding: clamp(10px, 1.7vh, 20px) clamp(12px, 3.4vw, 48px) clamp(12px, 2vh, 24px);
+  background: linear-gradient(0deg, rgba(3, 4, 10, .95) 0%, rgba(3, 4, 10, .82) 52%, rgba(3, 4, 10, 0) 100%);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: .8em;
+  margin-bottom: clamp(7px, 1.1vh, 12px);
+}
+.panel-head h2 {
+  font-size: clamp(11px, 1.5vw, 14px);
+  font-weight: 500;
+  letter-spacing: .22em;
+  color: #cfe0ff;
+}
+.panel-head i {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(110, 226, 255, .55), rgba(160, 107, 255, .28), transparent);
+}
+.panel-head em {
+  font-style: normal;
+  font-size: clamp(9px, 1.2vw, 11px);
+  letter-spacing: .2em;
+  color: #6ee2ff;
+}
+
+.card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+  gap: clamp(7px, 1.1vw, 14px);
+  list-style: none;
+}
+
+.note {
+  padding: .68em .85em .72em;
+  border-radius: 10px;
+  background: rgba(11, 16, 31, .74);
+  border: 1px solid rgba(120, 226, 255, .16);
+  border-left: 2px solid rgba(110, 226, 255, .85);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+.note time {
+  display: block;
+  font-size: clamp(9.5px, 1.3vw, 12px);
+  letter-spacing: .18em;
+  color: #6ee2ff;
+}
+.note p {
+  margin-top: .38em;
+  font-size: clamp(11px, 1.6vw, 13.5px);
+  line-height: 1.62;
+  color: #c3d0ee;
+}
+@media (hover: hover) {
+  .note:hover {
+    transform: translateY(-3px);
+    background: rgba(16, 23, 44, .86);
+    border-color: rgba(120, 226, 255, .50);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .55), 0 0 24px rgba(110, 226, 255, .22);
+  }
+}
+.note:focus-visible { outline: 3px solid #8ff0dc; outline-offset: 2px; }
+
+/* 四态：加载 / 空 / 错误 / 正常。切 data-state 就行，不新增 DOM 分支 */
+.panel-state {
+  display: none;
+  padding: clamp(12px, 2vh, 20px) 1em;
+  text-align: center;
+  font-size: clamp(11px, 1.6vw, 13.5px);
+  letter-spacing: .12em;
+  color: #8fa2c4;
+  background: rgba(11, 16, 31, .58);
+  border: 1px dashed rgba(120, 226, 255, .22);
+  border-radius: 10px;
+}
+.home-panel[data-state="loading"] .card-list,
+.home-panel[data-state="empty"]   .card-list,
+.home-panel[data-state="error"]   .card-list { display: none; }
+.home-panel[data-state="loading"] .panel-state,
+.home-panel[data-state="empty"]   .panel-state,
+.home-panel[data-state="error"]   .panel-state { display: block; }
+
+/* 加载态：一条来回扫的霓虹线 */
+.searchline {
+  display: block;
+  position: relative;
+  height: 2px;
+  width: min(60%, 260px);
+  margin: 0 auto .9em;
+  background: rgba(110, 226, 255, .14);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.searchline::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, #6ee2ff, transparent);
+  animation: scanning 1.25s ease-in-out infinite;
+}
+@keyframes scanning {
+  0%   { transform: translateX(-105%); }
+  100% { transform: translateX(275%); }
+}
+
+.retry {
+  margin-top: .95em;
+  padding: .5em 1.6em;
+  font-family: inherit;
+  font-size: clamp(10.5px, 1.4vw, 13px);
+  letter-spacing: .18em;
+  text-indent: .18em;
+  color: #06121a;
+  background: linear-gradient(135deg, #7ff0dc, #57c8ff);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(87, 200, 255, .40);
+}
+
+.home-hint {
+  margin-top: clamp(7px, 1.1vh, 12px);
+  text-align: center;
+  font-size: clamp(9.5px, 1.35vw, 12px);
+  letter-spacing: .14em;
+  color: #6f7fa8;
 }
 
 /* 舞台固定 16:9，随屏幕整体放大缩小、比例不变。
@@ -58,7 +363,12 @@ body {
   width: min(100vw, calc(var(--vh) * 16 / 9));
   overflow: hidden;
   background: #0a0d18;
+  /* 店内这一屏默认不显示 —— 玩家在首页点店门后才亮起来（Day 8） */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .8s ease, visibility .8s;
 }
+#stage.active { opacity: 1; visibility: visible; }
 
 #scene {
   position: absolute;
@@ -110,36 +420,7 @@ body {
   pointer-events: none;
 }
 
-/* ---------- ④ 开场页 ---------- */
-#intro {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.3em;
-  padding: 8vw;
-  text-align: center;
-  background: radial-gradient(circle at 50% 42%, #131d33 0%, #05060c 72%);
-  transition: opacity .55s ease;
-}
-#intro.hidden { opacity: 0; pointer-events: none; }
-
-#intro h1 {
-  font-size: clamp(28px, 7vw, 62px);
-  font-weight: 600;
-  letter-spacing: .24em;
-  text-indent: .24em;                  /* 抵消字间距，让标题视觉居中 */
-  color: #f2f5ff;
-  text-shadow: 0 0 26px rgba(120, 226, 255, .45);
-}
-
-.tagline { font-size: clamp(13px, 2.4vw, 17px); letter-spacing: .18em; color: #9fb0d8; }
-.hint    { font-size: clamp(12px, 2.1vw, 15px); letter-spacing: .08em; color: #6f7fa8; }
-
-/* 开场页与结束画面共用同一个按钮样式 */
+/* 结束画面的按钮（原开场页那套已并入首页，顶栏样式见第 ② 节） */
 .btn {
   margin-top: .5em;
   padding: .85em 2.8em;
@@ -302,7 +583,7 @@ body {
     <div class="floor"></div>
 
     <!-- 角色：AIGC 立绘，脚底对齐 left/top 所指的那一点 -->
-    <img id="player" src="images/player.webp" alt="当班的你" decoding="async">
+    <img id="player" src="images/player-neon.webp" alt="当班的你" decoding="async">
 
     <!-- 三个可互动物件。放在角色之后，光圈才能盖在角色上面；位置见 CSS 第 ⑤ 节 -->
     <button class="hotspot" type="button" data-id="washer"  aria-label="还在转的洗衣机"></button>
@@ -317,12 +598,43 @@ body {
 <!-- 剧情卡片：点物件浮出，点卡片外任意处收起（PRD 第 4 节第 4 步） -->
 <div id="card"><div id="cardText"></div></div>
 
-<!-- 开场页 -->
-<div id="intro">
-  <h1>夜班 SOLITUDE</h1>
-  <p class="tagline">凌晨三点，雨还没停。</p>
-  <p class="hint">点击地面移动 · 点击发光的物件看看</p>
-  <button id="startBtn" class="btn" type="button">开 始</button>
+<!-- 首页：进店前的霓虹街景（Day 8）。
+     场景 / 人物 / 故事 / 动态 / 可互动都在这一屏；底部列表由 JS 从本地假数据渲染 -->
+<div id="home">
+  <div id="homeStage">
+    <img class="home-bg" id="homeBg" src="images/home-street.webp" alt="雨夜的霓虹街口" decoding="async">
+    <div class="home-rain" aria-hidden="true"></div>
+
+    <!-- 人物：与店内同一套百分比定位 -->
+    <img id="playerHome" src="images/player-neon.webp" alt="当班的你" decoding="async">
+
+    <!-- 店门：热区位置在成品图上标定（洗衣店的玻璃幕墙那一块） -->
+    <button class="home-door" id="doorBtn" type="button" aria-label="推门进洗衣店">
+      <span>推门进去</span>
+    </button>
+  </div>
+
+  <!-- 上下压暗层：保证顶部标题与底部列表在任何画面上都读得清 -->
+  <div class="home-scrim" aria-hidden="true"></div>
+
+  <!-- 顶栏：作品名与氛围文案（原来在开场页，Day 8 迁到这里） -->
+  <div class="home-top">
+    <p class="eyebrow">交互式短篇 · 第 01 夜</p>
+    <h1>夜班 <em>SOLITUDE</em></h1>
+    <p class="tagline">凌晨三点，雨还没停。洗衣店的灯还亮着。</p>
+  </div>
+
+  <!-- 今夜街上的动静 —— 列表由 JS 渲染；data-state 管 加载 / 空 / 错误 / 正常 -->
+  <section class="home-panel" id="homePanel" data-state="loading">
+    <div class="panel-head">
+      <h2>今夜街上的动静</h2>
+      <i></i>
+      <em id="noteStamp"></em>
+    </div>
+    <ul class="card-list" id="homeList"></ul>
+    <div class="panel-state" id="homeState"></div>
+    <p class="home-hint">点地面走动 · 点卡片看动静 · 点店门进店</p>
+  </section>
 </div>
 
 <!-- 结束画面：全屏，只保留「再来一次」（PRD 第 4 节第 5 步 / 验收第 11 条） -->
@@ -351,7 +663,18 @@ body {
 
   const scene  = document.getElementById('scene');
   const player = document.getElementById('player');
-  const intro  = document.getElementById('intro');
+  const stage  = document.getElementById('stage');
+
+  // 首页（街景）相关元素
+  const home       = document.getElementById('home');
+  const homeStage  = document.getElementById('homeStage');
+  const homeBg     = document.getElementById('homeBg');
+  const homePanel  = document.getElementById('homePanel');
+  const homeList   = document.getElementById('homeList');
+  const homeState  = document.getElementById('homeState');
+  const noteStamp  = document.getElementById('noteStamp');
+  const playerHome = document.getElementById('playerHome');
+  const backdrop   = document.querySelector('.backdrop');
 
   const clamp = (v, lo, hi) => (v < lo ? lo : (v > hi ? hi : v));
 
@@ -403,15 +726,17 @@ body {
   const progress   = document.getElementById('progress');
   const ending     = document.getElementById('ending');
 
-  // 弹出某段剧情
-  function openCard(id) {
-    cardText.replaceChildren(...STORY[id].map((line) => {
+  // 弹出若干行文字 —— 店内剧情与首页动静共用同一张卡片
+  function showCard(lines) {
+    cardText.replaceChildren(...lines.map((line) => {
       const p = document.createElement('p');
       p.textContent = line;        // textContent：文案里的引号、破折号原样显示，也不会被当成标签
       return p;
     }));
     card.classList.add('show');
   }
+
+  function openCard(id) { showCard(STORY[id]); }
 
   // 三个物件：点一下弹剧情。第一次点算"找到"（光圈收起 + 计数 +1），之后还能再点、还能看同样的话
   let pendingEnd = false;        // 第 3 个已点开、正等玩家把字读完
@@ -467,19 +792,173 @@ body {
 
     pendingEnd = false;
     ending.classList.remove('show');
-    intro.classList.remove('hidden');   // 回到开场：作品名 + 引导 + 「开始」
-    state.over = false;                 // 交互恢复；进度提示等玩家重新点「开始」时再出现
+    backHome();                         // 回到街景首页（作品名 / 引导 都迁到这里了）
+    state.over = false;                 // 交互恢复
   }
 
-  // 点「开始」→ 收起开场页，进度提示登场
-  document.getElementById('startBtn').addEventListener('click', () => {
-    intro.classList.add('hidden');
-    progress.classList.add('show');
+  // 点店门 → 进店（Day 8：原来那个「开始」按钮的职责并入这里）
+  document.getElementById('doorBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    enterShop();
   });
 
   document.getElementById('againBtn').addEventListener('click', resetGame);
 
-  renderPlayer();   // 首帧落位
+  /* ======================================================================
+     首页：进店前的霓虹街景（Day 8）
+     ====================================================================== */
+
+  /* 本地假数据（mock）。Day 8 清单明确：本期不接真实 API，数据先写死在这里。
+     等以后有了真实数据源，只要把 NOTES 换成请求结果 —— 下面的渲染逻辑一行都不用改 */
+  const NOTES = [
+    { t: '02:14', s: '对面便利店的灯还亮着，没人进去。' },
+    { t: '02:47', s: '楼上有人在阳台抽烟，烟头亮了三次。' },
+    { t: '03:05', s: '一辆无人驾驶的出租车停在路口，等了很久，没人上车。' },
+    { t: '03:31', s: '雨大了。街角那台自动贩卖机自己亮了一下。' }
+  ];
+
+  // 首页可站立范围：右边让给店门热区，下边让给动静列表
+  const HOME_WALK = { minX: 10, maxX: 46, minY: 52, maxY: 76 };
+  const homePos = { x: 34, y: 74 };
+
+  function renderHomePlayer() {
+    playerHome.style.left = homePos.x + '%';
+    playerHome.style.top  = homePos.y + '%';
+  }
+
+  // ---- 四态：切换 data-state 就行，不为每种状态写一套 DOM ----
+  function setPanelState(name, content) {
+    homePanel.dataset.state = name;
+    homeState.replaceChildren(content || '');
+  }
+
+  function loadingNode() {
+    const bar = document.createElement('span');
+    bar.className = 'searchline';
+    const box = document.createElement('div');
+    box.append(bar, document.createTextNode('正在接入街区…'));
+    return box;
+  }
+
+  function problemNode(msg, canRetry) {
+    const box = document.createElement('div');
+    box.append(document.createTextNode(msg));
+    if (canRetry) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'retry';
+      btn.textContent = '重新连接';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); loadNotes(); });
+      box.append(document.createElement('br'), btn);
+    }
+    return box;
+  }
+
+  // ---- 渲染列表：数据 → 卡片。卡片是 JS 现造的，HTML 源码里搜不到这些句子 ----
+  function renderNotes(list) {
+    homeList.replaceChildren(...list.map((n) => {
+      const li = document.createElement('li');
+      li.className = 'note';
+      li.tabIndex = 0;
+      const t = document.createElement('time');
+      t.textContent = n.t;
+      const p = document.createElement('p');
+      p.textContent = n.s;
+      li.append(t, p);
+      const open = (e) => { e.stopPropagation(); showCard([n.t + '　' + n.s]); };
+      li.addEventListener('click', open);
+      li.addEventListener('keydown', (e) => {          // 键盘也能操作（Tab 到卡片后回车）
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); }
+      });
+      return li;
+    }));
+    noteStamp.textContent = list.length + ' 条';
+  }
+
+  // 交付用的验证开关（三个非正常态各有稳定入口，不必靠"手快"去抓瞬间）：
+  //   ?mock=loading 停在加载态   ?mock=empty 看空态   ?mock=error 看错误态
+  //   不加参数 = 正常态：短暂加载后渲染假数据
+  const MOCK = new URLSearchParams(location.search).get('mock') || 'ok';
+  let loadTimer = null;
+
+  function loadNotes() {
+    clearTimeout(loadTimer);
+    setPanelState('loading', loadingNode());
+    noteStamp.textContent = '';
+
+    if (MOCK === 'loading') return;      // 停在加载态，方便截图与验收
+
+    if (MOCK === 'error') {
+      loadTimer = setTimeout(() => {
+        setPanelState('error', problemNode('街区信号中断 —— 拿不到今夜的动静。', true));
+        noteStamp.textContent = '—';
+      }, 700);
+      return;
+    }
+    if (MOCK === 'empty') {
+      loadTimer = setTimeout(() => {
+        renderNotes([]);
+        setPanelState('empty', problemNode('今夜街上没什么动静。', false));
+      }, 700);
+      return;
+    }
+    // 正常：短暂加载后把假数据渲染成卡片
+    loadTimer = setTimeout(() => {
+      renderNotes(NOTES);
+      setPanelState('ok');
+    }, 900);
+  }
+
+  // 场景图挂掉时不能白屏 —— 得让玩家知道发生了什么，并留一个重新连接的入口
+  homeBg.addEventListener('error', () => {
+    clearTimeout(loadTimer);
+    setPanelState('error', problemNode('街区画面加载失败 —— 检查网络或图片路径。', true));
+    noteStamp.textContent = '—';
+  });
+
+  // ---- 两屏切换：首页 ⇄ 店内 ----
+  let inShop = false;
+
+  function enterShop() {
+    if (inShop) return;
+    inShop = true;
+    card.classList.remove('show');
+    home.classList.add('hidden');
+    stage.classList.add('active');
+    progress.classList.add('show');     // 进度提示只在店内有意义
+    backdrop.style.backgroundImage = 'url("images/scene-laundromat.webp")';
+  }
+
+  function backHome() {
+    inShop = false;
+    stage.classList.remove('active');
+    progress.classList.remove('show');
+    home.classList.remove('hidden');
+    backdrop.style.backgroundImage = 'url("images/home-street.webp")';
+
+    // 角色瞬移回街上起点：先关位移动画 → 落位 → 强制重排 → 再把动画还回去
+    playerHome.classList.add('no-transition');
+    homePos.x = 34;
+    homePos.y = 74;
+    renderHomePlayer();
+    void playerHome.offsetWidth;
+    playerHome.classList.remove('no-transition');
+  }
+
+  // 在街上点地面 → 角色走过去（与店内同一套逻辑，只是可站立范围不同）
+  homeStage.addEventListener('click', (e) => {
+    const r = homeStage.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width)  * 100;
+    const y = ((e.clientY - r.top)  / r.height) * 100;
+    homePos.x = clamp(x, HOME_WALK.minX, HOME_WALK.maxX);
+    homePos.y = clamp(y, HOME_WALK.minY, HOME_WALK.maxY);
+    renderHomePlayer();
+  });
+
+  /* ---------------- 初始化 ---------------- */
+  renderPlayer();         // 店内角色首帧落位
+  renderHomePlayer();     // 首页角色首帧落位
+  loadNotes();            // 首页列表：先加载态，随后渲染假数据
 })();
 </script>
 
