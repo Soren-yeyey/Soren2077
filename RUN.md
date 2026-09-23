@@ -121,11 +121,13 @@ python -m http.server 8000 --bind ::
 |---|---|
 | `index.html` | 全部内容：页面结构 + 样式 + 交互逻辑 |
 | `images/home-street.webp` | 街景首页背景图 1920×1080 |
-| `images/player-neon.webp` | 街景首页的角色立绘 599×1501（带透明通道） |
 | `images/scene-laundromat.webp` | 店内场景背景图 1920×1080 |
-| `images/player.webp` | 店内角色立绘 372×720（带透明通道） |
+| `images/player-neon.webp` | 角色立绘 599×1501（带透明通道），**两屏共用这一张** |
+| `images/item-washer.webp` | 第 ① 幕配图：还在转的洗衣机 1440×810 |
+| `images/item-vending.webp` | 第 ② 幕配图：自动贩卖机 1440×810 |
+| `images/item-radio.webp` | 第 ③ 幕配图：老式收音机 1440×810 |
 
-`images/` 里只放这四张。别往里塞截图、草稿、原图 —— 多一个文件就多一份上线体积。
+`images/` 里只放这六张。别往里塞截图、草稿、原图 —— 多一个文件就多一份上线体积。
 
 ---
 

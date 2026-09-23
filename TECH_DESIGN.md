@@ -67,8 +67,7 @@ Soren2077/
    ├─ player-neon.webp        ← 角色立绘，**两屏共用同一张**（Day 8）
    ├─ item-washer.webp        ← 第 ① 幕配图：还在转的洗衣机（Day 9）
    ├─ item-vending.webp       ← 第 ② 幕配图：自动贩卖机（Day 9）
-   ├─ item-radio.webp         ← 第 ③ 幕配图：老式收音机（Day 9）
-   └─ player.webp             ← Day 7 的旧立绘，**已不再被任何页面引用**（Day 8 统一角色后遗留）
+   └─ item-radio.webp         ← 第 ③ 幕配图：老式收音机（Day 9）
 ```
 
 **约定**：素材文件名一律**英文小写 + 连字符**，不用中文、不用空格（原因见第 8 节"部署的坑"）。
