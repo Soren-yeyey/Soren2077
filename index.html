@@ -159,17 +159,33 @@ body {
 }
 
 /* 首页角色：与店内同一套百分比定位，只是可站立范围不同（右边避开店门、下边避开列表）。
-   idleFloat 是"怠速微浮"，让他站着也像在呼吸；位移动画仍走 left/top 的 transition */
+   idleFloat 是"怠速微浮"，让他站着也像在呼吸；位移动画仍走 left/top 的 transition。
+   3A 走动手感：时长不再写死，由 JS 按"实际走了多远"算出后写进 --walk-dur ——
+   固定 .7s 会让挪一小步和穿过整个场景花一样长的时间，速度不一致就是"机械感"的来源 */
 #playerHome {
   position: absolute;
   left: 34%;
   top: 74%;
-  height: 26%;
+  /* 3E 透视缩放：越靠近画面下方（离观众越近）越大。变量由 JS 按可站立范围归一化后写入。
+     用 height 而不是 scale —— scale 已经用于镜像（--face），
+     若给 scale 加 transition，转身时会被看成"压扁再展开"的动画 */
+  height: calc(26% * var(--p-scale, 1));
   width: auto;
-  transform: translate(-50%, -100%);
-  transition: left .7s ease-in-out, top .7s ease-in-out;
-  filter: drop-shadow(0 0 18px rgba(110, 226, 255, .48))
-          drop-shadow(0 10px 20px rgba(0, 0, 0, .60));
+  /* 基础位移必须用独立的 translate 属性，不能用 transform：
+     transform 在合成顺序里排在最内层，会被外层的 scale 翻掉 —— translate(-50%) 变成 +50%，
+     朝左走时整个人就右偏一个身宽（实测 65px ≈ 5.9% 舞台宽）。translate 排在 scale 外层，不受影响 */
+  translate: -50% -100%;
+  /* 3B 朝向：--face 为 -1 时水平镜像（向左走）。用独立的 scale 属性、而不是往
+     transform 里塞 scaleX() —— 因为 idleFloat 动画会整个覆盖 transform，塞进去会被动画吃掉；
+     scale 是独立属性，动画不碰它 */
+  scale: var(--face, 1) 1;
+  /* height 也走同一条时长：大小与位移必须同步到达，否则"人到了、尺寸还没到" */
+  transition: left   var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              top    var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              height var(--walk-dur, .7s) var(--walk-ease, ease-in-out);
+  /* 3D：只留青色光晕。原来那层黑色 drop-shadow 会跟着呼吸/走动一起升降，
+     已由独立的 .p-shadow 接管（见第 ③-0 节） */
+  filter: drop-shadow(0 0 18px rgba(110, 226, 255, .48));
   animation: idleFloat 3.6s ease-in-out infinite;
   will-change: left, top;
   user-select: none;
@@ -177,9 +193,28 @@ body {
   pointer-events: none;          /* 点击穿透到场景，别挡住"点地面走动" */
 }
 #playerHome.no-transition { transition: none; }
+/* 3C：走动中换成走路起伏（停下来由 JS 摘掉这个类，回到 idleFloat 的站立呼吸） */
+#playerHome.walking { animation: walkBob .86s ease-in-out infinite; }
+/* 基础位移在独立 translate 属性上，所以动画里只写"起伏"本身 ——
+   即便动画整个覆盖了 transform，也不会再把角色挪位 */
 @keyframes idleFloat {
-  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
-  50%      { transform: translate(-50%, -100%) translateY(-1.4%); }
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.4%); }
+}
+
+/* ---------- 3C 步态：走动时的起伏 + 侧倾 ----------
+   一个循环 .86s 里起伏两次（左右脚各一步），幅度 1.1%、侧倾 1.2deg。
+   再大就不是走路而是蹦跳了；再小则看不出来。
+   站立呼吸（idleFloat）与走路起伏（walkBob）是两套动画，靠 .walking 类互斥切换 ——
+   两者都只声明 transform，同时在场会互相覆盖。
+   基础位移在独立 translate 属性上，这里不必再自带 —— 顺带一个好处：rotate 会被外层的
+   scale 镜像，所以朝左走时身体往另一侧倾，倾斜方向自动跟着朝向走 */
+@keyframes walkBob {
+  0%   { transform: translateY(0)     rotate(0deg); }
+  25%  { transform: translateY(-1.1%) rotate(-1.2deg); }
+  50%  { transform: translateY(0)     rotate(0deg); }
+  75%  { transform: translateY(-1.1%) rotate(1.2deg); }
+  100% { transform: translateY(0)     rotate(0deg); }
 }
 
 /* 店门热区：洗衣店的玻璃幕墙那一块（位置由 Day 8 在成品图上标定，见下方百分比） */
@@ -400,20 +435,61 @@ body {
   pointer-events: none;
 }
 
+/* ---------- ③-0 接地阴影（3D）----------
+   必须是"独立元素"，不能用 drop-shadow。
+   drop-shadow 是贴着立绘的不透明轮廓生成的，并且**跟着元素一起动** —— 角色呼吸上浮、
+   走路起伏时它同步升降，看起来像"人背后印了块影"，而不是"踩在地上"。
+   所以换成独立椭圆：它有自己的 left/top（与角色同一坐标 = 脚底那一点），但身上不带
+   任何浮动动画 —— 角色升起来时它留在地上不动，这才叫接地。
+   时长同样读 --walk-dur：影子和人必须同步到达，差一点就会出现"影子先到、人后到"。 */
+.p-shadow {
+  position: absolute;
+  /* 3E：影子必须跟着角色一起缩放（同一个 --p-scale）——
+     人变大影子不变，会立刻露出"影子不是他踩的"破绽。
+     尺寸写 width/height 而不是 scale：transform 里的 translate(-50%,-50%) 是定位用的，
+     改尺寸时百分比自动跟随，椭圆中心仍然钉在脚底那一点 */
+  width:  calc(8.5% * var(--p-scale, 1));
+  height: calc(3.4% * var(--p-scale, 1));
+  transform: translate(-50%, -50%);   /* 椭圆中心 = 脚底接触点 */
+  background: radial-gradient(ellipse at center,
+              rgba(3, 5, 12, .72) 0%,
+              rgba(3, 5, 12, .44) 38%,
+              rgba(3, 5, 12, .16) 62%,
+              rgba(3, 5, 12, 0)   80%);
+  transition: left   var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              top    var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              width  var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              height var(--walk-dur, .7s) var(--walk-ease, ease-in-out);
+  pointer-events: none;
+}
+/* 复位时和角色一起瞬移，否则影子会慢慢飘回起点 */
+.p-shadow.no-transition { transition: none; }
+/* 初始坐标必须与角色在 CSS 里的默认值一致：绝对定位元素没给 left/top 时会停在
+   静态位置（左上），脚本执行前那一瞬影子就会闪在角落里 */
+#shadowHome { left: 34%; top: 74%; }
+#shadow     { left: 50%; top: 78%; }
+
 /* ---------- ③ 角色 ---------- */
 /* left / top 是相对舞台的百分比，指的是"脚底"那一点（TECH_DESIGN.md 3.1）。
-   height 给百分比、width:auto —— 角色随舞台等比缩放，绝不被拉变形 */
+   height 给百分比、width:auto —— 角色随舞台等比缩放，绝不被拉变形。
+   3A 走动手感：时长由 JS 按距离算出写进 --walk-dur，与首页角色同一套规则 */
 #player {
   position: absolute;
   left: 50%;
   top: 78%;
-  height: 26%;
+  /* 3E 透视缩放：与首页同一套（变量由 JS 写，原因见 #playerHome） */
+  height: calc(26% * var(--p-scale, 1));
   width: auto;
-  transform: translate(-50%, -100%);
-  transition: left .7s ease-in-out, top .7s ease-in-out;
-  /* 两层投影：外层青色光晕让角色在暗背景里也醒目，内层落地阴影给他"站住"的重量 */
-  filter: drop-shadow(0 0 16px rgba(110, 226, 255, .40))
-          drop-shadow(0 10px 18px rgba(0, 0, 0, .55));
+  /* 与首页角色同一套：基础位移走独立的 translate 属性，避免被 scale 翻转（原因见 #playerHome） */
+  translate: -50% -100%;
+  /* 3B 朝向：与首页角色同一套（--face = 1 朝右 / -1 朝左） */
+  scale: var(--face, 1) 1;
+  transition: left   var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              top    var(--walk-dur, .7s) var(--walk-ease, ease-in-out),
+              height var(--walk-dur, .7s) var(--walk-ease, ease-in-out);
+  /* 3D：只留青色光晕（角色在暗背景里才醒目）。原来那层黑色落地投影已由
+     独立的 .p-shadow 接管 —— 它会跟着走路起伏一起动，做不了"接地"这件事 */
+  filter: drop-shadow(0 0 16px rgba(110, 226, 255, .40));
   will-change: left, top;
   user-select: none;
   -webkit-user-drag: none;
@@ -468,6 +544,16 @@ body {
   50%      { opacity: 1; }
 }
 
+/* 还没轮到的那两幕（Day 9「1A」）：光圈压暗、呼吸放慢 ——
+   和"轮到的那一幕"形成亮度对比，玩家一眼知道该点哪个。
+   注意必须换一条 keyframes：breathe 自己就在动 opacity，光写 opacity 会被它盖掉。
+   仍要可点（点它给一句旁白），所以不能设成 display:none 或 pointer-events:none */
+@keyframes breatheDim {
+  0%, 100% { opacity: .24; }
+  50%      { opacity: .38; }
+}
+.hotspot.pending { animation: breatheDim 4.4s ease-in-out infinite; }
+
 /* 已读：光圈收起，表示"看过了"（PRD 验收第 4 条）。
    注意仍要可点 —— 再点一次会弹出相同文字，但不再计数 */
 .hotspot.read { animation: none; opacity: 0; }
@@ -484,8 +570,12 @@ body {
   left: 50%;
   bottom: max(3vh, 16px);
   width: min(92vw, 720px);
-  max-height: 50vh;
-  overflow-y: auto;
+  max-height: 76vh;                  /* 2A：图占了卡片上半，50vh 会把文字挤出可视区；
+                                        1A 文案从 150 字扩到 250 字，再抬到 76vh。
+                                        再高就会把游戏画面整个盖住了 */
+  overflow: hidden;                  /* 日常不该溢出：文字区自己有 max-height。
+                                        这里不能用 auto —— 内容恰好顶到上限时
+                                        浏览器会多出一条整卡滚动条，很难看 */
   padding: 1.25em 1.5em;
   border-radius: 14px;
   background: rgba(9, 13, 25, .90);
@@ -500,13 +590,50 @@ body {
 }
 #card.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 
+/* 2A：物件特写图（P1 顶部横图）。素材本身就是精确 16:9、容器也用 16:9，
+   所以 object-fit: cover 实际不会裁掉任何内容，只作极端情况的兜底。
+   aspect-ratio 是"占位"：图还没解码完时卡片高度已经定好，文字不会跳一下 */
+#cardImg {
+  display: block;
+  width: 100%;
+  max-width: 320px;             /* 桌面上不让图撑满卡片：撑满时图高 378px，
+                                   会把卡片里的文字挤到需要滚动才能读完。
+                                   1A 文案变长后进一步收到 320px（高 180px）——
+                                   这是"每幕一屏读完"的硬约束：桌面 720px 窗口下
+                                   卡片只有 76vh，图再大就会把每幕的落点句挤出可视区。
+                                   ⚠️ 别在这里写 flex —— 卡片一旦是 flex column，
+                                   本行的 flex-basis:auto 会绕开 aspect-ratio 去取图片的
+                                   内在高度，图会被拉成竖的（实测 380×460）。 */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+  margin: 0 auto 1.05em;        /* 宽度受限时居中 */
+  background: #070b16;          /* 图未到时的底色，避免透出卡片背后的画面 */
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+#cardImg.ready { opacity: 1; }
+#cardImg[hidden] { display: none; }   /* 首页"街上的动静"没有配图，不能占位 */
+
 #cardText {
   font-size: clamp(13.5px, 2.3vw, 17px);
-  line-height: 1.85;
+  line-height: 1.7;             /* 1A：1.85 → 1.7。中文在 1.7 行高下依然舒展，
+                                   换来的高度正好装下第 3 幕那 6 段 */
   letter-spacing: .04em;
   color: #dde5ff;
+  /* 1A：文字区自己限高、超出才滚 —— 于是图固定可见，滚的只有字。
+     用 vh 算而不是 flex:1，是为了不让图片被 flex 主轴计算带偏（图必须保持 16:9）。
+     240px = 图(180) + 图下边距(17) + 卡片上下 padding(40) + 3px 余量 */
+  max-height: calc(76vh - 240px);
+  overflow-y: auto;
+  padding-right: .2em;          /* 留一点缝，滚动条不压字 */
 }
-#cardText p + p { margin-top: .75em; }
+#cardText p + p { margin-top: .6em; }
+#cardText::-webkit-scrollbar { width: 6px; }
+#cardText::-webkit-scrollbar-thumb {
+  background: rgba(120, 226, 255, .28);
+  border-radius: 3px;
+}
 
 /* ---------- ⑦ 进度提示 ---------- */
 #progress {
@@ -569,6 +696,8 @@ body {
 
 /* 复位时临时关掉角色位移动画，避免"再来一次"后看见他慢慢走回中间 */
 #player.no-transition { transition: none; }
+/* 3C：店内角色没有站立呼吸，只有走动时才戴上这个类（与首页共用同一套 walkBob） */
+#player.walking { animation: walkBob .86s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -582,6 +711,9 @@ body {
     <img class="bg" src="images/scene-laundromat.webp" alt="" decoding="async">
     <div class="floor"></div>
 
+    <!-- 接地影子：3D。必须放在角色之前（DOM 顺序 = 绘制层级，影子在脚下） -->
+    <div class="p-shadow" id="shadow" aria-hidden="true"></div>
+
     <!-- 角色：AIGC 立绘，脚底对齐 left/top 所指的那一点 -->
     <img id="player" src="images/player-neon.webp" alt="当班的你" decoding="async">
 
@@ -593,10 +725,10 @@ body {
 </div>
 
 <!-- 进度提示：让玩家知道有目标、还差几个（PRD 第 8 节未决问题 #3，Day 7 拍板"做"） -->
-<div id="progress">已找到 <b id="foundCount">0</b> / 3</div>
+<div id="progress">已读到 <b id="foundCount">0</b> / 3 幕</div>
 
 <!-- 剧情卡片：点物件浮出，点卡片外任意处收起（PRD 第 4 节第 4 步） -->
-<div id="card"><div id="cardText"></div></div>
+<div id="card"><img id="cardImg" alt="" decoding="async" hidden><div id="cardText"></div></div>
 
 <!-- 首页：进店前的霓虹街景（Day 8）。
      场景 / 人物 / 故事 / 动态 / 可互动都在这一屏；底部列表由 JS 从本地假数据渲染 -->
@@ -604,6 +736,9 @@ body {
   <div id="homeStage">
     <img class="home-bg" id="homeBg" src="images/home-street.webp" alt="雨夜的霓虹街口" decoding="async">
     <div class="home-rain" aria-hidden="true"></div>
+
+    <!-- 接地影子：与店内同一套（3D） -->
+    <div class="p-shadow" id="shadowHome" aria-hidden="true"></div>
 
     <!-- 人物：与店内同一套百分比定位 -->
     <img id="playerHome" src="images/player-neon.webp" alt="当班的你" decoding="async">
@@ -640,7 +775,10 @@ body {
 <!-- 结束画面：全屏，只保留「再来一次」（PRD 第 4 节第 5 步 / 验收第 11 条） -->
 <div id="ending">
   <h2>天快亮了</h2>
-  <p class="closing">雨小了。卷帘门拉下来，该收工了——只是那件外套，还在 3 号机里转。</p>
+  <p class="closing">雨小了。卷帘门拉下来，该收工了。<br><br>
+    那件外套还在 3 号机里转。天亮以后我会把它取出来，叠好，放进失物柜的第三层——前两次都在那儿。<br><br>
+    这店还剩三个月。三个月里的每一个夜班，我都会把灯留着。<br><br>
+    亮着，总比黑着强。</p>
   <button id="againBtn" class="btn" type="button">再来一次</button>
 </div>
 
@@ -663,6 +801,7 @@ body {
 
   const scene  = document.getElementById('scene');
   const player = document.getElementById('player');
+  const shadow = document.getElementById('shadow');        // 3D：店内的接地阴影
   const stage  = document.getElementById('stage');
 
   // 首页（街景）相关元素
@@ -674,14 +813,110 @@ body {
   const homeState  = document.getElementById('homeState');
   const noteStamp  = document.getElementById('noteStamp');
   const playerHome = document.getElementById('playerHome');
+  const shadowHome = document.getElementById('shadowHome');   // 3D：街景的接地阴影
   const backdrop   = document.querySelector('.backdrop');
 
   const clamp = (v, lo, hi) => (v < lo ? lo : (v > hi ? hi : v));
 
-  // 把角色画到 target 处；位置变化由 CSS transition 补成"走过去"
+  /* ---- 3D 接地阴影 ----
+     影子是独立定位元素，不会自己跟着角色走：角色动、影子不动，一眼就露馅。
+     所以凡是要改角色坐标、改过渡时长、改瞬移标记的地方，都得连影子一起处理。
+     用一张表把"角色 → 它的影子"记下来，上面那些地方就不用各写一遍 if。 */
+  const shadowFor = new WeakMap([[player, shadow], [playerHome, shadowHome]]);
+
+  /* ---- 3A 走动手感：让"远近"的速度一致 ----
+     原来 transition 写死 .7s，于是挪一小步和穿过整个场景花一样长的时间 ——
+     速度不随距离变化，看上去像在"滑行"而不是在走，这就是机械感的第一来源。
+     改成：时长 = 距离 ÷ 步速，再夹在 [最短, 最长] 之间。
+     舞台是 16:9，纵向 1% 的物理长度只有横向 1% 的 9/16，
+     所以算距离时要把纵向分量换算一次，否则斜着走会偏快。 */
+  const WALK_Y_SCALE = 9 / 16;
+  const WALK_SPEED   = 30;      // 每秒走 30 个横向百分比：横穿店内约 2.9 秒
+  const WALK_MIN_DUR = 0.30;    // 点得再近也要有"挪一步"的过程，不能像瞬移
+  const WALK_MAX_DUR = 3.00;    // 点得再远也别让玩家干等
+  const WALK_EASE    = 'cubic-bezier(.33, 0, .28, 1)';   // 起步利落、收步柔和
+
+  // 把时长与缓动写进 CSS 变量，交给 #player / #playerHome 的 transition 读取。
+  // 用变量而不是直接写 style.transition：行内 transition 会压过 .no-transition，
+  // 把"复位时瞬移、不要走回去"的逻辑弄坏。
+  function setWalkDur(el, fromX, fromY, toX, toY) {
+    const d   = Math.hypot(toX - fromX, (toY - fromY) * WALK_Y_SCALE);
+    const dur = clamp(d / WALK_SPEED, WALK_MIN_DUR, WALK_MAX_DUR).toFixed(2);
+    // 3D：接地阴影共用同一套时长 —— 差一点就会出现"影子先到、人后到"的错位
+    for (const t of [el, shadowFor.get(el)]) {
+      if (!t) continue;
+      t.style.setProperty('--walk-dur', dur + 's');
+      t.style.setProperty('--walk-ease', WALK_EASE);
+    }
+  }
+
+  /* ---- 3B 朝向：向左走就把立绘水平镜像 ----
+     只看这一步的"横向"位移，不看纵向 —— 上下移动不该让人转身。
+     位移太小（不足 1.5%）也不翻：那是原地挪一下，翻了反而左右抖。 */
+  function setFacing(el, dx) {
+    if (Math.abs(dx) < 1.5) return;
+    el.style.setProperty('--face', dx < 0 ? '-1' : '1');
+  }
+
+  /* ---- 3C 步态：走动过程中换成走路起伏，走完再换回站立呼吸 ----
+     用同一套距离算法判断"是不是真的在走"：不足 0.8% 视作原地不动，
+     否则点一下脚下就会原地踏步。计时器按元素分开存，两屏角色互不干扰。
+     收尾比位移多留 70ms —— 动画若比位移先停，最后一下会显得"僵住"。 */
+  const walkTimers = new WeakMap();
+
+  function setGait(el, fromX, fromY, toX, toY) {
+    const d   = Math.hypot(toX - fromX, (toY - fromY) * WALK_Y_SCALE);
+    const dur = clamp(d / WALK_SPEED, WALK_MIN_DUR, WALK_MAX_DUR);
+    clearTimeout(walkTimers.get(el));
+    if (d < 0.8) { el.classList.remove('walking'); return; }
+    el.classList.add('walking');
+    walkTimers.set(el, setTimeout(() => el.classList.remove('walking'), dur * 1000 + 70));
+  }
+
+  /* ---- 3E 透视缩放：越靠近画面下方（离观众越近）越大 ----
+     按每屏自己的可站立范围归一化：范围中点 = 原始尺寸，上边界最小、下边界最大。
+     总幅度 22%（两端各 ±11%）—— 再大角色会"忽大忽小"，再小则看不出来。
+     影子共用同一个 --p-scale，必须一起缩放：人变大而影子不变，立刻露出"影子不是他踩的"。 */
+  const PERSPECTIVE = 0.22;
+
+  function setPerspective(el, y, walk) {
+    const mid  = (walk.minY + walk.maxY) / 2;
+    const half = (walk.maxY - walk.minY) / 2;
+    const k    = (1 + ((y - mid) / half) * (PERSPECTIVE / 2)).toFixed(3);
+    el.style.setProperty('--p-scale', k);
+    const sh = shadowFor.get(el);
+    if (sh) sh.style.setProperty('--p-scale', k);
+  }
+
+  /* ---- 3D 落位：角色和它的接地阴影必须写同一个坐标 ----
+     拆成函数是因为两屏都要用，而且"影子忘了同步"是这类改动的经典 bug ——
+     集中在出入口写一次，以后加角色也不用再想这件事。
+     walk 传该屏自己的可站立范围，用来算 3E 的透视大小。 */
+  function placeWithShadow(el, x, y, walk) {
+    el.style.left = x + '%';
+    el.style.top  = y + '%';
+    setPerspective(el, y, walk);       // 3E：越靠下（越近）越大
+    const sh = shadowFor.get(el);
+    if (sh) {
+      sh.style.left = x + '%';
+      sh.style.top  = y + '%';
+    }
+  }
+
+  // 3D：复位时角色"瞬移"归位，影子必须一起瞬移，否则它会慢慢飘回起点
+  function setInstant(el, on) {
+    el.classList.toggle('no-transition', on);
+    const sh = shadowFor.get(el);
+    if (sh) sh.classList.toggle('no-transition', on);
+  }
+
+  // 把角色画到 target 处；位置变化由 CSS transition 补成"走过去"。
+  // 3A：先按距离定好这一步的时长再落位 —— 顺序不能反，否则读到的还是上一次的时长
   function renderPlayer() {
-    player.style.left = state.target.x + '%';
-    player.style.top  = state.target.y + '%';
+    setWalkDur(player, state.player.x, state.player.y, state.target.x, state.target.y);
+    setFacing(player, state.target.x - state.player.x);   // 3B：朝左走就镜像（用更新前的旧位置算）
+    setGait(player, state.player.x, state.player.y, state.target.x, state.target.y);   // 3C：走动起伏
+    placeWithShadow(player, state.target.x, state.target.y, WALK);   // 3D 影子跟随 + 3E 透视大小
     state.player.x = state.target.x;
     state.player.y = state.target.y;
   }
@@ -700,63 +935,126 @@ body {
     renderPlayer();
   });
 
-  // ---- 三段剧情文案（主题见 PRD 第 4 节；正文 Day 7 定稿）----
+  // ---- 三幕剧情文案（主题见 PRD 第 4 节；Day 7 初稿 → Day 9「1A」扩写并三幕化）----
   // 约定：全中文、不夹英文、不用网络梗、不含受保护商标（AGENTS.md 第九节）
+  // 三幕讲同一件事——最后一班的等待：① 等一个人 ② 等一个时代 ③ 原来等不下去了，但灯还亮着
+  // 每幕 250 字内（PRD 第 4 节，Day 9 从 150 字放宽）
   const STORY = {
     washer: [
-      '3 号机还在转。滚筒里翻着一件深灰色外套，领口磨得发白。取衣单贴在上头，日期是这个月的第三次——前两次都是我叠好，放进失物柜的。',
+      '3 号机还在转。滚筒里翻着一件深灰色外套，领口磨得发白，袖口有一道没缝完的线。取衣单贴在上头，日期是这个月的第三次。',
+      '前两次都是我叠好，放进失物柜的。第一次以为他忘了，第二次以为他出差了。送到第三次，我把外套翻过来挂在架子上——口袋里那张公交卡还在，余额够坐四趟车。',
+      '他每次都是雨夜来。把衣服塞进机器，付钱，在门口的塑料椅上坐一会儿。不说话，也不看人。这台机器转到第四十分钟会响一声，他就站起来，走了。',
       '这回我打算让它多转一圈。说不定今晚会有人推门进来，说一句“抱歉，来晚了”。'
     ],
     vending: [
       '角落那台贩卖机比店还老，补货的人三年没来过了。最下排左边第三格还剩四罐雪松汽水——那厂子十年前就关了门，价签却一直没换：两块五。',
-      '我上个月投过一次，机器咔哒响了两声，什么都没掉出来。后来我就不投了，只让它亮着。亮着，总比黑着强。'
+      '我上个月投过一次，机器咔哒响了两声，什么都没掉出来。后来我就不投了，只让它亮着。亮着，总比黑着强。',
+      '它亮着的时候，那面墙角就不算空着。夜里三点最静，压缩机嗡一阵、停一阵，像有人在隔壁房间睡着。有几次我差点走过去，问它要不要喝口水。',
+      '老板搬走那年说，这机器他不要了，谁爱搬谁搬。我说那就搁这儿吧。他没问我为什么。'
     ],
     radio: [
-      '收音机是老板留下的，只能收到一个台，还总在最要紧的地方断。今晚它说：本市最后一批人工值守的洗衣店，将在年底前完成无人化改造。',
-      '说完就跳回了天气预报。我擦干净柜台，把“营业中”的牌子翻了过来——外面雨小了，天还没亮。'
+      '收音机是老板留下的，只能收到一个台，还总在最要紧的地方断。今晚它说：本市最后一批人工值守的洗衣店，将在年底前完成无人化改造。后半句是——“届时，全市……”，然后就是沙沙的雪声。',
+      '我拧了两下旋钮，没拧回来。那半句我大概猜得到，不用听完。',
+      '广告之后是天气预报。明天阴，后天阴，大后天还是阴。我擦干净柜台，把“营业中”的牌子翻了过来。外面雨小了，天还没亮。',
+      '还有三个月。三个月，够我把那件外套等到第四次。至于要不要等到第五次——我还没想。',
+      '墙角的机器还亮着。今晚我不打算关它。'
     ]
+  };
+
+  // 三幕的固定顺序（Day 9 用户拍板）。found.size 同时就是"已读到第几幕"。
+  const SEQUENCE = ['washer', 'vending', 'radio'];
+
+  // 还没轮到时点了物件，只给一句旁白、不推进 —— 免得玩家以为"点了没反应"（PRD 验收第 4 条）
+  const ASIDE = {
+    vending: '那台机器在角落里亮着。还不是时候。',
+    radio:   '收音机在架子上沙沙响。这会儿我不想听。'
   };
 
   // 本期不做存档：已读的物件只记在内存里，刷新页面就归零（TECH_DESIGN.md 3.1）
   const found = new Set();
 
   const card       = document.getElementById('card');
+  const cardImg    = document.getElementById('cardImg');
   const cardText   = document.getElementById('cardText');
   const foundCount = document.getElementById('foundCount');
   const progress   = document.getElementById('progress');
   const ending     = document.getElementById('ending');
 
-  // 弹出若干行文字 —— 店内剧情与首页动静共用同一张卡片
-  function showCard(lines) {
+  // 物件特写图（2A）。三个物件各一张 —— 不在表里的物件就不带图（首页"街上的动静"
+  // 走的就是这条无图分支）。src 是在点开时才写进 <img> 的，所以首屏不会多请求这三张
+  // （合计约 311 KB），PRD 的加载预算不受影响。
+  const ITEM = {
+    washer:  { src: 'images/item-washer.webp',  alt: '还在转的洗衣机，圆窗里翻着一件深灰色外套' },
+    vending: { src: 'images/item-vending.webp', alt: '老式贩卖机，只有最下排还亮着' },
+    radio:   { src: 'images/item-radio.webp',   alt: '木壳老收音机，指针盘发着暖黄的光' }
+  };
+
+  // 解码完成后再淡入，否则会先闪一下深色占位块
+  cardImg.addEventListener('load', () => cardImg.classList.add('ready'));
+
+  // 弹出若干行文字，可带一张顶部图 —— 店内剧情与首页动静共用同一张卡片
+  function showCard(lines, img) {
     cardText.replaceChildren(...lines.map((line) => {
       const p = document.createElement('p');
       p.textContent = line;        // textContent：文案里的引号、破折号原样显示，也不会被当成标签
       return p;
     }));
+    if (img) {
+      cardImg.hidden = false;
+      cardImg.alt = img.alt || '';
+      if (cardImg.getAttribute('src') !== img.src) {
+        cardImg.classList.remove('ready');   // 换图：先隐去旧图，等 load 事件再淡入
+        cardImg.src = img.src;
+      } else if (cardImg.complete) {
+        cardImg.classList.add('ready');      // 再点同一个物件：直接显示，不闪
+      }
+    } else {
+      cardImg.hidden = true;                 // 街上的动静没有配图
+      cardImg.classList.remove('ready');
+    }
     card.classList.add('show');
   }
 
-  function openCard(id) { showCard(STORY[id]); }
+  function openCard(id) { showCard(STORY[id], ITEM[id]); }
 
-  // 三个物件：点一下弹剧情。第一次点算"找到"（光圈收起 + 计数 +1），之后还能再点、还能看同样的话
-  let pendingEnd = false;        // 第 3 个已点开、正等玩家把字读完
+  // 三个物件（Day 9「1A」：改成有顺序的三幕）。点击分三种情况 ——
+  //   正好轮到 → 出这一幕的剧情；光圈收起、进度 +1
+  //   还没轮到 → 只给一句旁白，不推进（免得玩家以为"点了没反应"）
+  //   已经读过 → 重新显示相同的文字（PRD 验收第 4 条），不再计数
+  let pendingEnd = false;        // 第 3 幕已点开、正等玩家把字读完
+
+  // 还没轮到的物件：光圈压暗，玩家一眼看出该点哪个（PRD 第 3 节第 3 条）
+  function updateHotspots() {
+    document.querySelectorAll('.hotspot').forEach((el) => {
+      const idx = SEQUENCE.indexOf(el.dataset.id);
+      el.classList.toggle('pending', idx > found.size);
+    });
+  }
 
   document.querySelectorAll('.hotspot').forEach((el) => {
     el.addEventListener('click', (e) => {
       if (state.over) return;    // 结束后点物件无任何反应（PRD 验收第 11 条）
       e.stopPropagation();       // 点物件不该让角色走过去
-      const id = el.dataset.id;
-      openCard(id);
-      if (!found.has(id)) {      // 重复点不重复计数（PRD 验收第 4 条）
+      const id  = el.dataset.id;
+      const idx = SEQUENCE.indexOf(id);   // 这一物件排第几幕（0 起）
+      if (idx > found.size) {             // 还没轮到：只给旁白，进度不动
+        showCard([ASIDE[id]]);
+        return;
+      }
+      openCard(id);                       // 轮到 或 已读，显示的都是这一幕的剧情
+      if (idx === found.size) {           // 正好轮到：推进一幕
         found.add(id);
         el.classList.add('read');
         foundCount.textContent = found.size;
-        // 第 3 个点到了：不立刻盖结束画面，等玩家收起卡片再进 ——
-        // 否则第三段剧情会被瞬间盖掉，玩家永远读不到（PRD 第 4 节第 4 步要求"阅读"）
-        if (found.size === Object.keys(STORY).length) pendingEnd = true;
+        updateHotspots();
+        // 第 3 幕读完了：不立刻盖结束画面，等玩家收起卡片再进 ——
+        // 否则第三幕剧情会被瞬间盖掉，玩家永远读不到（PRD 第 4 节第 4 步要求"阅读"）
+        if (found.size === SEQUENCE.length) pendingEnd = true;
       }
     });
   });
+
+  updateHotspots();      // 首屏：① 亮，②③ 暗
 
   // 点卡片本身不收起 —— 只有点卡片"外"才收
   card.addEventListener('click', (e) => e.stopPropagation());
@@ -781,14 +1079,15 @@ body {
     found.clear();
     foundCount.textContent = '0';
     document.querySelectorAll('.hotspot').forEach((el) => el.classList.remove('read'));
+    updateHotspots();                   // 回到第一幕：① 亮，②③ 暗
 
     // 角色瞬移回起点：先关位移动画 → 落位 → 强制重排 → 再把动画还回去
-    player.classList.add('no-transition');
+    setInstant(player, true);
     state.target.x = state.player.x = 50;
     state.target.y = state.player.y = 78;
     renderPlayer();
     void player.offsetWidth;
-    player.classList.remove('no-transition');
+    setInstant(player, false);
 
     pendingEnd = false;
     ending.classList.remove('show');
@@ -810,20 +1109,34 @@ body {
 
   /* 本地假数据（mock）。Day 8 清单明确：本期不接真实 API，数据先写死在这里。
      等以后有了真实数据源，只要把 NOTES 换成请求结果 —— 下面的渲染逻辑一行都不用改 */
+  // Day 9 从 4 条扩到 10 条（1A）：夜里街上的一切，都在往同一件事上靠 ——
+  // 有人在等，有东西不再需要人。不点破，只铺氛围。
   const NOTES = [
     { t: '02:14', s: '对面便利店的灯还亮着，没人进去。' },
+    { t: '02:23', s: '自动门开了一下，又关上。没有人。' },
+    { t: '02:31', s: '保洁车停在路口，司机趴在方向盘上睡着了。' },
     { t: '02:47', s: '楼上有人在阳台抽烟，烟头亮了三次。' },
+    { t: '02:55', s: '一辆车慢慢开过去，减了速，又开走了。像在找门牌号。' },
     { t: '03:05', s: '一辆无人驾驶的出租车停在路口，等了很久，没人上车。' },
-    { t: '03:31', s: '雨大了。街角那台自动贩卖机自己亮了一下。' }
+    { t: '03:19', s: '隔壁的卷帘门拉下来，整条街响了一下。' },
+    { t: '03:31', s: '雨大了。街角那台自动贩卖机自己亮了一下。' },
+    { t: '03:47', s: '一台清洁机器人绕着我门口转了两圈，又直直走了。它不认得洗衣店。' },
+    { t: '04:02', s: '东边有一点白。这算不算天亮？' }
   ];
 
   // 首页可站立范围：右边让给店门热区，下边让给动静列表
   const HOME_WALK = { minX: 10, maxX: 46, minY: 52, maxY: 76 };
   const homePos = { x: 34, y: 74 };
 
-  function renderHomePlayer() {
-    playerHome.style.left = homePos.x + '%';
-    playerHome.style.top  = homePos.y + '%';
+  // 3A：接"这一步走到哪"，起点取 homePos（上一次的目标）。
+  // 距离必须在覆盖 homePos 之前算出来，所以由调用方把新目标作为参数传进来。
+  function renderHomePlayer(nextX = homePos.x, nextY = homePos.y) {
+    setWalkDur(playerHome, homePos.x, homePos.y, nextX, nextY);
+    setFacing(playerHome, nextX - homePos.x);   // 3B：同上，必须在 homePos 被覆盖之前算
+    setGait(playerHome, homePos.x, homePos.y, nextX, nextY);   // 3C：走动起伏
+    homePos.x = nextX;
+    homePos.y = nextY;
+    placeWithShadow(playerHome, nextX, nextY, HOME_WALK);   // 3D 影子跟随 + 3E 透视大小
   }
 
   // ---- 四态：切换 data-state 就行，不为每种状态写一套 DOM ----
@@ -937,12 +1250,10 @@ body {
     backdrop.style.backgroundImage = 'url("images/home-street.webp")';
 
     // 角色瞬移回街上起点：先关位移动画 → 落位 → 强制重排 → 再把动画还回去
-    playerHome.classList.add('no-transition');
-    homePos.x = 34;
-    homePos.y = 74;
-    renderHomePlayer();
+    setInstant(playerHome, true);
+    renderHomePlayer(34, 74);
     void playerHome.offsetWidth;
-    playerHome.classList.remove('no-transition');
+    setInstant(playerHome, false);
   }
 
   // 在街上点地面 → 角色走过去（与店内同一套逻辑，只是可站立范围不同）
@@ -950,14 +1261,20 @@ body {
     const r = homeStage.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width)  * 100;
     const y = ((e.clientY - r.top)  / r.height) * 100;
-    homePos.x = clamp(x, HOME_WALK.minX, HOME_WALK.maxX);
-    homePos.y = clamp(y, HOME_WALK.minY, HOME_WALK.maxY);
-    renderHomePlayer();
+    // 3A：新目标当参数传进去，让 renderHomePlayer 能拿旧位置算距离
+    renderHomePlayer(clamp(x, HOME_WALK.minX, HOME_WALK.maxX),
+                     clamp(y, HOME_WALK.minY, HOME_WALK.maxY));
   });
 
   /* ---------------- 初始化 ---------------- */
-  renderPlayer();         // 店内角色首帧落位
-  renderHomePlayer();     // 首页角色首帧落位
+  // 包一层瞬移：3E 的 --p-scale 首帧才写入，若不关过渡，开场会看到人物"放大一下"
+  setInstant(player, true);
+  setInstant(playerHome, true);
+  renderPlayer();         // 店内角色首帧落位（同时算出它的透视大小）
+  renderHomePlayer();     // 首页角色首帧落位（同时算出它的透视大小）
+  void playerHome.offsetWidth;   // 强制重排，让首帧尺寸立即生效
+  setInstant(player, false);
+  setInstant(playerHome, false);
   loadNotes();            // 首页列表：先加载态，随后渲染假数据
 })();
 </script>
