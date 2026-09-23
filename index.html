@@ -259,7 +259,13 @@ body {
   z-index: 7;
   padding: clamp(10px, 1.7vh, 20px) clamp(12px, 3.4vw, 48px) clamp(12px, 2vh, 24px);
   background: linear-gradient(0deg, rgba(3, 4, 10, .95) 0%, rgba(3, 4, 10, .82) 52%, rgba(3, 4, 10, 0) 100%);
+  /* 面板顶部是渐变透明的，矩形仍会压住店门底下那一小截。
+     若让它接鼠标事件，点在那片"看起来是空的"区域会被吃掉 —— 既进不了店、也不走路。
+     所以面板整体不接事件，只把事件还给真正能点的东西（卡片、重试按钮）。 */
+  pointer-events: none;
 }
+.home-panel .note,
+.home-panel .retry { pointer-events: auto; }
 
 .panel-head {
   display: flex;
@@ -293,6 +299,7 @@ body {
 }
 
 .note {
+  max-width: 620px;              /* 面板里恒定只有一条，不限制的话会横跨整个屏幕 */
   padding: .68em .85em .72em;
   border-radius: 10px;
   background: rgba(11, 16, 31, .74);
@@ -313,6 +320,18 @@ body {
   font-size: clamp(11px, 1.6vw, 13.5px);
   line-height: 1.62;
   color: #c3d0ee;
+}
+/* "下一条"是操作提示，不是内容 —— 比正文淡一档，右对齐不抢读 */
+.note-next {
+  display: block;
+  margin-top: .42em;
+  font-size: clamp(9.5px, 1.25vw, 11.5px);
+  letter-spacing: .16em;
+  text-align: right;
+  color: rgba(120, 226, 255, .60);
+}
+@media (hover: hover) {
+  .note:hover .note-next { color: #6ee2ff; }
 }
 @media (hover: hover) {
   .note:hover {
@@ -570,9 +589,13 @@ body {
   left: 50%;
   bottom: max(3vh, 16px);
   width: min(92vw, 720px);
-  max-height: 76vh;                  /* 2A：图占了卡片上半，50vh 会把文字挤出可视区；
-                                        1A 文案从 150 字扩到 250 字，再抬到 76vh。
-                                        再高就会把游戏画面整个盖住了 */
+  /* 第 2 步：76vh → 34vh。卡片从此只占屏幕底部约 1/3，
+     上方始终留着角色与三个物件 —— 边读边有画面。
+     ⚠️ 76vh 的旧值不是笔误，是 2A/1A 为了"每幕一屏读完"一路抬上去的；
+     代价是卡片长到画面正中，把游戏整个盖住（用户实测反馈"文字挡住了画面"）。
+     296px 是下限：笔记本 720px 高的窗口下 34vh 只有 245px，
+     扣掉图与边距后文字区剩不到两行 —— 那种情况宁可让卡片略高于 1/3。 */
+  max-height: max(34vh, 296px);
   overflow: hidden;                  /* 日常不该溢出：文字区自己有 max-height。
                                         这里不能用 auto —— 内容恰好顶到上限时
                                         浏览器会多出一条整卡滚动条，很难看 */
@@ -596,11 +619,8 @@ body {
 #cardImg {
   display: block;
   width: 100%;
-  max-width: 320px;             /* 桌面上不让图撑满卡片：撑满时图高 378px，
-                                   会把卡片里的文字挤到需要滚动才能读完。
-                                   1A 文案变长后进一步收到 320px（高 180px）——
-                                   这是"每幕一屏读完"的硬约束：桌面 720px 窗口下
-                                   卡片只有 76vh，图再大就会把每幕的落点句挤出可视区。
+  max-width: 240px;             /* 第 2 步：320 → 240。卡片变矮后图必须让位给文字。
+                                   240px 对应高 135px，文字区还剩约 100px（3.5 行）。
                                    ⚠️ 别在这里写 flex —— 卡片一旦是 flex column，
                                    本行的 flex-basis:auto 会绕开 aspect-ratio 去取图片的
                                    内在高度，图会被拉成竖的（实测 380×460）。 */
@@ -623,16 +643,48 @@ body {
   color: #dde5ff;
   /* 1A：文字区自己限高、超出才滚 —— 于是图固定可见，滚的只有字。
      用 vh 算而不是 flex:1，是为了不让图片被 flex 主轴计算带偏（图必须保持 16:9）。
-     240px = 图(180) + 图下边距(17) + 卡片上下 padding(40) + 3px 余量 */
-  max-height: calc(76vh - 240px);
+     195px = 图(135) + 图下边距(17) + 卡片上下 padding(40) + 3px 余量。
+     第 2 步：随卡片一起从 76vh 收到 34vh —— 卡片变矮，文字区必须同步收，
+     否则文字会顶破卡片高度、被 overflow:hidden 整块截掉。 */
+  max-height: calc(max(34vh, 296px) - 195px);
   overflow-y: auto;
+  scroll-behavior: smooth;      /* 第 3 步：新浮现的句子滚进视野时是滑过去的，不是跳的。
+                                   浏览器不支持时退化为瞬时跳，功能不受影响 */
   padding-right: .2em;          /* 留一点缝，滚动条不压字 */
 }
 #cardText p + p { margin-top: .6em; }
+
+/* 第 3 步：剧情逐句浮现 —— 段落初始"透明 + 略微下沉"，JS 按 0.8s 间隔加 .on 淡入。
+   ⚠️ 只给 .reveal 加初始隐藏，不要写成 `#cardText p { opacity: 0 }`：
+   旁白和首页动静的段落也走同一条渲染路径，那样会让"点了没反应"的错觉重现。
+   时长 .5s < 间隔 .8s，所以每句都落定了下一句才起，有说话的呼吸感 */
+#cardText p.reveal {
+  opacity: 0;
+  transform: translateY(7px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+#cardText p.reveal.on { opacity: 1; transform: none; }
+
+/* 无障碍：系统开了"减弱动态效果"就不逐句，直接全显 */
+@media (prefers-reduced-motion: reduce) {
+  #cardText p.reveal { opacity: 1; transform: none; transition: none; }
+}
+
 #cardText::-webkit-scrollbar { width: 6px; }
 #cardText::-webkit-scrollbar-thumb {
   background: rgba(120, 226, 255, .28);
   border-radius: 3px;
+}
+
+/* 矮视口降级：横屏手机 / 极扁窗口。
+   上下都不够用时，296px 的下限会把卡片顶到全屏 75.6%（实测 844×390），
+   三个物件全被盖住 —— 那就退化成"读字优先"：
+   ① 藏掉配图（舞台本身只剩 ~220px 高，图在这里没意义，腾出的 152px 全给文字）
+   ② 卡片回到视口高度主导，不再走 296px 下限 */
+@media (max-height: 520px) {
+  #card { max-height: 38vh; }
+  #cardImg { display: none !important; }
+  #cardText { max-height: calc(38vh - 40px); }   /* 40px = 卡片上下 padding */
 }
 
 /* ---------- ⑦ 进度提示 ---------- */
@@ -768,7 +820,7 @@ body {
     </div>
     <ul class="card-list" id="homeList"></ul>
     <div class="panel-state" id="homeState"></div>
-    <p class="home-hint">点地面走动 · 点卡片看动静 · 点店门进店</p>
+    <p class="home-hint">点地面走动 · 点动静卡片看下一条 · 点店门进店</p>
   </section>
 </div>
 
@@ -992,13 +1044,42 @@ body {
   // 解码完成后再淡入，否则会先闪一下深色占位块
   cardImg.addEventListener('load', () => cardImg.classList.add('ready'));
 
+  /* 第 3 步：剧情逐句浮现（用户拍板"每句约 0.8 秒依次浮现，点一下可立刻显示全部"）。
+     第一段只等 60ms —— 卡片本身有 .34s 淡入，第一段跟着它到位，
+     于是"点物件 → 立刻有东西出现"，不会又变成"点了没反应"。
+     那 60ms 也不是可有可无：段落是刚插进 DOM 的，同一帧内加类浏览器不会走 transition */
+  const REVEAL_STEP = 800;        // 段与段的间隔（ms）。三幕各 4–5 段 → 2.4–3.2 秒全出完
+  let revealTimers = [];
+
+  function clearReveal() {
+    revealTimers.forEach(clearTimeout);
+    revealTimers = [];
+  }
+
+  // 把还没浮现的句子一次性全显 —— 点一下卡片就走这里，等不及的玩家不用干等
+  function revealAll() {
+    clearReveal();
+    cardText.querySelectorAll('p.reveal').forEach((p) => p.classList.add('on'));
+  }
+
   // 弹出若干行文字，可带一张顶部图 —— 店内剧情与首页动静共用同一张卡片
   function showCard(lines, img) {
-    cardText.replaceChildren(...lines.map((line) => {
+    clearReveal();
+    cardText.replaceChildren(...lines.map((line, i) => {
       const p = document.createElement('p');
       p.textContent = line;        // textContent：文案里的引号、破折号原样显示，也不会被当成标签
+      p.className = 'reveal';
+      revealTimers.push(setTimeout(() => {
+        p.classList.add('on');
+        // 卡片现在只占屏幕底部 1/3（第 2 步），长段落必会超出可视区：
+        // 让新浮现的那句滚进视野。滚"刚够看见这句"的距离，不是一路滚到底 ——
+        // 否则每出一句就把玩家正在读的前文往上推走。已经看得见时不动
+        const overflow = p.getBoundingClientRect().bottom - cardText.getBoundingClientRect().bottom;
+        if (overflow > 0) cardText.scrollTop += overflow + 8;
+      }, 60 + i * REVEAL_STEP));
       return p;
     }));
+    cardText.scrollTop = 0;        // 重读同一物件时不要停在上一遍滚到的位置
     if (img) {
       cardImg.hidden = false;
       cardImg.alt = img.alt || '';
@@ -1056,8 +1137,12 @@ body {
 
   updateHotspots();      // 首屏：① 亮，②③ 暗
 
-  // 点卡片本身不收起 —— 只有点卡片"外"才收
-  card.addEventListener('click', (e) => e.stopPropagation());
+  // 点卡片本身不收起 —— 只有点卡片"外"才收。
+  // 第 3 步：顺手把"点一下"这个已有动作用起来 —— 还在逐句浮现时点它，剩下的句子立刻全显
+  card.addEventListener('click', (e) => {
+    e.stopPropagation();
+    revealAll();
+  });
 
   // 点任意其他位置 → 收起卡片；三段都读完了，同时进结束画面
   document.addEventListener('click', () => {
@@ -1076,6 +1161,7 @@ body {
 
   // 「再来一次」→ 回到开场状态，三个物件恢复可点（PRD 验收第 12 条）
   function resetGame() {
+    clearReveal();                      // 丢掉上一局没跑完的逐句时序
     found.clear();
     foundCount.textContent = '0';
     document.querySelectorAll('.hotspot').forEach((el) => el.classList.remove('read'));
@@ -1168,24 +1254,46 @@ body {
   }
 
   // ---- 渲染列表：数据 → 卡片。卡片是 JS 现造的，HTML 源码里搜不到这些句子 ----
+  // 一次只放一条（2026-09-23 用户反馈：10 条铺满下半屏，把街景和店门整块盖住了）。
+  // 10 条内容一条不丢，点卡片轮着看，右上角计数显示"第几条 / 共几条"。
+  let noteList = [];
+  let noteIndex = 0;
+
   function renderNotes(list) {
-    homeList.replaceChildren(...list.map((n) => {
-      const li = document.createElement('li');
-      li.className = 'note';
-      li.tabIndex = 0;
-      const t = document.createElement('time');
-      t.textContent = n.t;
-      const p = document.createElement('p');
-      p.textContent = n.s;
-      li.append(t, p);
-      const open = (e) => { e.stopPropagation(); showCard([n.t + '　' + n.s]); };
-      li.addEventListener('click', open);
-      li.addEventListener('keydown', (e) => {          // 键盘也能操作（Tab 到卡片后回车）
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); }
-      });
-      return li;
-    }));
-    noteStamp.textContent = list.length + ' 条';
+    noteList = list || [];
+    noteIndex = 0;
+    paintNote();
+  }
+
+  function paintNote() {
+    if (!noteList.length) {                 // 空态：列表清空，交给 .panel-state 显示文案
+      homeList.replaceChildren();
+      noteStamp.textContent = '';
+      return;
+    }
+    const n = noteList[noteIndex];
+    const li = document.createElement('li');
+    li.className = 'note';
+    li.tabIndex = 0;
+    const t = document.createElement('time');
+    t.textContent = n.t;
+    const p = document.createElement('p');
+    p.textContent = n.s;
+    const next = document.createElement('span');
+    next.className = 'note-next';
+    next.textContent = '下一条 ›';
+    li.append(t, p, next);
+    const go = (e) => {
+      e.stopPropagation();
+      noteIndex = (noteIndex + 1) % noteList.length;   // 读完最后一条回到第一条
+      paintNote();
+    };
+    li.addEventListener('click', go);
+    li.addEventListener('keydown', (e) => {          // 键盘也能操作（Tab 到卡片后回车）
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); }
+    });
+    homeList.replaceChildren(li);
+    noteStamp.textContent = (noteIndex + 1) + ' / ' + noteList.length;
   }
 
   // 交付用的验证开关（三个非正常态各有稳定入口，不必靠"手快"去抓瞬间）：
