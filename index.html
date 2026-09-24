@@ -19,7 +19,10 @@
 /* ---------- ① 基础 ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* 手机上用 dvh 更准（避开地址栏高度），不支持的浏览器自动退回 vh */
+/* 手机上用 dvh 更准（避开地址栏高度），不支持的浏览器自动退回 vh。
+   ⚠️ 约定：全页凡是需要"视口高度"的地方，一律写 var(--vh)，不要写原生 vh ——
+   iOS 的微信 / Safari 里 100vh 比实际可见区域高，用它算出来的尺寸会偏大。
+   Day 9 修过一次：卡片那几处漏写成 34vh，在手机上卡片比设计高约 10%、多盖了画面 */
 :root { --vh: 100vh; }
 @supports (height: 100dvh) { :root { --vh: 100dvh; } }
 
@@ -123,7 +126,7 @@ body {
 .home-top {
   position: absolute;
   left: 0; right: 0; top: 0;
-  padding: clamp(14px, 3vh, 34px) clamp(16px, 4vw, 56px);
+  padding: clamp(14px, calc(var(--vh) * 0.03), 34px) clamp(16px, 4vw, 56px);
   pointer-events: none;
 }
 .home-top .eyebrow {
@@ -257,7 +260,7 @@ body {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 7;
-  padding: clamp(10px, 1.7vh, 20px) clamp(12px, 3.4vw, 48px) clamp(12px, 2vh, 24px);
+  padding: clamp(10px, calc(var(--vh) * 0.017), 20px) clamp(12px, 3.4vw, 48px) clamp(12px, calc(var(--vh) * 0.02), 24px);
   background: linear-gradient(0deg, rgba(3, 4, 10, .95) 0%, rgba(3, 4, 10, .82) 52%, rgba(3, 4, 10, 0) 100%);
   /* 面板顶部是渐变透明的，矩形仍会压住店门底下那一小截。
      若让它接鼠标事件，点在那片"看起来是空的"区域会被吃掉 —— 既进不了店、也不走路。
@@ -271,7 +274,7 @@ body {
   display: flex;
   align-items: baseline;
   gap: .8em;
-  margin-bottom: clamp(7px, 1.1vh, 12px);
+  margin-bottom: clamp(7px, calc(var(--vh) * 0.011), 12px);
 }
 .panel-head h2 {
   font-size: clamp(11px, 1.5vw, 14px);
@@ -346,7 +349,7 @@ body {
 /* 四态：加载 / 空 / 错误 / 正常。切 data-state 就行，不新增 DOM 分支 */
 .panel-state {
   display: none;
-  padding: clamp(12px, 2vh, 20px) 1em;
+  padding: clamp(12px, calc(var(--vh) * 0.02), 20px) 1em;
   text-align: center;
   font-size: clamp(11px, 1.6vw, 13.5px);
   letter-spacing: .12em;
@@ -402,7 +405,7 @@ body {
 }
 
 .home-hint {
-  margin-top: clamp(7px, 1.1vh, 12px);
+  margin-top: clamp(7px, calc(var(--vh) * 0.011), 12px);
   text-align: center;
   font-size: clamp(9.5px, 1.35vw, 12px);
   letter-spacing: .14em;
@@ -587,15 +590,17 @@ body {
 #card {
   position: fixed;
   left: 50%;
-  bottom: max(3vh, 16px);
+  bottom: max(calc(var(--vh) * 0.03), 16px);
   width: min(92vw, 720px);
   /* 第 2 步：76vh → 34vh。卡片从此只占屏幕底部约 1/3，
      上方始终留着角色与三个物件 —— 边读边有画面。
      ⚠️ 76vh 的旧值不是笔误，是 2A/1A 为了"每幕一屏读完"一路抬上去的；
      代价是卡片长到画面正中，把游戏整个盖住（用户实测反馈"文字挡住了画面"）。
      296px 是下限：笔记本 720px 高的窗口下 34vh 只有 245px，
-     扣掉图与边距后文字区剩不到两行 —— 那种情况宁可让卡片略高于 1/3。 */
-  max-height: max(34vh, 296px);
+     扣掉图与边距后文字区剩不到两行 —— 那种情况宁可让卡片略高于 1/3。
+     Day 9 修正：下面两处原来写的是原生 vh，与舞台的 --vh 不是同一口径 ——
+     改成 var(--vh) 后，桌面像素不变，手机上卡片尺寸才回到设计值 */
+  max-height: max(calc(var(--vh) * 0.34), 296px);
   overflow: hidden;                  /* 日常不该溢出：文字区自己有 max-height。
                                         这里不能用 auto —— 内容恰好顶到上限时
                                         浏览器会多出一条整卡滚动条，很难看 */
@@ -645,8 +650,10 @@ body {
      用 vh 算而不是 flex:1，是为了不让图片被 flex 主轴计算带偏（图必须保持 16:9）。
      195px = 图(135) + 图下边距(17) + 卡片上下 padding(40) + 3px 余量。
      第 2 步：随卡片一起从 76vh 收到 34vh —— 卡片变矮，文字区必须同步收，
-     否则文字会顶破卡片高度、被 overflow:hidden 整块截掉。 */
-  max-height: calc(max(34vh, 296px) - 195px);
+     否则文字会顶破卡片高度、被 overflow:hidden 整块截掉。
+     ⚠️ 这个上限必须与 #card 的 max-height 逐字一致（同用 --vh 口径）——
+     两处差一档就各自为政：卡片收了、文字区没收，文字被整块截掉 */
+  max-height: calc(max(calc(var(--vh) * 0.34), 296px) - 195px);
   overflow-y: auto;
   scroll-behavior: smooth;      /* 第 3 步：新浮现的句子滚进视野时是滑过去的，不是跳的。
                                    浏览器不支持时退化为瞬时跳，功能不受影响 */
@@ -682,9 +689,9 @@ body {
    ① 藏掉配图（舞台本身只剩 ~220px 高，图在这里没意义，腾出的 152px 全给文字）
    ② 卡片回到视口高度主导，不再走 296px 下限 */
 @media (max-height: 520px) {
-  #card { max-height: 38vh; }
+  #card { max-height: calc(var(--vh) * 0.38); }
   #cardImg { display: none !important; }
-  #cardText { max-height: calc(38vh - 40px); }   /* 40px = 卡片上下 padding */
+  #cardText { max-height: calc(calc(var(--vh) * 0.38) - 40px); }   /* 40px = 卡片上下 padding */
 }
 
 /* ---------- ⑦ 进度提示 ---------- */
@@ -760,7 +767,9 @@ body {
 <!-- 舞台：整幅画面都在这里面，所有元素用百分比定位 -->
 <div id="stage">
   <div id="scene">
-    <img class="bg" src="images/scene-laundromat.webp" alt="" decoding="async">
+    <!-- 店内背景图延后加载（Day 9）：玩家在街景阶段用不到它，原来却和街景图一起抢首屏带宽。
+         真实地址放 data-src，由 JS 在街景就绪后预取、进店时兜底设 src —— 视觉与交互不变 -->
+    <img class="bg" data-src="images/scene-laundromat.webp" alt="" decoding="async">
     <div class="floor"></div>
 
     <!-- 接地影子：3D。必须放在角色之前（DOM 顺序 = 绘制层级，影子在脚下） -->
@@ -1340,9 +1349,32 @@ body {
   // ---- 两屏切换：首页 ⇄ 店内 ----
   let inShop = false;
 
+  /* 店内背景图延后加载（Day 9 首屏优化）：
+     这张图 176KB，而玩家在街景阶段根本用不到它 —— 原来它跟街景图一起抢首屏带宽，
+     首屏 626KB 里有 28% 是"还没进店就用不上"的。现在的次序是：
+     先把街景显示出来（首屏降到 450KB），再用浏览器空闲时间预取它，
+     所以推门时图已经就绪，不会闪白。进店处仍兜底设一次 src（玩家点得极快时） */
+  const storeBg = document.querySelector('#stage .bg');
+
+  function loadStoreBg() {
+    if (storeBg && !storeBg.getAttribute('src')) {
+      storeBg.setAttribute('src', storeBg.dataset.src);
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    loadStoreBg();
+  } else {
+    // 等首屏（含街景大图）加载完再预取；requestIdleCallback 不可用就退化为延时 300ms
+    window.addEventListener('load', () => {
+      (window.requestIdleCallback || ((fn) => setTimeout(fn, 300)))(loadStoreBg);
+    }, { once: true });
+  }
+
   function enterShop() {
     if (inShop) return;
     inShop = true;
+    loadStoreBg();                      // 兜底：万一预取还没跑，进店前先把 src 补上
     card.classList.remove('show');
     home.classList.add('hidden');
     stage.classList.add('active');
