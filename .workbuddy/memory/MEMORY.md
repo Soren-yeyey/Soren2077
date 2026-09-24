@@ -55,7 +55,11 @@
 
 - ⚠️ **本机 `git rm` 会清空整个目录**（实测两次）→ 删仓库文件一律 `rm -f` + `git add -A`，删完**立刻 `ls` 验证**；误删用 `git checkout HEAD -- <目录>/` 恢复
 - ⚠️ **`localhost` 解析成 IPv6 `::1`**，而 `python -m http.server` 默认只听 IPv4 → 起服务一律 **`--bind ::`**（双栈：localhost / 127.0.0.1 / 局域网 IPv4 全通）。无头 Chrome 会 Happy-Eyeballs 回退 IPv4 → **我这边全绿、用户那边全红** → **实测地址一律用 `localhost`**，不要图省事用 `127.0.0.1`
-- ⚠️ **代理对 `github.com` 间歇性故障**（`api.github.com` 正常）→ 失败先重试 1–2 次，再请用户换节点
+- ⚠️ **代理对 `github.com` 间歇性故障** → 失败先重试 1–2 次，再请用户换节点 / 重启代理（用户操作后通常**一次就过**）
+  - **代理端口会变**（实测 52171 → 50608），`env | grep -i proxy` 现查现用，别记死值
+  - **判别法**（区分"代理坏了"还是"只有 GitHub 这条路坏了"）：走代理打 `baidu.com` → 200 说明代理本体正常；`api.github.com` 若 CONNECT 拿到 `200 Established` 但随后 TLS 断，就是**节点对 GitHub 的线路坏了**
+  - 报 `schannel: failed to receive handshake` 时**换 `-c http.sslBackend=openssl` 没用**（改报 `unexpected eof while reading`），别在这上面耗时间
+  - 本机 `github.com` 解析到 `198.18.0.37`（代理 fake-IP 段）→ **"绕过代理直连"这条路天然不存在**，`--noproxy '*'` 必然 0.3 秒内失败
 - ⚠️ **本地写不进 `refs/remotes/origin/*`** → 查远程事实用 `git ls-remote origin refs/heads/main`，别依赖 `origin/main`
 - 查远程事实优先级：① `git ls-remote` ② `raw.githubusercontent.com/<user>/<repo>/main/<path>` 逐文件打状态码（不限流）③ `api.github.com`（未登录会限流，别首选）
 - 核验一律**纯管道不落盘**（沙箱不允许往项目目录外写）：`curl -s URL | tr -d '\r' | md5sum`；状态码 `curl -s -o /dev/null -w '%{http_code}'`

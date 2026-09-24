@@ -19,6 +19,12 @@
 /* ---------- ① 基础 ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* 表单控件不继承 body 的字体与字号 —— 浏览器给 <button> 的默认值是 13.3333px，
+   它会悄悄绕过全页的字号阶梯（实测：.home-door 与三个 .hotspot 都落在 13.3333px 上）。
+   这里统一让它继承，控件上的文字才在同一套阶梯里。
+   后面 .btn / .retry 各自写了 font-size，选择器权重更高，不受影响 */
+button, input, select, textarea { font: inherit; }
+
 /* 手机上用 dvh 更准（避开地址栏高度），不支持的浏览器自动退回 vh。
    ⚠️ 约定：全页凡是需要"视口高度"的地方，一律写 var(--vh)，不要写原生 vh ——
    iOS 的微信 / Safari 里 100vh 比实际可见区域高，用它算出来的尺寸会偏大。
@@ -130,13 +136,19 @@ body {
   pointer-events: none;
 }
 .home-top .eyebrow {
-  font-size: clamp(9px, 1.4vw, 12px);
+  /* 字号阶梯（Day 9 设计审查）：全页只留四档 —— 12 / 16 / 20 / 24。
+     本节是注解级 12px（原来 9px）。三档小字挤在 2px 内（9 / 9.5 / 11）等于没有阶梯，
+     所以凡是"最小的那档"一律归到 12px，等于 WCAG 与拍板 A 第 3 条的共同下限 */
+  font-size: 12px;
   letter-spacing: .34em;
   color: rgba(160, 200, 255, .70);
 }
 .home-top h1 {
-  margin-top: .42em;
-  font-size: clamp(20px, 3.6vw, 44px);
+  /* 12px（原 .42em × 24px = 10.08px 的碎值）—— 拍板 A 第 4 条：间距只用 4/8 尺度 */
+  margin-top: 12px;
+  /* 大标题级：手机 20 → 24px。原来与区块标题同为 20px（区块标题原来是 14px，
+     手机端两者都落在 20px 附近），拉不开档 —— 现在 24 / 20 / 16 / 12 每档差 4px */
+  font-size: clamp(24px, 3.6vw, 44px);
   font-weight: 600;
   letter-spacing: .2em;
   color: #f2f6ff;
@@ -155,8 +167,10 @@ body {
   50%      { text-shadow: 0 0 36px rgba(110, 226, 255, .78), 0 0 84px rgba(255, 94, 168, .42); }
 }
 .home-top .tagline {
-  margin-top: .7em;
-  font-size: clamp(11px, 1.7vw, 15px);
+  /* 12px（原 .7em × 16px = 11.2px 的碎值） */
+  margin-top: 12px;
+  /* 正文级 16px（原 11px）。这是全页第一句正文，11px 在手机上属于"能看见但读着累" */
+  font-size: 16px;
   letter-spacing: .14em;
   color: #a7b8dd;
 }
@@ -237,8 +251,10 @@ body {
   transition: transform .22s ease;
 }
 .home-door span {
-  padding: .34em .9em;
-  font-size: clamp(9.5px, 1.35vw, 14px);
+  /* 4px 12px（原 .34em .9em，按 12px 字号算出 4.08 / 10.8 两个碎值） */
+  padding: 4px 12px;
+  /* 注解级 12px（原 9.5px）。它压在画面上的玻璃幕墙上，太小就只剩一道白印 */
+  font-size: 12px;
   letter-spacing: .2em;
   text-indent: .2em;
   color: #dff8ff;
@@ -253,7 +269,7 @@ body {
 @media (hover: hover) {
   .home-door:hover { transform: scale(1.02); }
 }
-.home-door:focus-visible { outline: 3px solid #8ff0dc; outline-offset: 3px; }
+/* 焦点环不单独写 —— 交给第 ⑨ 节统一（原来是各写各的，偏移值还不一致：3px / 2px） */
 
 /* 底部面板：今夜街上的动静。列表由 JS 从本地假数据渲染，不是写死在 HTML 里 */
 .home-panel {
@@ -274,10 +290,15 @@ body {
   display: flex;
   align-items: baseline;
   gap: .8em;
-  margin-bottom: clamp(7px, calc(var(--vh) * 0.011), 12px);
+  /* 拍板 A 第 4 条：间距只用 4 / 8px 尺度。
+     原来这里是 clamp(7px, 1.1vh, 12px)，手机 844 高算出 9.28px —— 上不着 8、下不着 12 的碎值 */
+  margin-bottom: 8px;
 }
 .panel-head h2 {
-  font-size: clamp(11px, 1.5vw, 14px);
+  /* 区块标题级 20px（原 11px）。与卡内正文（16px）差一档 4px ——
+     这是"设计审查第 5 条"的正解：原来标题与正文同为 11px，只能靠字重 500 撑层级，
+     手机上几乎看不出差别；现在字号、字重、颜色三者同时在区分 */
+  font-size: 20px;
   font-weight: 500;
   letter-spacing: .22em;
   color: #cfe0ff;
@@ -289,7 +310,8 @@ body {
 }
 .panel-head em {
   font-style: normal;
-  font-size: clamp(9px, 1.2vw, 11px);
+  /* 注解级 12px（原 9px）—— 它是「第几条 / 共几条」的计数，9px 时基本读不出来 */
+  font-size: 12px;
   letter-spacing: .2em;
   color: #6ee2ff;
 }
@@ -297,13 +319,19 @@ body {
 .card-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
-  gap: clamp(7px, 1.1vw, 14px);
+  /* 拍板 A 第 4 条：8px。原来是 clamp(7px, 1.1vw, 14px)，手机端正好落在 7px 上 */
+  gap: 8px;
   list-style: none;
 }
 
 .note {
   max-width: 620px;              /* 面板里恒定只有一条，不限制的话会横跨整个屏幕 */
-  padding: .68em .85em .72em;
+  /* 拍板 A 第 4 条：em 的基准必须与内容一致。
+     原来没给 .note 声明过 font-size，于是 em 按继承来的 16px 算 —— 而卡片里的正文当时只有
+     11px：同一张卡片里两套基准，padding 算出 10.88 / 13.6 / 11.52 三个碎值。
+     现在显式声明 16px，并把 padding 直接写成 4/8 尺度 —— "基准错位"这件事从此不存在 */
+  font-size: 16px;
+  padding: 12px 16px;
   border-radius: 10px;
   background: rgba(11, 16, 31, .74);
   border: 1px solid rgba(120, 226, 255, .16);
@@ -314,21 +342,27 @@ body {
 }
 .note time {
   display: block;
-  font-size: clamp(9.5px, 1.3vw, 12px);
+  /* 注解级 12px（原 9.5px），并补一个明确的 line-height ——
+     原来 normal 会让它与下面正文的行高节奏对不上 */
+  font-size: 12px;
+  line-height: 1.5;
   letter-spacing: .18em;
   color: #6ee2ff;
 }
 .note p {
-  margin-top: .38em;
-  font-size: clamp(11px, 1.6vw, 13.5px);
+  /* 8px 尺度（原 .38em × 16px = 6.08px） */
+  margin-top: 8px;
+  /* 正文级 16px（原 11px）。拍板 A 第 3 条：正文 ≥14px —— 桌面端按上限也才 13.5px，同样不达标 */
+  font-size: 16px;
   line-height: 1.62;
   color: #c3d0ee;
 }
 /* "下一条"是操作提示，不是内容 —— 比正文淡一档，右对齐不抢读 */
 .note-next {
   display: block;
-  margin-top: .42em;
-  font-size: clamp(9.5px, 1.25vw, 11.5px);
+  /* 4px（原 .42em × 9.5px = 3.99px）—— 它是操作提示，按最小刻度 4px 就够 */
+  margin-top: 4px;
+  font-size: 12px;
   letter-spacing: .16em;
   text-align: right;
   color: rgba(120, 226, 255, .60);
@@ -344,14 +378,15 @@ body {
     box-shadow: 0 12px 30px rgba(0, 0, 0, .55), 0 0 24px rgba(110, 226, 255, .22);
   }
 }
-.note:focus-visible { outline: 3px solid #8ff0dc; outline-offset: 2px; }
+/* 焦点环不单独写 —— 交给第 ⑨ 节统一（原来是各写各的，偏移值还不一致：3px / 2px） */
 
 /* 四态：加载 / 空 / 错误 / 正常。切 data-state 就行，不新增 DOM 分支 */
 .panel-state {
   display: none;
-  padding: clamp(12px, calc(var(--vh) * 0.02), 20px) 1em;
+  padding: 16px;
   text-align: center;
-  font-size: clamp(11px, 1.6vw, 13.5px);
+  /* 正文级 16px（原 11px）—— 加载 / 空 / 错误 三种状态的说明文字，同样是要读的东西 */
+  font-size: 16px;
   letter-spacing: .12em;
   color: #8fa2c4;
   background: rgba(11, 16, 31, .58);
@@ -371,7 +406,8 @@ body {
   position: relative;
   height: 2px;
   width: min(60%, 260px);
-  margin: 0 auto .9em;
+  /* 16px（原 .9em × 16px = 14.4px 的碎值） */
+  margin: 0 auto 16px;
   background: rgba(110, 226, 255, .14);
   border-radius: 2px;
   overflow: hidden;
@@ -390,10 +426,11 @@ body {
 }
 
 .retry {
-  margin-top: .95em;
-  padding: .5em 1.6em;
+  margin-top: 16px;
+  padding: 8px 24px;              /* 拍板 A 第 4 条：8px 尺度；横向 24px 让按钮够宽好点 */
   font-family: inherit;
-  font-size: clamp(10.5px, 1.4vw, 13px);
+  /* 正文级 16px（原 10.5px）—— 它原是全页字号最小的可点元素，也是"重试"唯一的入口 */
+  font-size: 16px;
   letter-spacing: .18em;
   text-indent: .18em;
   color: #06121a;
@@ -405,9 +442,11 @@ body {
 }
 
 .home-hint {
-  margin-top: clamp(7px, calc(var(--vh) * 0.011), 12px);
+  /* 8px 尺度（原来是 clamp(7px, 1.1vh, 12px)，手机 844 高算出 9.28px 的碎值） */
+  margin-top: 8px;
   text-align: center;
-  font-size: clamp(9.5px, 1.35vw, 12px);
+  /* 注解级 12px（原 9.5px）—— 全页唯一一句告诉玩家"怎么玩"的话，不该是最小字号 */
+  font-size: 12px;
   letter-spacing: .14em;
   color: #6f7fa8;
 }
@@ -520,10 +559,11 @@ body {
 
 /* 结束画面的按钮（原开场页那套已并入首页，顶栏样式见第 ② 节） */
 .btn {
-  margin-top: .5em;
-  padding: .85em 2.8em;
+  margin-top: 8px;               /* 拍板 A 第 4 条：.5em × 16px 就是 8px，写成绝对值更好查 */
+  padding: .85em 2.8em;          /* 垂直 13.6px、水平 44.8px，命中区本来就过 44px，不动 */
   font-family: inherit;
-  font-size: clamp(14px, 2.4vw, 17px);
+  /* 正文级 16px（原 clamp 14–17px，两端各差一点）。固定成一档才好和全页阶梯对齐 */
+  font-size: 16px;
   letter-spacing: .22em;
   text-indent: .22em;
   color: #06121a;
@@ -534,8 +574,16 @@ body {
   box-shadow: 0 0 26px rgba(87, 200, 255, .42);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.btn:hover  { transform: translateY(-2px); box-shadow: 0 0 34px rgba(87, 200, 255, .60); }
-.btn:active { transform: translateY(0); }
+/* hover 必须包进 (hover: hover) —— 触屏上点完 :hover 会"粘住"，
+   按钮就停在抬起 2px 的位置不回来（原来的写法在手机上正是这个症状） */
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 0 34px rgba(87, 200, 255, .60); }
+}
+/* 按下：不是"取消上浮"，而是明确缩一下 —— 手指底下要有看得见的反应（设计审查第 3 条） */
+.btn:active {
+  transform: translateY(0) scale(.97);
+  box-shadow: 0 0 14px rgba(87, 200, 255, .50);
+}
 
 /* ---------- ⑤ 可互动物件 ---------- */
 /* left / top 是光圈圆心，相对舞台的百分比。
@@ -559,7 +607,20 @@ body {
 .hotspot[data-id="washer"]  { left: 37%; top: 56%; }
 .hotspot[data-id="vending"] { left: 92%; top: 33%; }
 .hotspot[data-id="radio"]   { left: 5%;  top: 21%; }
-.hotspot:focus-visible { outline: 3px solid #8ff0dc; outline-offset: 3px; }
+/* 触控命中区（设计审查第 2 条）：光圈在手机舞台上只有 37×37px（9.5% × 390），
+   低于 44×44 的下限 —— 手指点在光圈边缘容易落空，而这是推进剧情唯一的入口。
+   用一层透明伪元素把命中区向外撑 8px（37 → 53px），光圈本身的样子一点不变。
+   ⚠️ 不能直接把 width 调大 —— 那会把光圈一起画大，等于改了 Day 7 在成品图上标定的构图。
+   做成方角而非圆形：圆形内接正方形边长只有 37.5px，等于没达标；
+   多出来的四个角落在光圈外那圈空白里，与别的物件也不重叠。
+   伪元素在 button 内部，点它等于点 button —— 圈上的 stopPropagation 照常生效，
+   不会漏给 #scene 变成"点地面走路"。已读（.read，opacity 0）的光圈仍可点，与"能重看文字"一致 */
+.hotspot::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+/* 焦点环不在这里写 —— 第 ⑨ 节给所有可点元素统一同一种颜色与偏移 */
 
 @keyframes breathe {
   0%, 100% { opacity: .68; }
@@ -641,7 +702,10 @@ body {
 #cardImg[hidden] { display: none; }   /* 首页"街上的动静"没有配图，不能占位 */
 
 #cardText {
-  font-size: clamp(13.5px, 2.3vw, 17px);
+  /* 正文级 16px（原 13.5px；桌面端按上限也才 17px）。拍板 A 第 3 条：正文 ≥14px。
+     代价要写清楚：手机卡片文字区（92px）从约 4 行变成约 3.4 行，长段落更依赖滚动 ——
+     这是"字大一点"与"一屏多一行"之间的取舍，按规则选了前者，滚动条本来就有 */
+  font-size: 16px;
   line-height: 1.7;             /* 1A：1.85 → 1.7。中文在 1.7 行高下依然舒展，
                                    换来的高度正好装下第 3 幕那 6 段 */
   letter-spacing: .04em;
@@ -699,8 +763,9 @@ body {
   position: fixed;
   top: 16px;
   right: 16px;
-  padding: .55em 1em;
-  font-size: clamp(12px, 1.9vw, 15px);
+  padding: 8px 16px;             /* 拍板 A 第 4 条：8px 尺度（原来 .55em / 1em 按 12px 字号算） */
+  /* 注解级 12px（原来下限 12 上限 15 —— 桌面端会到 15px，与正文 16px 只差 1px，等于同档） */
+  font-size: 12px;
   letter-spacing: .12em;
   color: #a8bcdd;
   background: rgba(8, 12, 24, .62);
@@ -737,7 +802,8 @@ body {
 #ending.show { opacity: 1; pointer-events: auto; }
 
 #ending h2 {
-  font-size: clamp(21px, 5vw, 40px);
+  /* 大标题级 24px（原 21px）—— 与顶栏作品名同档，和区块标题（20px）差 4px */
+  font-size: clamp(24px, 5vw, 40px);
   font-weight: 600;
   letter-spacing: .22em;
   text-indent: .22em;
@@ -747,7 +813,8 @@ body {
 
 #ending .closing {
   max-width: 30em;
-  font-size: clamp(13px, 2.3vw, 17px);
+  /* 正文级 16px（原 13px）—— 这是全篇最后一段文字，也是玩家唯一一次"整段读"的地方 */
+  font-size: 16px;
   line-height: 1.9;
   letter-spacing: .05em;
   color: #a9b8dc;
@@ -757,6 +824,36 @@ body {
 #player.no-transition { transition: none; }
 /* 3C：店内角色没有站立呼吸，只有走动时才戴上这个类（与首页共用同一套 walkBob） */
 #player.walking { animation: walkBob .86s ease-in-out infinite; }
+
+/* ---------- ⑨ 交互一致性（把拍板 A 的第 2、6 条写成可复用的约束）----------
+   规则：任何可点元素都要满足三条 ——
+     ① 有效命中区 ≥44×44px（iOS HIG / WCAG 2.5.5）
+     ② 按下有即时反馈，不能只在 hover 上给 —— 触屏没有 hover，只挂 hover 等于手机上"点了没反应"
+     ③ 键盘 Tab 过去有看得见的焦点环
+   用法：本页可点元素是一张固定名单，就写在下面的 :is() 里。
+   以后新增可点元素，把它加进这三条 :is() 即可 —— 不要再给单个元素各写一套。
+   本节的存在理由就是这个教训：原来各写各的，于是 .retry 既没 hover 也没 active 地漏了过去。
+   ⚠️ 反馈用 filter 提亮，绝不用 transform：这几个元素各自拿 transform 做定位与位移
+   （.note 上移 3px、.home-door 放大、.hotspot 的 translate(-50%,-50%)、.btn 上浮），
+   通用规则一旦碰 transform，就会把位置和动画一起弄坏。filter 与它们互不干扰，
+   而且这五个元素的 transition 列表里都没有 filter，所以按下是"立刻"生效的 */
+
+/* ② 按下反馈 */
+:is(.btn, .retry, .note, .home-door, .hotspot):active {
+  filter: brightness(1.28);
+}
+
+/* ③ 键盘焦点环：同一颜色、同一偏移，Tab 一圈下来一眼看得出焦点在哪 */
+:is(.btn, .retry, .note, .home-door, .hotspot):focus-visible {
+  outline: 3px solid #8ff0dc;
+  outline-offset: 3px;
+}
+
+/* ① 命中区下限。前三个本身都远大于 44px，这条写出来是为了让"要求"可见；
+   .hotspot 的光圈手机端只有 37px，靠它自己的 ::after 撑到 53px（见第 ⑤ 节） */
+:is(.btn, .retry, .home-door) {
+  min-height: 44px;
+}
 </style>
 </head>
 <body>
