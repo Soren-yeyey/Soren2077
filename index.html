@@ -146,9 +146,9 @@ body {
 .home-top h1 {
   /* 12px（原 .42em × 24px = 10.08px 的碎值）—— 拍板 A 第 4 条：间距只用 4/8 尺度 */
   margin-top: 12px;
-  /* 大标题级：手机 20 → 24px。原来与区块标题同为 20px（区块标题原来是 14px，
-     手机端两者都落在 20px 附近），拉不开档 —— 现在 24 / 20 / 16 / 12 每档差 4px */
-  font-size: clamp(24px, 3.6vw, 44px);
+  /* 大标题级：Day 10 整档下调 24 → 20px（用户反馈"字有点大"，拍板方案甲）。
+     阶梯从 24 / 20 / 16 / 12 变成 20 / 16 / 14 / 12 —— 大标题仍比正文高两档 */
+  font-size: clamp(20px, 3.6vw, 40px);
   font-weight: 600;
   letter-spacing: .2em;
   color: #f2f6ff;
@@ -169,8 +169,9 @@ body {
 .home-top .tagline {
   /* 12px（原 .7em × 16px = 11.2px 的碎值） */
   margin-top: 12px;
-  /* 正文级 16px（原 11px）。这是全页第一句正文，11px 在手机上属于"能看见但读着累" */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 11px）。这是全页第一句正文：11px 在手机上读着累，
+     16px 又偏大，14px 是可读性与观感的共同落点 */
+  font-size: 14px;
   letter-spacing: .14em;
   color: #a7b8dd;
 }
@@ -295,10 +296,10 @@ body {
   margin-bottom: 8px;
 }
 .panel-head h2 {
-  /* 区块标题级 20px（原 11px）。与卡内正文（16px）差一档 4px ——
-     这是"设计审查第 5 条"的正解：原来标题与正文同为 11px，只能靠字重 500 撑层级，
-     手机上几乎看不出差别；现在字号、字重、颜色三者同时在区分 */
-  font-size: 20px;
+  /* 区块标题级 Day 10 20 → 16px（原 11px）。设计审查第 5 条的正解是"标题必须和正文
+     拉开层级"：原来同为 11px 只能靠字重撑，拉到 20px 后又偏大 —— 16px + 字重 500
+     已经足够，毕竟正文已经降到 14px */
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: .22em;
   color: #cfe0ff;
@@ -329,8 +330,9 @@ body {
   /* 拍板 A 第 4 条：em 的基准必须与内容一致。
      原来没给 .note 声明过 font-size，于是 em 按继承来的 16px 算 —— 而卡片里的正文当时只有
      11px：同一张卡片里两套基准，padding 算出 10.88 / 13.6 / 11.52 三个碎值。
-     现在显式声明 16px，并把 padding 直接写成 4/8 尺度 —— "基准错位"这件事从此不存在 */
-  font-size: 16px;
+     现在显式声明一个具体值，并把 padding 直接写成 4/8 尺度 —— "基准错位"这件事从此不存在。
+     Day 10：16 → 14px。它同时是卡内一切 em 的基准，所以改这一处、卡内文字会整体跟着走 */
+  font-size: 14px;
   padding: 12px 16px;
   border-radius: 10px;
   background: rgba(11, 16, 31, .74);
@@ -352,8 +354,8 @@ body {
 .note p {
   /* 8px 尺度（原 .38em × 16px = 6.08px） */
   margin-top: 8px;
-  /* 正文级 16px（原 11px）。拍板 A 第 3 条：正文 ≥14px —— 桌面端按上限也才 13.5px，同样不达标 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 11px）。拍板 A 第 3 条要求正文 ≥14px —— 14px 正好压在这条线上 */
+  font-size: 14px;
   line-height: 1.62;
   color: #c3d0ee;
 }
@@ -385,8 +387,8 @@ body {
   display: none;
   padding: 16px;
   text-align: center;
-  /* 正文级 16px（原 11px）—— 加载 / 空 / 错误 三种状态的说明文字，同样是要读的东西 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 11px）—— 加载 / 空 / 错误 三种状态的说明文字，同样是要读的东西 */
+  font-size: 14px;
   letter-spacing: .12em;
   color: #8fa2c4;
   background: rgba(11, 16, 31, .58);
@@ -429,8 +431,8 @@ body {
   margin-top: 16px;
   padding: 8px 24px;              /* 拍板 A 第 4 条：8px 尺度；横向 24px 让按钮够宽好点 */
   font-family: inherit;
-  /* 正文级 16px（原 10.5px）—— 它原是全页字号最小的可点元素，也是"重试"唯一的入口 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 10.5px）—— 它是"重试"唯一的入口，不该是全页最小字号 */
+  font-size: 14px;
   letter-spacing: .18em;
   text-indent: .18em;
   color: #06121a;
@@ -560,10 +562,12 @@ body {
 /* 结束画面的按钮（原开场页那套已并入首页，顶栏样式见第 ② 节） */
 .btn {
   margin-top: 8px;               /* 拍板 A 第 4 条：.5em × 16px 就是 8px，写成绝对值更好查 */
-  padding: .85em 2.8em;          /* 垂直 13.6px、水平 44.8px，命中区本来就过 44px，不动 */
+  padding: 14px 40px;            /* Day 10：原来是 .85em / 2.8em（按 16px 算出 13.6 / 44.8）。
+                                   字号降到 14px 后 em 会连坐缩到 11.9 / 39.2，按钮整个变瘦 ——
+                                   所以固定成绝对值。垂直 14×2 + 行高 ≈ 44.8px，自然过 44px 线 */
   font-family: inherit;
-  /* 正文级 16px（原 clamp 14–17px，两端各差一点）。固定成一档才好和全页阶梯对齐 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 clamp 14–17px 两端各差一点）。固定成一档才好和阶梯对齐 */
+  font-size: 14px;
   letter-spacing: .22em;
   text-indent: .22em;
   color: #06121a;
@@ -702,10 +706,9 @@ body {
 #cardImg[hidden] { display: none; }   /* 首页"街上的动静"没有配图，不能占位 */
 
 #cardText {
-  /* 正文级 16px（原 13.5px；桌面端按上限也才 17px）。拍板 A 第 3 条：正文 ≥14px。
-     代价要写清楚：手机卡片文字区（92px）从约 4 行变成约 3.4 行，长段落更依赖滚动 ——
-     这是"字大一点"与"一屏多一行"之间的取舍，按规则选了前者，滚动条本来就有 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 13.5px）。拍板 A 第 3 条要求正文 ≥14px，14px 正好压线。
+     顺带的好处：手机文字区每屏能多显示约一行，长段落比 16px 时少一点滚动 */
+  font-size: 14px;
   line-height: 1.7;             /* 1A：1.85 → 1.7。中文在 1.7 行高下依然舒展，
                                    换来的高度正好装下第 3 幕那 6 段 */
   letter-spacing: .04em;
@@ -721,9 +724,10 @@ body {
   overflow-y: auto;
   scroll-behavior: smooth;      /* 第 3 步：新浮现的句子滚进视野时是滑过去的，不是跳的。
                                    浏览器不支持时退化为瞬时跳，功能不受影响 */
-  padding-right: .2em;          /* 留一点缝，滚动条不压字 */
+  padding-right: 4px;           /* 留一点缝，滚动条不压字（Day 10：原 .2em 在 14px 下是 2.8px 碎值） */
 }
-#cardText p + p { margin-top: .6em; }
+/* Day 10：原为 .6em —— 16px 下是 9.6px、14px 下是 8.4px，都偏离 4/8 尺度，写死 8px */
+#cardText p + p { margin-top: 8px; }
 
 /* 第 3 步：剧情逐句浮现 —— 段落初始"透明 + 略微下沉"，JS 按 0.8s 间隔加 .on 淡入。
    ⚠️ 只给 .reveal 加初始隐藏，不要写成 `#cardText p { opacity: 0 }`：
@@ -802,8 +806,8 @@ body {
 #ending.show { opacity: 1; pointer-events: auto; }
 
 #ending h2 {
-  /* 大标题级 24px（原 21px）—— 与顶栏作品名同档，和区块标题（20px）差 4px */
-  font-size: clamp(24px, 5vw, 40px);
+  /* 大标题级 Day 10 24 → 20px（原 21px）—— 与顶栏作品名同档，跟着整档下移 */
+  font-size: clamp(20px, 5vw, 36px);
   font-weight: 600;
   letter-spacing: .22em;
   text-indent: .22em;
@@ -813,8 +817,8 @@ body {
 
 #ending .closing {
   max-width: 30em;
-  /* 正文级 16px（原 13px）—— 这是全篇最后一段文字，也是玩家唯一一次"整段读"的地方 */
-  font-size: 16px;
+  /* 正文级 Day 10 16 → 14px（原 13px）—— 全篇最后一段文字，也是唯一一次"整段读"的地方 */
+  font-size: 14px;
   line-height: 1.9;
   letter-spacing: .05em;
   color: #a9b8dc;
