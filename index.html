@@ -474,6 +474,23 @@ body {
   cursor: crosshair;
 }
 
+/* ---------- 第一人称世界（Day 11 第二批）----------
+   镜头就是主角的眼睛：世界比取景框大 20%（inset:-10%，视觉放大全靠这一下，
+   transform 里不要再叠 scale —— 叠了就是 1.44 倍，会把靠边的物件裁出画面）。
+   点地面时整个世界往反方向滑（--pan-x/--pan-y 由 JS 写，范围 ±8.333 =
+   世界坐标下的满余量），看起来就是"人朝那边走了过去" */
+.world {
+  position: absolute;
+  inset: -10%;
+  transform: translate(calc(var(--pan-x, 0) * 1%), calc(var(--pan-y, 0) * 1%));
+  transition: transform var(--pan-dur, .85s) var(--walk-ease, ease-in-out);
+}
+.world.no-transition { transition: none; }
+
+/* 第三人称立绘退场：镜头即眼睛。走动机制代码保留（写进隐藏元素的变量无害），
+   真要恢复第三人称删掉这一条即可 */
+#player, #shadow, #playerHome, #shadowHome { display: none; }
+
 /* 背景层：AIGC 素材图（images/scene-laundromat.webp，1920x1080 精确 16:9）。
    object-fit: cover —— 任何屏幕比例都铺满且不变形（TECH_DESIGN.md 3.1） */
 .bg {
@@ -955,7 +972,7 @@ body {
   border: 1px solid rgba(255, 120, 195, .55);
   border-radius: 50%;
   cursor: pointer;
-  z-index: 6;
+  z-index: 7;                 /* 持枪时浮在 viewGun(z6) 上面 —— 收枪按钮不能被自己的枪挡住 */
   opacity: .78;
   transition: border-color .25s ease, box-shadow .25s ease, opacity .25s ease;
 }
@@ -985,6 +1002,59 @@ body {
   transition: opacity .25s ease;
 }
 #gunBadge.armed #gunBadgeTag { opacity: 1; }
+
+/* ---------- 第一人称持枪 viewmodel（Day 11 第二批）----------
+   挂在 #stage（店内取景框）里：贴场景右下角，随舞台等比缩放 —— 手机上 16:9 画面带
+   在屏幕中段，钉视口的话枪会沉进垫底区，跟画面脱节。
+   试射中才入画：从画面外升上来（掏枪），再点徽标滑回去（收枪）。
+   pointer-events:none —— 枪只是画面的一部分，点击必须穿透到场景。
+   枪口火光位置取枪图左上（枪口朝左，见 images/gun-cyber-pistol.webp） */
+#viewGun {
+  position: absolute;
+  right: -2%;
+  bottom: -5%;
+  width: min(58%, 560px);
+  z-index: 5;
+  pointer-events: none;
+  transform: translateY(115%);          /* 默认藏在画面外 */
+  transition: transform .34s cubic-bezier(.2, .9, .3, 1.12);
+}
+#viewGun.drawn { transform: translateY(0); }
+/* 呼吸晃动挂 img、后坐挂外层 —— 两条动画各占一个元素，互不覆盖
+   （与 breathe/breatheDim 不能合并是同一个坑） */
+#viewGun img { width: 100%; height: auto; display: block; animation: gunSway 3.4s ease-in-out infinite; }
+@keyframes gunSway {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50%      { transform: rotate(-1.3deg) translateY(-1.6%); }
+}
+/* 开枪后坐：整枪上抬再落回 */
+#viewGun.fire { animation: gunRecoil .18s ease-out; }
+@keyframes gunRecoil {
+  0%   { transform: translateY(0); }
+  35%  { transform: translateY(-4.5%) rotate(2.2deg); }
+  100% { transform: translateY(0); }
+}
+/* 枪口火光：常驻元素、透明度 0，开枪瞬间闪一下 */
+#muzzle {
+  position: absolute;
+  left: 2.5%;
+  top: 35%;
+  width: 24%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+      rgba(255, 244, 200, .98) 0 10%,
+      rgba(255, 160, 222, .85) 30%,
+      rgba(255, 96, 178, .32) 55%,
+      transparent 72%);
+  opacity: 0;
+}
+#viewGun.fire #muzzle { animation: muzzlePop .16s ease-out; }
+@keyframes muzzlePop {
+  0%   { opacity: 1; scale: .55; }
+  100% { opacity: 0; scale: 1.55; }
+}
 
 /* 获得提示：短暂显示后自动收起，纯提示不挡操作（pointer-events:none）。
    top 22% 避开街景顶栏与店内底部卡片；z7 与 .home-panel 同级但不共存 */
@@ -1019,6 +1089,8 @@ body {
 <!-- 舞台：整幅画面都在这里面，所有元素用百分比定位 -->
 <div id="stage">
   <div id="scene">
+    <!-- 第一人称世界层：比取景框大 20%，镜头平移在这一层上发生（CSS .world） -->
+    <div class="world" id="shopWorld">
     <!-- 店内背景图延后加载（Day 9）：玩家在街景阶段用不到它，原来却和街景图一起抢首屏带宽。
          真实地址放 data-src，由 JS 在街景就绪后预取、进店时兜底设 src —— 视觉与交互不变 -->
     <img class="bg" data-src="images/scene-laundromat.webp" alt="" decoding="async">
@@ -1033,7 +1105,7 @@ body {
     <div class="prop-shadow" data-id="case" aria-hidden="true"></div>
     <img class="prop" data-id="case" data-src="images/prop-weapon-case.webp" alt="" decoding="async">
 
-    <!-- 角色：AIGC 立绘，脚底对齐 left/top 所指的那一点 -->
+    <!-- 角色：AIGC 立绘，脚底对齐 left/top 所指的那一点（第一人称下隐藏） -->
     <img id="player" src="images/player-neon.webp" alt="当班的你" decoding="async">
 
     <!-- 三个可互动物件。放在角色之后，光圈才能盖在角色上面；位置见 CSS 第 ⑤ 节 -->
@@ -1043,6 +1115,14 @@ body {
 
     <!-- 第 4 个光圈（Day 11）：武器箱。不在三幕顺序里，点了走"开箱"分支 -->
     <button class="hotspot" type="button" data-id="case" aria-label="一只陌生的箱子"></button>
+    </div>
+
+    <!-- 第一人称持枪（Day 11 第二批）：挂在取景框上而不是世界层里 ——
+         枪跟相机走，镜头平移时它纹丝不动，这才是"拿在手里" -->
+    <div id="viewGun" hidden aria-hidden="true">
+      <img id="viewGunImg" alt="" decoding="async">
+      <span id="muzzle"></span>
+    </div>
   </div>
 </div>
 
@@ -1056,19 +1136,24 @@ body {
      场景 / 人物 / 故事 / 动态 / 可互动都在这一屏；底部列表由 JS 从本地假数据渲染 -->
 <div id="home">
   <div id="homeStage">
-    <img class="home-bg" id="homeBg" src="images/home-street.webp" alt="雨夜的霓虹街口" decoding="async">
+    <!-- 第一人称世界层：街景与店门在这一层上随镜头平移（CSS .world） -->
+    <div class="world" id="homeWorld">
+      <img class="home-bg" id="homeBg" src="images/home-street.webp" alt="雨夜的霓虹街口" decoding="async">
+
+      <!-- 接地影子：与店内同一套（3D） -->
+      <div class="p-shadow" id="shadowHome" aria-hidden="true"></div>
+
+      <!-- 人物：与店内同一套百分比定位（第一人称下隐藏） -->
+      <img id="playerHome" src="images/player-neon.webp" alt="当班的你" decoding="async">
+
+      <!-- 店门：热区位置在成品图上标定（洗衣店的玻璃幕墙那一块） -->
+      <button class="home-door" id="doorBtn" type="button" aria-label="推门进洗衣店">
+        <span>推门进去</span>
+      </button>
+    </div>
+
+    <!-- 雨：挂在取景框上而不是世界里 —— 雨下在你和街道之间，镜头怎么挪都淋在眼前 -->
     <div class="home-rain" aria-hidden="true"></div>
-
-    <!-- 接地影子：与店内同一套（3D） -->
-    <div class="p-shadow" id="shadowHome" aria-hidden="true"></div>
-
-    <!-- 人物：与店内同一套百分比定位 -->
-    <img id="playerHome" src="images/player-neon.webp" alt="当班的你" decoding="async">
-
-    <!-- 店门：热区位置在成品图上标定（洗衣店的玻璃幕墙那一块） -->
-    <button class="home-door" id="doorBtn" type="button" aria-label="推门进洗衣店">
-      <span>推门进去</span>
-    </button>
   </div>
 
   <!-- 上下压暗层：保证顶部标题与底部列表在任何画面上都读得清 -->
@@ -1090,7 +1175,7 @@ body {
     </div>
     <ul class="card-list" id="homeList"></ul>
     <div class="panel-state" id="homeState"></div>
-    <p class="home-hint">点地面走动 · 点动静卡片看下一条 · 点店门进店</p>
+    <p class="home-hint">点地面移动 · 点动静卡片看下一条 · 点店门进店</p>
   </section>
 </div>
 
@@ -1138,6 +1223,8 @@ body {
   const player = document.getElementById('player');
   const shadow = document.getElementById('shadow');        // 3D：店内的接地阴影
   const stage  = document.getElementById('stage');
+  const shopWorld = document.getElementById('shopWorld');  // 第一人称：店内世界层（可平移）
+  const homeWorld = document.getElementById('homeWorld');  // 第一人称：街景世界层（可平移）
 
   // 首页（街景）相关元素
   const home       = document.getElementById('home');
@@ -1256,20 +1343,13 @@ body {
     state.player.y = state.target.y;
   }
 
-  // 点地面 → 走过去
+  // 点地面 → 镜头朝那边移过去（第一人称：世界往反方向滑）
   scene.addEventListener('click', (e) => {
     if (state.over) return;             // 结束后点地面无任何反应（PRD 验收第 11 条）
-    // Day 11：试射中点地面 = 对空地开枪（只留弹孔与冲击环），不走人
+    // Day 11：试射中点地面 = 对空地开枪（只留弹孔与冲击环），不移动
     if (shootMode) { fireAt(e, null); return; }
 
-    const r = scene.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width)  * 100;
-    const y = ((e.clientY - r.top)  / r.height) * 100;
-
-    // 先收敛到可站立范围，再移动（点到画面外也不会走出去）
-    state.target.x = clamp(x, WALK.minX, WALK.maxX);
-    state.target.y = clamp(y, WALK.minY, WALK.maxY);
-    renderPlayer();
+    panWorld(e, stage, shopWorld);
   });
 
   // ---- 三幕剧情文案（主题见 PRD 第 4 节；Day 7 初稿 → Day 9「1A」扩写并三幕化）----
@@ -1404,6 +1484,32 @@ body {
     });
   }
 
+  /* 第一人称自动取景（Day 11 第二批）：世界放大后，靠边的物件（贩卖机 92%、
+     收音机 5%）中心会落在取景框外。换幕时镜头自动转向下一幕的目标 ——
+     在玩家的体验里就是"你读完这段，转头看向了下一台机器"。
+     只把目标拉回画面中间 50% 的横带（竖带放宽到 10–90%），已经在带内就不动镜头 */
+  function frameTarget(el) {
+    if (!el) return;
+    const fr = stage.getBoundingClientRect();
+    const r  = el.getBoundingClientRect();
+    const cx = (r.left + r.width / 2 - fr.left) / fr.width;
+    const cy = (r.top  + r.height / 2 - fr.top)  / fr.height;
+    let shiftX = 0, shiftY = 0;                     // 需要的视觉位移（取景框宽度 %）
+    if (cx < 0.25)      shiftX = (0.25 - cx) * 100;
+    else if (cx > 0.75) shiftX = -(cx - 0.75) * 100;
+    if (cy < 0.10)      shiftY = (0.10 - cy) * 100;
+    else if (cy > 0.90) shiftY = -(cy - 0.90) * 100;
+    if (!shiftX && !shiftY) return;
+    const curX = parseFloat(shopWorld.style.getPropertyValue('--pan-x')) || 0;
+    const curY = parseFloat(shopWorld.style.getPropertyValue('--pan-y')) || 0;
+    // 世界本地 % = 视觉 % / 1.2（世界是取景框的 1.2 倍），再夹到平移余量内
+    const tx = clamp(curX + shiftX / 1.2, -PAN_MAX, PAN_MAX);
+    const ty = clamp(curY + shiftY / 1.2, -PAN_MAX, PAN_MAX);
+    shopWorld.style.setProperty('--pan-dur', '0.9s');
+    shopWorld.style.setProperty('--pan-x', tx.toFixed(2));
+    shopWorld.style.setProperty('--pan-y', ty.toFixed(2));
+  }
+
   document.querySelectorAll('.hotspot').forEach((el) => {
     el.addEventListener('click', (e) => {
       if (state.over) return;    // 结束后点物件无任何反应（PRD 验收第 11 条）
@@ -1422,6 +1528,9 @@ body {
         el.classList.add('read');
         foundCount.textContent = found.size;
         updateHotspots();
+        // 镜头转向下一幕的目标（在读卡片的背后悄悄完成；最后一幕没有"下一幕"，不动）
+        const nextId = SEQUENCE[found.size];
+        if (nextId) frameTarget(document.querySelector('.hotspot[data-id="' + nextId + '"]'));
         // 第 3 幕读完了：不立刻盖结束画面，等玩家收起卡片再进 ——
         // 否则第三幕剧情会被瞬间盖掉，玩家永远读不到（PRD 第 4 节第 4 步要求"阅读"）
         if (found.size === SEQUENCE.length) pendingEnd = true;
@@ -1478,12 +1587,16 @@ body {
     gunBadge.hidden = true;
     gunBadge.classList.remove('armed', 'flash');
     gunBadge.setAttribute('aria-pressed', 'false');
+    viewGun.hidden = true;              // 持枪画面一并收走
+    viewGun.classList.remove('drawn', 'fire');
     caseBtn.classList.remove('read');
-    scene.querySelectorAll('.bullet-hole, .impact-ring').forEach((h) => h.remove());
+    shopWorld.querySelectorAll('.bullet-hole, .impact-ring').forEach((h) => h.remove());
     toast.classList.remove('show');
     toast.hidden = true;
 
     backHome();                         // 回到街景首页（作品名 / 引导 都迁到这里了）
+    resetPan(shopWorld);                // 两屏镜头回正（第一人称）
+    resetPan(homeWorld);
     state.over = false;                 // 交互恢复
   }
 
@@ -1503,6 +1616,37 @@ body {
   let toastTimer  = null;
   const HOLES_MAX = 8;           // 场上弹孔上限：最旧的让位，连射不糊画面
 
+  const viewGun    = document.getElementById('viewGun');
+  const viewGunImg = document.getElementById('viewGunImg');
+
+  /* ---- 第一人称镜头（Day 11 第二批）----
+     点地面 = 人朝那边走：世界往反方向滑。世界比取景框大 20%（inset:-10%），
+     平移满余量 = 换算成世界自身坐标的 ±8.333%。gain 控制手感：
+     点屏幕边缘一步滑到头，点中间只挪一点 */
+  const PAN_MAX  = 8.333;
+  const PAN_GAIN = 1.05;
+  function panWorld(e, frameEl, worldEl) {
+    const r  = frameEl.getBoundingClientRect();
+    const fx = (e.clientX - r.left) / r.width  - 0.5;    // -0.5 ~ 0.5，0 = 屏幕中心
+    const fy = (e.clientY - r.top)  / r.height - 0.5;
+    const tx = -clamp(fx * 2 * PAN_GAIN, -1, 1) * PAN_MAX;
+    const ty = -clamp(fy * 2 * PAN_GAIN, -1, 1) * PAN_MAX;
+    const curX = parseFloat(worldEl.style.getPropertyValue('--pan-x')) || 0;
+    const curY = parseFloat(worldEl.style.getPropertyValue('--pan-y')) || 0;
+    // 时长按要滑的距离算（与第三人称的 --walk-dur 同一套思路），瞬移感就没有了
+    worldEl.style.setProperty('--pan-dur', clamp(Math.hypot(tx - curX, ty - curY) * 0.16, .45, 1.1).toFixed(2) + 's');
+    worldEl.style.setProperty('--pan-x', tx.toFixed(2));
+    worldEl.style.setProperty('--pan-y', ty.toFixed(2));
+  }
+  // 进店 / 回街 / 复位时镜头回正 —— 先关过渡再还原，不然镜头会"漂"回中心
+  function resetPan(worldEl) {
+    worldEl.classList.add('no-transition');
+    worldEl.style.setProperty('--pan-x', '0');
+    worldEl.style.setProperty('--pan-y', '0');
+    void worldEl.offsetWidth;
+    worldEl.classList.remove('no-transition');
+  }
+
   // 提示条：先插 DOM 再下一帧加 .show —— 同一帧加类不走 transition（与卡片首句 60ms 同一个坑）
   function showToast(main, sub) {
     document.getElementById('toastMain').textContent = main;
@@ -1517,9 +1661,11 @@ body {
   }
 
   /* 开一枪：冲击环 + 弹孔落在手指点的位置（"就近"），
-     枪徽标同时闪光（来源），命中物件再抖一下（结果）—— 三条反馈一次给足 */
+     手里的枪后坐 + 枪口火光（来源），命中物件再抖一下（结果）—— 三条反馈一次给足。
+     弹孔坐标按世界层算（世界被放大平移过，getBoundingClientRect 拿到的是变换后的框，
+     百分比在线性映射下仍然指到同一个画面点），挂进世界层才能跟着镜头一起动 */
   function fireAt(e, targetEl) {
-    const r = scene.getBoundingClientRect();
+    const r = shopWorld.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width)  * 100;
     const y = ((e.clientY - r.top)  / r.height) * 100;
 
@@ -1528,14 +1674,14 @@ body {
     ring.style.left = x + '%';
     ring.style.top  = y + '%';
     ring.addEventListener('animationend', () => ring.remove());
-    scene.appendChild(ring);
+    shopWorld.appendChild(ring);
 
     const hole = document.createElement('span');
     hole.className = 'bullet-hole';
     hole.style.left = x + '%';
     hole.style.top  = y + '%';
-    scene.appendChild(hole);
-    const holes = scene.querySelectorAll('.bullet-hole');
+    shopWorld.appendChild(hole);
+    const holes = shopWorld.querySelectorAll('.bullet-hole');
     if (holes.length > HOLES_MAX) holes[0].remove();
 
     if (targetEl) {
@@ -1543,6 +1689,11 @@ body {
       void targetEl.offsetWidth;        // 连点同一物件也要重播动画，不能只有第一下会抖
       targetEl.classList.add('shake');
     }
+
+    // 手里的枪：后坐 + 枪口火光（连点要重播，与物件的 shake 同一个坑）
+    viewGun.classList.remove('fire');
+    void viewGun.offsetWidth;
+    viewGun.classList.add('fire');
 
     gunBadge.classList.remove('flash');
     void gunBadge.offsetWidth;
@@ -1566,12 +1717,14 @@ body {
     setTimeout(() => {
       if (!gunObtained) return;         // 等待期间被"再来一次"复位就不出现
       gunBadgeImg.src = gunBadgeImg.dataset.src;   // 111KB 到手了才加载
+      viewGunImg.src = gunBadgeImg.dataset.src;    // 持枪 viewmodel 与徽标同一张图（走缓存）
       gunBadge.hidden = false;
       showToast('获得武器：不夜恶魔', '点右下角的枪徽标，随时可以试射');
     }, 1700);
   });
 
-  // 枪徽标：试射开关。键盘上 Enter / 空格原生可触发（余力加练的键盘操作就靠 button 本身）
+  // 枪徽标：试射开关 = 掏枪 / 收枪（第一人称 viewmodel 跟着出入画）。
+  // 键盘上 Enter / 空格原生可触发（余力加练的键盘操作就靠 button 本身）
   gunBadge.addEventListener('click', (e) => {
     e.stopPropagation();
     if (state.over) return;
@@ -1579,7 +1732,14 @@ body {
     shootMode = !shootMode;
     gunBadge.classList.toggle('armed', shootMode);
     gunBadge.setAttribute('aria-pressed', String(shootMode));
-    if (shootMode) showToast('试射中', '点画面任意处开枪 · 再点枪徽标收枪');
+    if (shootMode) {
+      showToast('试射中', '点画面任意处开枪 · 再点枪徽标收枪');
+      viewGun.hidden = false;
+      requestAnimationFrame(() => viewGun.classList.add('drawn'));   // 掏枪：下一帧才起过渡（与 toast 同一个坑）
+    } else {
+      viewGun.classList.remove('drawn', 'fire');
+      setTimeout(() => { if (!shootMode) viewGun.hidden = true; }, 360);   // 滑出画面之后再藏
+    }
   });
 
   /* ======================================================================
@@ -1768,6 +1928,7 @@ body {
     stage.classList.add('active');
     progress.classList.add('show');     // 进度提示只在店内有意义
     backdrop.style.backgroundImage = 'url("images/scene-laundromat.webp")';
+    resetPan(shopWorld);                // 镜头回正再进门（第一人称）
   }
 
   function backHome() {
@@ -1776,6 +1937,7 @@ body {
     progress.classList.remove('show');
     home.classList.remove('hidden');
     backdrop.style.backgroundImage = 'url("images/home-street.webp")';
+    resetPan(homeWorld);                // 镜头回正（第一人称）
 
     // 角色瞬移回街上起点：先关位移动画 → 落位 → 强制重排 → 再把动画还回去
     setInstant(playerHome, true);
@@ -1784,14 +1946,9 @@ body {
     setInstant(playerHome, false);
   }
 
-  // 在街上点地面 → 角色走过去（与店内同一套逻辑，只是可站立范围不同）
+  // 在街上点地面 → 镜头朝那边移过去（第一人称，与店内同一套平移）
   homeStage.addEventListener('click', (e) => {
-    const r = homeStage.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width)  * 100;
-    const y = ((e.clientY - r.top)  / r.height) * 100;
-    // 3A：新目标当参数传进去，让 renderHomePlayer 能拿旧位置算距离
-    renderHomePlayer(clamp(x, HOME_WALK.minX, HOME_WALK.maxX),
-                     clamp(y, HOME_WALK.minY, HOME_WALK.maxY));
+    panWorld(e, homeStage, homeWorld);
   });
 
   /* ---------------- 初始化 ---------------- */
