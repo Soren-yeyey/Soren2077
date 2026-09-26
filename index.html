@@ -843,21 +843,172 @@ body {
    而且这五个元素的 transition 列表里都没有 filter，所以按下是"立刻"生效的 */
 
 /* ② 按下反馈 */
-:is(.btn, .retry, .note, .home-door, .hotspot):active {
+:is(.btn, .retry, .note, .home-door, .hotspot, #gunBadge):active {
   filter: brightness(1.28);
 }
 
 /* ③ 键盘焦点环：同一颜色、同一偏移，Tab 一圈下来一眼看得出焦点在哪 */
-:is(.btn, .retry, .note, .home-door, .hotspot):focus-visible {
+:is(.btn, .retry, .note, .home-door, .hotspot, #gunBadge):focus-visible {
   outline: 3px solid #8ff0dc;
   outline-offset: 3px;
 }
 
 /* ① 命中区下限。前三个本身都远大于 44px，这条写出来是为了让"要求"可见；
    .hotspot 的光圈手机端只有 37px，靠它自己的 ::after 撑到 53px（见第 ⑤ 节） */
-:is(.btn, .retry, .home-door) {
+:is(.btn, .retry, .home-door, #gunBadge) {
   min-height: 44px;
 }
+
+/* ---------- ⑩ 武器箱 · 不夜恶魔 · 试射（Day 11） ---------- */
+/* 玩法链路：点武器箱 → 旁白 → 获得「不夜恶魔」（右下角出现枪徽标）→
+   点徽标切试射 → 点店内画面任意处开枪（弹孔 + 冲击环，命中物件会晃）。
+   这是往"打怪 / 装备"新玩法方向的第一块砖：先让"获得装备 → 使用装备"这条
+   反馈链立起来，数值、敌人、弹药都往后放 */
+
+/* 第 4 个光圈：武器箱。它不在 SEQUENCE 里，updateHotspots 的
+   SEQUENCE.indexOf 返回 -1，永远不会挂上 pending —— 光圈常亮，正好 */
+.hotspot[data-id="case"] { left: 72%; top: 62%; }
+
+/* 箱子贴图：物件本体不在背景图里，作为独立贴图摆在光圈处。
+   中心比光圈圆心略抬高 —— 光圈套在箱子下半，圈住"可以点"的那一块。
+   不设 z-index（auto）：DOM 放在角色之前，角色永远盖在箱子上 ——
+   动态遮挡（角色绕到箱子后面）本期不做，先接受这个简化 */
+.prop {
+  position: absolute;
+  width: 15%;
+  transform: translate(-50%, -58%);
+  pointer-events: none;              /* 点击全部归光圈，贴图不吃事件 */
+}
+.prop[data-id="case"] { left: 72%; top: 62%; }
+
+/* 箱子的接地小影：贴图不自带影子，直接贴地面会像贴纸浮着（3D 同一条教训） */
+.prop-shadow {
+  position: absolute;
+  width: 12%;
+  height: 2%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, rgba(0, 0, 0, .55) 0 45%, transparent 72%);
+  pointer-events: none;
+}
+.prop-shadow[data-id="case"] { left: 72%; top: 67.5%; }
+
+/* 被击中的物件：抖一下。keyframes 里必须带上定位用的 translate(-50%,-50%)，
+   否则动画期间元素会跳回未定位状态 —— 与 .hotspot 的 hover 缩放同一个坑 */
+@keyframes hitShake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  20%      { transform: translate(calc(-50% - 4px), calc(-50% + 2px)); }
+  40%      { transform: translate(calc(-50% + 4px), calc(-50% - 1px)); }
+  60%      { transform: translate(calc(-50% - 2px), calc(-50% + 1px)); }
+  80%      { transform: translate(calc(-50% + 2px), -50%); }
+}
+.hotspot.shake { animation: hitShake .38s ease-out; }
+
+/* 弹孔：黑心 + 粉紫冲击晕，配色取自「不夜恶魔」的霓虹电路。
+   用独立 scale 做入场 —— 合成顺序 translate → scale，中心缩放不挪位置；
+   上限 8 个由 JS 清理，最旧的让位，连射不会把画面糊满 */
+.bullet-hole {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+      #05060c 0 34%,
+      rgba(255, 96, 178, .38) 52%,
+      rgba(120, 90, 255, .18) 68%,
+      transparent 78%);
+  pointer-events: none;
+  z-index: 3;
+  animation: holeIn .18s ease-out;
+}
+@keyframes holeIn { from { scale: 2.2; opacity: 0; } }
+
+/* 冲击环：命中瞬间从弹孔位置荡开一圈再消失 */
+.impact-ring {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 120, 195, .85);
+  box-shadow: 0 0 12px rgba(255, 96, 178, .5);
+  pointer-events: none;
+  z-index: 3;
+  animation: ringOut .45s ease-out forwards;
+}
+@keyframes ringOut {
+  from { scale: .35; opacity: 1; }
+  to   { scale: 1.9; opacity: 0; }
+}
+
+/* 枪徽标（文字层，fixed）：获得手枪后出现，点了在「持枪 / 试射中」之间切。
+   z-index 6：店内盖在舞台之上；被 #card(z20) 读剧情时盖住 —— 读字时不试射，正好；
+   64px 触控直径，远在 44px 线上 */
+#gunBadge {
+  position: fixed;
+  right: max(2.4vw, 14px);
+  bottom: max(calc(var(--vh) * 0.028), 14px);
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+  background: rgba(8, 10, 18, .78);
+  border: 1px solid rgba(255, 120, 195, .55);
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 6;
+  opacity: .78;
+  transition: border-color .25s ease, box-shadow .25s ease, opacity .25s ease;
+}
+#gunBadge img { width: 100%; height: auto; pointer-events: none; }
+#gunBadge.armed {
+  opacity: 1;
+  border-color: rgba(255, 120, 195, .95);
+  box-shadow: 0 0 18px rgba(255, 96, 178, .55);
+}
+/* 开枪瞬间徽标亮一下 —— 反馈的"就近"通道：手点的位置出弹孔，
+   枪的位置闪光，来源与结果同时被看见 */
+#gunBadge.flash { animation: muzzleFlash .16s ease-out; }
+@keyframes muzzleFlash {
+  50% { filter: brightness(2.1) drop-shadow(0 0 10px rgba(255, 150, 220, .95)); }
+}
+/* 模式角标：试射中才亮起，告诉玩家"现在点画面 = 开枪"。12px 是阶梯下限 */
+#gunBadgeTag {
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: .14em;
+  color: #ff9ac9;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+#gunBadge.armed #gunBadgeTag { opacity: 1; }
+
+/* 获得提示：短暂显示后自动收起，纯提示不挡操作（pointer-events:none）。
+   top 22% 避开街景顶栏与店内底部卡片；z7 与 .home-panel 同级但不共存 */
+#toast {
+  position: fixed;
+  left: 50%;
+  top: 22%;
+  transform: translate(-50%, -8px);
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 10px 18px;
+  text-align: center;
+  background: rgba(8, 10, 18, .86);
+  border: 1px solid rgba(255, 120, 195, .45);
+  border-radius: 8px;
+  z-index: 7;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast b   { font-size: 16px; color: #ffd7ec; letter-spacing: .08em; }
+#toast span{ font-size: 12px; color: #b9a8d8; }
 </style>
 </head>
 <body>
@@ -876,6 +1027,12 @@ body {
     <!-- 接地影子：3D。必须放在角色之前（DOM 顺序 = 绘制层级，影子在脚下） -->
     <div class="p-shadow" id="shadow" aria-hidden="true"></div>
 
+    <!-- 武器箱（Day 11）：物件本体不在背景图里，贴图 + 接地小影摆在光圈处。
+         贴图走 data-src 延后加载，与店内背景图同一批（42KB 不占首屏）。
+         DOM 放在角色之前 —— 角色永远盖在箱子上（动态遮挡本期不做） -->
+    <div class="prop-shadow" data-id="case" aria-hidden="true"></div>
+    <img class="prop" data-id="case" data-src="images/prop-weapon-case.webp" alt="" decoding="async">
+
     <!-- 角色：AIGC 立绘，脚底对齐 left/top 所指的那一点 -->
     <img id="player" src="images/player-neon.webp" alt="当班的你" decoding="async">
 
@@ -883,6 +1040,9 @@ body {
     <button class="hotspot" type="button" data-id="washer"  aria-label="还在转的洗衣机"></button>
     <button class="hotspot" type="button" data-id="vending" aria-label="自动贩卖机"></button>
     <button class="hotspot" type="button" data-id="radio"   aria-label="老式收音机"></button>
+
+    <!-- 第 4 个光圈（Day 11）：武器箱。不在三幕顺序里，点了走"开箱"分支 -->
+    <button class="hotspot" type="button" data-id="case" aria-label="一只陌生的箱子"></button>
   </div>
 </div>
 
@@ -933,6 +1093,19 @@ body {
     <p class="home-hint">点地面走动 · 点动静卡片看下一条 · 点店门进店</p>
   </section>
 </div>
+
+<!-- 获得提示（Day 11）：短暂显示后自动收起，不挡任何点击 -->
+<div id="toast" role="status" hidden>
+  <b id="toastMain"></b>
+  <span id="toastSub"></span>
+</div>
+
+<!-- 枪徽标（Day 11）：获得「不夜恶魔」后出现；点它在 持枪 / 试射中 之间切换。
+     枪图 111KB，走 data-src —— 点开箱子那一刻才加载，之前不占流量 -->
+<button id="gunBadge" type="button" aria-pressed="false" aria-label="切换试射模式" hidden>
+  <img id="gunBadgeImg" data-src="images/gun-cyber-pistol.webp" alt="" decoding="async">
+  <span id="gunBadgeTag">试射中</span>
+</button>
 
 <!-- 结束画面：全屏，只保留「再来一次」（PRD 第 4 节第 5 步 / 验收第 11 条） -->
 <div id="ending">
@@ -1086,6 +1259,8 @@ body {
   // 点地面 → 走过去
   scene.addEventListener('click', (e) => {
     if (state.over) return;             // 结束后点地面无任何反应（PRD 验收第 11 条）
+    // Day 11：试射中点地面 = 对空地开枪（只留弹孔与冲击环），不走人
+    if (shootMode) { fireAt(e, null); return; }
 
     const r = scene.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width)  * 100;
@@ -1141,6 +1316,13 @@ body {
   const foundCount = document.getElementById('foundCount');
   const progress   = document.getElementById('progress');
   const ending     = document.getElementById('ending');
+
+  // Day 11：武器箱 / 手枪 / 试射
+  const caseBtn     = document.querySelector('.hotspot[data-id="case"]');
+  const caseProp    = document.querySelector('.prop[data-id="case"]');
+  const gunBadge    = document.getElementById('gunBadge');
+  const gunBadgeImg = document.getElementById('gunBadgeImg');
+  const toast       = document.getElementById('toast');
 
   // 物件特写图（2A）。三个物件各一张 —— 不在表里的物件就不带图（首页"街上的动静"
   // 走的就是这条无图分支）。src 是在点开时才写进 <img> 的，所以首屏不会多请求这三张
@@ -1226,6 +1408,8 @@ body {
     el.addEventListener('click', (e) => {
       if (state.over) return;    // 结束后点物件无任何反应（PRD 验收第 11 条）
       e.stopPropagation();       // 点物件不该让角色走过去
+      // Day 11：试射中点物件 = 打它，不出剧情 —— 命中反馈在 fireAt 里
+      if (shootMode) { fireAt(e, el); return; }
       const id  = el.dataset.id;
       const idx = SEQUENCE.indexOf(id);   // 这一物件排第几幕（0 起）
       if (idx > found.size) {             // 还没轮到：只给旁白，进度不动
@@ -1287,6 +1471,18 @@ body {
 
     pendingEnd = false;
     ending.classList.remove('show');
+
+    // Day 11：武器与试射回到初始 —— 枪收走、试射关、弹孔清光、箱子重新"没开过"
+    gunObtained = false;
+    shootMode   = false;
+    gunBadge.hidden = true;
+    gunBadge.classList.remove('armed', 'flash');
+    gunBadge.setAttribute('aria-pressed', 'false');
+    caseBtn.classList.remove('read');
+    scene.querySelectorAll('.bullet-hole, .impact-ring').forEach((h) => h.remove());
+    toast.classList.remove('show');
+    toast.hidden = true;
+
     backHome();                         // 回到街景首页（作品名 / 引导 都迁到这里了）
     state.over = false;                 // 交互恢复
   }
@@ -1298,6 +1494,93 @@ body {
   });
 
   document.getElementById('againBtn').addEventListener('click', resetGame);
+
+  /* ======================================================================
+     Day 11：武器箱 → 「不夜恶魔」→ 试射。往新玩法方向的第一步
+     ====================================================================== */
+  let gunObtained = false;       // 开过箱 = 枪已到手（显示徽标）
+  let shootMode   = false;       // 试射开关：只影响店内；街上按不下去
+  let toastTimer  = null;
+  const HOLES_MAX = 8;           // 场上弹孔上限：最旧的让位，连射不糊画面
+
+  // 提示条：先插 DOM 再下一帧加 .show —— 同一帧加类不走 transition（与卡片首句 60ms 同一个坑）
+  function showToast(main, sub) {
+    document.getElementById('toastMain').textContent = main;
+    document.getElementById('toastSub').textContent  = sub;
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => { toast.hidden = true; }, 350);
+    }, 2600);
+  }
+
+  /* 开一枪：冲击环 + 弹孔落在手指点的位置（"就近"），
+     枪徽标同时闪光（来源），命中物件再抖一下（结果）—— 三条反馈一次给足 */
+  function fireAt(e, targetEl) {
+    const r = scene.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width)  * 100;
+    const y = ((e.clientY - r.top)  / r.height) * 100;
+
+    const ring = document.createElement('span');
+    ring.className = 'impact-ring';
+    ring.style.left = x + '%';
+    ring.style.top  = y + '%';
+    ring.addEventListener('animationend', () => ring.remove());
+    scene.appendChild(ring);
+
+    const hole = document.createElement('span');
+    hole.className = 'bullet-hole';
+    hole.style.left = x + '%';
+    hole.style.top  = y + '%';
+    scene.appendChild(hole);
+    const holes = scene.querySelectorAll('.bullet-hole');
+    if (holes.length > HOLES_MAX) holes[0].remove();
+
+    if (targetEl) {
+      targetEl.classList.remove('shake');
+      void targetEl.offsetWidth;        // 连点同一物件也要重播动画，不能只有第一下会抖
+      targetEl.classList.add('shake');
+    }
+
+    gunBadge.classList.remove('flash');
+    void gunBadge.offsetWidth;
+    gunBadge.classList.add('flash');
+  }
+
+  // 武器箱：一次点击走三种分支 —— 试射中打它 / 开过了重看 / 第一次开箱
+  caseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();                // 与其他物件一致：点它不走路
+    if (state.over) return;
+    if (shootMode) { fireAt(e, caseBtn); return; }
+    if (gunObtained) { showCard(['箱子还开着，里面已经空了。']); return; }
+    gunObtained = true;
+    caseBtn.classList.add('read');      // 光圈收起（箱子贴图留在原地）
+    showCard([
+      '洗衣机边上不知什么时候多了一只箱子。',
+      '没锁。里面躺着一把自己没见过的枪——枪身漆黑，缠着一圈粉紫色的光。'
+    ]);
+    // 枪徽标等旁白两句浮完（60ms + 800ms）再出现，toast 跟着一起 ——
+    // 一次只说一件事：先知道"捡了枪"，再学"怎么开枪"
+    setTimeout(() => {
+      if (!gunObtained) return;         // 等待期间被"再来一次"复位就不出现
+      gunBadgeImg.src = gunBadgeImg.dataset.src;   // 111KB 到手了才加载
+      gunBadge.hidden = false;
+      showToast('获得武器：不夜恶魔', '点右下角的枪徽标，随时可以试射');
+    }, 1700);
+  });
+
+  // 枪徽标：试射开关。键盘上 Enter / 空格原生可触发（余力加练的键盘操作就靠 button 本身）
+  gunBadge.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (state.over) return;
+    if (!inShop) { showToast('枪在手里', '回到店里再试射'); return; }
+    shootMode = !shootMode;
+    gunBadge.classList.toggle('armed', shootMode);
+    gunBadge.setAttribute('aria-pressed', String(shootMode));
+    if (shootMode) showToast('试射中', '点画面任意处开枪 · 再点枪徽标收枪');
+  });
 
   /* ======================================================================
      首页：进店前的霓虹街景（Day 8）
@@ -1460,6 +1743,10 @@ body {
   function loadStoreBg() {
     if (storeBg && !storeBg.getAttribute('src')) {
       storeBg.setAttribute('src', storeBg.dataset.src);
+    }
+    // Day 11：武器箱贴图与店内背景同批延后加载（42KB，不在首屏预算里）
+    if (caseProp && !caseProp.getAttribute('src')) {
+      caseProp.setAttribute('src', caseProp.dataset.src);
     }
   }
 
