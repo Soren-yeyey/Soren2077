@@ -1127,7 +1127,7 @@ body {
 }
 .dex-head { display: flex; align-items: center; justify-content: space-between; }
 .dex-head h2 { font-size: 20px; color: #ffd7ec; letter-spacing: .08em; }
-#dexClose {
+#dexClose, .panel-close {
   width: 44px;
   height: 44px;
   font-size: 16px;
@@ -1137,7 +1137,7 @@ body {
   border-radius: 10px;
   cursor: pointer;
 }
-#dexClose:active { background: rgba(120, 226, 255, .16); }
+#dexClose:active, .panel-close:active { background: rgba(120, 226, 255, .16); }
 
 .dex-filter { display: grid; gap: 8px; }
 .dex-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1230,6 +1230,201 @@ body {
   outline: 2px solid rgba(120, 226, 255, .8);
   outline-offset: 2px;
 }
+
+/* ---------- ⑫ 个人终端（Day 13 板块②）----------
+   hash 路由：#/outfit 与 #/status 可刷新直达；面板复用 .dex-panel 体系。
+   视口高度 var(--vh)、触控 ≥44px、字号四档、间距 4/8 倍数（frontend-rules） */
+#terminalBtn {
+  position: absolute;
+  top: 16px;
+  right: 120px;                       /* 让出 #dexBtn(94.5px) + 16px 边距 + 8px 间距 */
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  letter-spacing: .08em;
+  color: #ffd7ec;
+  background: rgba(8, 10, 18, .72);
+  border: 1px solid rgba(255, 120, 195, .40);
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 6;
+}
+#terminalBtn:active { background: rgba(255, 120, 195, .18); }
+#terminalBtn:focus-visible {
+  outline: 2px solid rgba(255, 120, 195, .8);
+  outline-offset: 2px;
+}
+
+#terminal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(4, 6, 12, .78);
+  backdrop-filter: blur(6px);
+}
+#terminal[hidden] { display: none; }
+
+/* 页签（多级切换的第二级：终端内 穿搭 ⇄ 状态·装备） */
+.term-tabs { display: flex; gap: 8px; margin-left: auto; margin-right: 8px; }
+.term-tab {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #b9a8d8;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .20);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.term-tab[aria-selected="true"] {
+  color: #bfe9ff;
+  font-weight: 600;
+  background: rgba(120, 226, 255, .14);
+  border-color: rgba(120, 226, 255, .52);
+}
+.term-tab:active { background: rgba(120, 226, 255, .24); }
+#terminal :is(button, input):focus-visible {
+  outline: 2px solid rgba(120, 226, 255, .8);
+  outline-offset: 2px;
+}
+
+/* 视图主体：限高滚动，两页签共用一套列表样式 */
+.term-view {
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 4px;
+  min-height: 120px;
+}
+.term-view[hidden] { display: none; }   /* display:grid 盖掉 hidden 默认行为，须显式（实测：状态视图叠在穿搭下面） */
+
+/* 穿搭：立绘 + 说明列表 */
+.outfit-hero {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .14);
+  border-radius: 10px;
+}
+.outfit-hero img {
+  width: 96px;
+  height: 128px;
+  object-fit: cover;                  /* 头像框裁切，无热区标定 */
+  border-radius: 6px;
+  background: #070b16;
+}
+.outfit-hero b { font-size: 16px; color: #dde5ff; display: block; margin-bottom: 4px; }
+.outfit-hero p  { font-size: 12px; color: #b9a8d8; line-height: 1.7; }
+
+/* 状态：生命/体能两条数值条 */
+.vitals { display: grid; gap: 12px; padding: 4px; }
+.vital { display: grid; gap: 4px; }
+.vital-head { display: flex; justify-content: space-between; align-items: baseline; }
+.vital-head b { font-size: 14px; color: #dde5ff; }
+.vital-head i { font-size: 12px; font-style: normal; color: #b9a8d8; }
+.vital-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .14);
+  overflow: hidden;
+}
+.vital-fill { height: 100%; background: rgba(120, 226, 255, .55); }
+.vital-fill.hp { background: rgba(255, 120, 195, .60); }
+
+/* 列表行（穿搭说明 / 装备 两页共用） */
+.term-list { display: grid; gap: 8px; }
+.term-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .14);
+  border-radius: 10px;
+}
+.term-row img {
+  width: 56px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #070b16;
+}
+.term-row b { font-size: 14px; color: #dde5ff; display: block; margin-bottom: 4px; }
+.term-row i { font-size: 12px; font-style: normal; color: #b9a8d8; }
+.row-dot {                             /* 穿搭行无独立贴图，用色块占位 */
+  display: block;
+  width: 56px;
+  height: 42px;
+  border-radius: 6px;
+  background: rgba(120, 226, 255, .12);
+  border: 1px solid rgba(120, 226, 255, .20);
+}
+
+/* 四种列表状态（Day 13 板块③）：ok=列表本身，其余三态由 .term-state 承载 */
+.term-list[hidden] { display: none; }  /* display:grid 盖掉 hidden 默认行为，须显式 */
+.term-state {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 24px 16px;
+  font-size: 14px;
+  text-align: center;
+  color: #b9a8d8;
+  border: 1px dashed rgba(120, 226, 255, .24);
+  border-radius: 10px;
+}
+.term-state[hidden] { display: none; }
+.term-state p { margin: 0; }
+.state-retry {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #ffd7ec;
+  background: rgba(255, 120, 195, .10);
+  border: 1px solid rgba(255, 120, 195, .40);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.state-retry:active { background: rgba(255, 120, 195, .22); }
+.skel {                                /* 加载中骨架条：微光扫过 */
+  width: 100%;
+  height: 58px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(120, 226, 255, .06) 25%, rgba(120, 226, 255, .16) 37%, rgba(120, 226, 255, .06) 63%);
+  background-size: 300% 100%;
+  animation: skel 1.2s ease infinite;
+}
+@keyframes skel { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* 状态演示行（验收用，明示不藏） */
+.term-demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(120, 226, 255, .14);
+}
+.term-demo > span { font-size: 12px; color: #b9a8d8; margin-right: 4px; }
+.demo-btn {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #b9a8d8;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .20);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.demo-btn:active { background: rgba(120, 226, 255, .24); color: #bfe9ff; }
 </style>
 </head>
 <body>
@@ -1331,6 +1526,9 @@ body {
 
   <!-- 素材图鉴入口（Day 12）：挂在 #home 内，进店后随首页一起隐藏 -->
   <button id="dexBtn" type="button" aria-haspopup="dialog">素材图鉴</button>
+
+  <!-- 个人终端入口（Day 13）：hash 路由 #/outfit，与图鉴并排 -->
+  <button id="terminalBtn" type="button" aria-haspopup="dialog">个人终端</button>
 </div>
 
 <!-- 获得提示（Day 11）：短暂显示后自动收起，不挡任何点击 -->
@@ -1371,6 +1569,66 @@ body {
     <div class="dex-grid" id="dexGrid"></div>
     <div class="dex-empty" id="dexEmpty" hidden>没有匹配的素材 —— 换个关键词，或点「清空」重来</div>
     <p class="dex-meta" id="dexMeta"></p>
+  </div>
+</div>
+
+<!-- 个人终端（Day 13 板块②）：#/outfit 与 #/status 两个可独立访问的视图。
+     第二级切换用页签；列表四种状态在板块③接入（现挂正常态静态内容） -->
+<div id="terminal" role="dialog" aria-modal="true" aria-label="个人终端" hidden>
+  <div class="dex-panel">
+    <div class="dex-head">
+      <h2>个人终端</h2>
+      <div class="term-tabs" role="tablist" aria-label="终端页签">
+        <button class="term-tab" id="tabOutfit" type="button" role="tab" aria-selected="true">穿搭</button>
+        <button class="term-tab" id="tabStatus" type="button" role="tab" aria-selected="false">状态·装备</button>
+      </div>
+      <button id="termClose" class="panel-close" type="button" aria-label="关闭个人终端">✕</button>
+    </div>
+
+    <!-- 视图一：个人形象穿搭 -->
+    <section class="term-view" id="viewOutfit" role="tabpanel" aria-label="个人形象穿搭">
+      <div class="outfit-hero">
+        <img src="images/player-neon.webp" alt="你今晚的穿搭" decoding="async">
+        <div>
+          <b>当班的你</b>
+          <p>凌晨三点的洗衣店值机员。雨夜、卷帘门、和一台总在 3 号位转的老洗衣机。</p>
+        </div>
+      </div>
+      <ul class="term-list" id="outfitList">
+        <li class="term-row"><i class="row-dot" aria-hidden="true"></i><div><b>夜班制服外套</b><i>洗衣店发的，袖口磨白了</i></div></li>
+        <li class="term-row"><i class="row-dot" aria-hidden="true"></i><div><b>防泼水围裙</b><i>值夜班的第二层皮肤</i></div></li>
+        <li class="term-row"><i class="row-dot" aria-hidden="true"></i><div><b>帆布工具腰包</b><i>零钱、手电、半包创可贴</i></div></li>
+      </ul>
+      <div class="term-state" id="outfitState" hidden></div>
+    </section>
+
+    <!-- 视图二：生命体能 + 武器装备 -->
+    <section class="term-view" id="viewStatus" role="tabpanel" aria-label="生命体能与武器装备" hidden>
+      <div class="vitals">
+        <div class="vital">
+          <div class="vital-head"><b>生命</b><i>87 / 100</i></div>
+          <div class="vital-track"><div class="vital-fill hp" style="width:87%"></div></div>
+        </div>
+        <div class="vital">
+          <div class="vital-head"><b>体能</b><i>64 / 100</i></div>
+          <div class="vital-track"><div class="vital-fill" style="width:64%"></div></div>
+        </div>
+      </div>
+      <ul class="term-list" id="gearList">
+        <li class="term-row"><img src="images/gun-cyber-pistol.webp" alt="" decoding="async"><div><b>不夜恶魔</b><i>武器 · 已入袋，试射模式待命</i></div></li>
+        <li class="term-row"><img src="images/prop-weapon-case.webp" alt="" decoding="async"><div><b>武器箱</b><i>道具 · 已开箱，能量核心仍在缓亮</i></div></li>
+      </ul>
+      <div class="term-state" id="gearState" hidden></div>
+    </section>
+
+    <!-- 状态演示（板块③）：本地无后端，加载/失败为模拟；明示给玩家，不藏 -->
+    <div class="term-demo" role="group" aria-label="列表状态演示">
+      <span>状态演示</span>
+      <button type="button" class="demo-btn" data-end="ok">正常</button>
+      <button type="button" class="demo-btn" data-end="loading">加载中</button>
+      <button type="button" class="demo-btn" data-end="empty">没有结果</button>
+      <button type="button" class="demo-btn" data-end="error">请求失败</button>
+    </div>
   </div>
 </div>
 
@@ -2178,6 +2436,7 @@ body {
 
   function openDex() {
     dex.hidden = false;
+    terminal.hidden = true;             // Day 13：与个人终端互斥，防两层叠影
     renderDex();
     dexClose.focus();                   // 键盘可达（Day 11 加练欠账）
   }
@@ -2206,6 +2465,95 @@ body {
     dexInput.focus();
   });
 
+  /* ---------------- 个人终端（Day 13 板块②）----------------
+     hash 路由：#/outfit / #/status 直达对应页签；#/ 或空 回首页并收起面板。
+     无路由库：hashchange 监听 + 首次解析，共约 30 行 */
+  const terminal   = document.getElementById('terminal');
+  const terminalBtn = document.getElementById('terminalBtn');
+  const termClose  = document.getElementById('termClose');
+  const tabOutfit  = document.getElementById('tabOutfit');
+  const tabStatus  = document.getElementById('tabStatus');
+  const viewOutfit = document.getElementById('viewOutfit');
+  const viewStatus = document.getElementById('viewStatus');
+
+  function currentRoute() {
+    const h = location.hash.replace(/^#\/?/, '');
+    return (h === 'outfit' || h === 'status') ? h : 'home';
+  }
+  function switchTermTab(route) {
+    const outfit = route === 'outfit';
+    viewOutfit.hidden = !outfit;
+    viewStatus.hidden = outfit;
+    tabOutfit.setAttribute('aria-selected', String(outfit));
+    tabStatus.setAttribute('aria-selected', String(!outfit));
+  }
+  function applyRoute() {
+    const r = currentRoute();
+    terminal.hidden = r === 'home';
+    if (r !== 'home') {
+      dex.hidden = true;                // 终端与图鉴互斥，防两层叠影
+      switchTermTab(r);
+      demoState(r, 'ok');               // 每次进视图都重新「调取」一遍（板块③）
+    }
+  }
+  function goto(route) {
+    const h = route === 'home' ? '' : '#/' + route;
+    /* hash 同值赋值不触发 hashchange（实测：图鉴互斥关掉终端后再点入口，面板弹不出来）
+       —— 同值时直接重跑 applyRoute 强制重同步；比较必须带 '#' 前缀（location.hash 口径） */
+    if (location.hash === h) { applyRoute(); } else { location.hash = h; }
+  }
+
+  terminalBtn.addEventListener('click', () => goto('outfit'));
+  termClose.addEventListener('click', () => goto('home'));
+  tabOutfit.addEventListener('click', () => goto('outfit'));
+  tabStatus.addEventListener('click', () => goto('status'));
+  window.addEventListener('hashchange', applyRoute);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !terminal.hidden) goto('home');
+  });
+
+  /* ---------------- 列表四态（Day 13 板块③）----------------
+     ok=列表本身；loading=骨架屏；empty=空态文案；error=失败文案+重试。
+     进视图自动模拟 600ms 加载再落正常态；演示钮可强制任意状态 */
+  const termLists = {
+    outfit: { list: document.getElementById('outfitList'), box: document.getElementById('outfitState') },
+    status: { list: document.getElementById('gearList'),   box: document.getElementById('gearState') }
+  };
+  const termTimers = {};
+
+  function setListState(view, state) {
+    clearTimeout(termTimers[view]);
+    const L = termLists[view];
+    if (state === 'ok') {               // 成功：列表回归，状态框收起
+      L.list.hidden = false;
+      L.box.hidden = true;
+      L.box.innerHTML = '';
+      return;
+    }
+    L.list.hidden = true;
+    L.box.hidden = false;
+    if (state === 'loading') {
+      L.box.innerHTML = '<div class="skel"></div><div class="skel"></div><p>正在调取终端记录…</p>';
+    } else if (state === 'empty') {
+      L.box.innerHTML = '<p>暂无记录 —— 这个栏位还什么都没有</p>';
+    } else {                            // error
+      L.box.innerHTML = '<p>终端信号中断，记录调取失败</p>';
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'state-retry';
+      retry.textContent = '重试';
+      retry.addEventListener('click', () => demoState(view, 'ok'));
+      L.box.appendChild(retry);
+    }
+  }
+  function demoState(view, end) {       // 演示入口：任何目标态都先走一遍加载
+    setListState(view, 'loading');
+    termTimers[view] = setTimeout(() => setListState(view, end), 600);
+  }
+  document.querySelectorAll('.demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => demoState(currentRoute(), btn.dataset.end));
+  });
+
   /* ---------------- 初始化 ---------------- */
   // 包一层瞬移：3E 的 --p-scale 首帧才写入，若不关过渡，开场会看到人物"放大一下"
   setInstant(player, true);
@@ -2216,6 +2564,7 @@ body {
   setInstant(player, false);
   setInstant(playerHome, false);
   loadNotes();            // 首页列表：先加载态，随后渲染假数据
+  applyRoute();           // Day 13：首次解析 hash，支持 #/outfit、#/status 刷新直达
 })();
 </script>
 
