@@ -72,6 +72,10 @@
   - **判别法**（区分"代理坏了"还是"只有 GitHub 这条路坏了"）：走代理打 `baidu.com` → 200 说明代理本体正常；`api.github.com` 若 CONNECT 拿到 `200 Established` 但随后 TLS 断，就是**节点对 GitHub 的线路坏了**
   - 报 `schannel: failed to receive handshake` 时**换 `-c http.sslBackend=openssl` 没用**（改报 `unexpected eof while reading`），别在这上面耗时间
   - 本机 `github.com` 解析到 `198.18.0.37`（代理 fake-IP 段）→ **"绕过代理直连"这条路天然不存在**，`--noproxy '*'` 必然 0.3 秒内失败
+- ⚠️ **git push 无输出挂死 = WorkBuddy PortableGit 的 `credential.helper=helper-selector` 在等 GUI 选择**（trace 卡在 `git credential-helper-selector get`）
+  - 判别：`tasklist | grep -i git` 出现 `git-credential-helper-sel` 即是；先 `taskkill //F //IM git.exe` 清残留
+  - 修法（实测一次过）：`git -c credential.helper= -c credential.helper=manager push origin main`
+  - ⚠️ `-c credential.helper=manager` 是**追加不是替换**，系统 helper-selector 仍会被先调 → 必须**先写空的 `credential.helper=` 清掉列表再追加 manager**；只写空则报 `could not read Username`
 - ⚠️ **本地写不进 `refs/remotes/origin/*`** → 查远程事实用 `git ls-remote origin refs/heads/main`，别依赖 `origin/main`
 - 查远程事实优先级：① `git ls-remote` ② `raw.githubusercontent.com/<user>/<repo>/main/<path>` 逐文件打状态码（不限流）③ `api.github.com`（未登录会限流，别首选）
 - 核验一律**纯管道不落盘**（沙箱不允许往项目目录外写）：`curl -s URL | tr -d '\r' | md5sum`；状态码 `curl -s -o /dev/null -w '%{http_code}'`
@@ -110,6 +114,9 @@
 | `6ce8162` | 9 | 按设计规则修掉 7 处前端问题 |
 | `3ca9585` | 9 | 补记推送核验与「修复后」截图 |
 | `a5b9afd` | 10 | 字号整体下调一档（12/14/16/20）+ 3 处 em 固定成 px |
+| `ee16706` | 11 | 武器箱 + 「不夜恶魔」手枪 + 试射/弹孔闭环 |
+| `60c7d76` | 11 | 当日日志补记 |
+| `3110ecd` | 11 | 全游戏改第一人称（world 镜头层 + viewGun + 自动取景） |
 
 ## 待议（不影响玩）
 
