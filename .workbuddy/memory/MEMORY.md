@@ -87,6 +87,7 @@
 - **独立变换属性合成顺序 = `translate → rotate → scale → transform`**：`scale` 排在 `transform` 外层，会把 `transform: translate(-50%,-100%)` 的负号翻正 → 角色朝左走整体偏一个身宽（实测 64.7px）。**基础位移必须用独立 `translate` 属性**；镜像用独立 `scale`（不能塞 `transform`，会被 `idleFloat` 动画整个覆盖）
 - **卡片里放 16:9 图时别让它成为 flex 主轴上的项**：`flex-basis: auto` 在 column 方向会绕开 `aspect-ratio` 去取图片内在高度 → 图被拉竖（实测 380×460）。用非 flex + `calc()` 限文字区高度
 - **两条 opacity keyframes 不能合并**：`breathe` 自己就动 opacity，给 pending 另写 `opacity` 会被动画盖掉（必须单独 `breatheDim`）
+- **给带 `display` 的类配 `hidden` 切换必须显式写 `[hidden]{display:none}`**：类规则会盖掉 UA 默认行为，元素标了 hidden 照样渲染（Day 13 实测：`.term-view{display:grid}` 导致两页签内容叠显）；**且验证必须量 `getBoundingClientRect`，只读 `.hidden` 属性是假绿**
 - **透明渐变面板会吃掉底下元素的点击** → `pointer-events: none` + 内部可点元素恢复 `auto`
 - 卡片高度参数联动（**改一个必须同步改另一个**）：`#card` `max(calc(var(--vh)*0.34), 296px)`、`#cardImg` 240px、`#cardText` `calc(上面 - 195px)`；`195px = 图(135)+图距(17)+padding(40)+3`；矮视口（`@media (max-height: 520px)`）藏配图 + 卡片 `0.38 * --vh`
 - 逐句浮现：`REVEAL_STEP = 800`，首段等 **60ms**（刚插入 DOM 同帧加类浏览器不走 transition）；点卡片 = `revealAll()`；CSS 只给 `p.reveal` 初始隐藏（**不能写 `#cardText p { opacity:0 }`** —— 旁白与首页动静走同一渲染路径）
