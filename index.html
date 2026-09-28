@@ -1079,6 +1079,157 @@ body {
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast b   { font-size: 16px; color: #ffd7ec; letter-spacing: .08em; }
 #toast span{ font-size: 12px; color: #b9a8d8; }
+
+/* ---------- ⑪ 素材图鉴（Day 12 板块③）----------
+   规则沿用 frontend-rules：字号 12/14/16/20、间距 4/8 倍数、触控 ≥44px、
+   :active/:focus-visible、对比度 ≥4.5:1、视口高度 var(--vh)。
+   缩略图无百分比热区标定，object-fit:cover 在这里允许（Skill 只禁"图上标热区"的场景） */
+#dexBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  letter-spacing: .08em;
+  color: #bfe9ff;
+  background: rgba(8, 10, 18, .72);
+  border: 1px solid rgba(120, 226, 255, .32);
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 6;
+}
+#dexBtn:active { background: rgba(120, 226, 255, .16); }
+
+#dex {
+  position: fixed;
+  inset: 0;
+  z-index: 30;                        /* 压过剧情卡片(20)与 toast(7) */
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(4, 6, 12, .78);
+  backdrop-filter: blur(6px);
+}
+#dex[hidden] { display: none; }       /* display:grid 会盖掉 hidden 的默认行为，必须显式声明 */
+
+.dex-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(92vw, 720px);
+  max-height: calc(var(--vh) - 32px);
+  padding: 16px;
+  background: rgba(9, 13, 25, .94);
+  border: 1px solid rgba(120, 226, 255, .26);
+  border-radius: 14px;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, .70);
+}
+.dex-head { display: flex; align-items: center; justify-content: space-between; }
+.dex-head h2 { font-size: 20px; color: #ffd7ec; letter-spacing: .08em; }
+#dexClose {
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  color: #bfe9ff;
+  background: transparent;
+  border: 1px solid rgba(120, 226, 255, .32);
+  border-radius: 10px;
+  cursor: pointer;
+}
+#dexClose:active { background: rgba(120, 226, 255, .16); }
+
+.dex-filter { display: grid; gap: 8px; }
+.dex-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.dex-chip {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #b9a8d8;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .20);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.dex-chip[aria-pressed="true"] {
+  color: #bfe9ff;
+  font-weight: 600;
+  background: rgba(120, 226, 255, .14);
+  border-color: rgba(120, 226, 255, .52);
+}
+.dex-chip:active { background: rgba(120, 226, 255, .24); }
+
+.dex-search { display: flex; gap: 8px; }
+#dexInput {
+  flex: 1;
+  min-width: 0;                       /* 允许在窄屏收缩，不被内容撑破 flex */
+  min-height: 44px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #dde5ff;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .20);
+  border-radius: 10px;
+}
+#dexInput::placeholder { color: #93a6cc; }
+#dexClear {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #ffd7ec;
+  background: rgba(255, 120, 195, .10);
+  border: 1px solid rgba(255, 120, 195, .40);
+  border-radius: 10px;
+  cursor: pointer;
+}
+#dexClear:active { background: rgba(255, 120, 195, .22); }
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+  padding: 4px;                       /* 卡片不贴面板边，焦点框/边框不被裁 */
+  min-height: 120px;
+}
+.dex-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(14, 18, 32, .88);
+  border: 1px solid rgba(120, 226, 255, .14);
+  border-radius: 10px;
+}
+.dex-item img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #070b16;
+}
+.dex-item b { font-size: 14px; font-weight: 600; color: #dde5ff; }
+.dex-item i { font-size: 12px; font-style: normal; color: #b9a8d8; }
+
+.dex-empty {
+  padding: 24px 16px;
+  font-size: 14px;
+  text-align: center;
+  color: #b9a8d8;
+  border: 1px dashed rgba(120, 226, 255, .24);
+  border-radius: 10px;
+}
+.dex-meta { font-size: 12px; color: #b9a8d8; text-align: right; }
+
+/* 键盘焦点态（Day 11 余力加练在这里一并补上）：图鉴内所有控件统一 */
+#dex :is(button, input):focus-visible {
+  outline: 2px solid rgba(120, 226, 255, .8);
+  outline-offset: 2px;
+}
+#dexBtn:focus-visible {
+  outline: 2px solid rgba(120, 226, 255, .8);
+  outline-offset: 2px;
+}
 </style>
 </head>
 <body>
@@ -1177,6 +1328,9 @@ body {
     <div class="panel-state" id="homeState"></div>
     <p class="home-hint">点地面移动 · 点动静卡片看下一条 · 点店门进店</p>
   </section>
+
+  <!-- 素材图鉴入口（Day 12）：挂在 #home 内，进店后随首页一起隐藏 -->
+  <button id="dexBtn" type="button" aria-haspopup="dialog">素材图鉴</button>
 </div>
 
 <!-- 获得提示（Day 11）：短暂显示后自动收起，不挡任何点击 -->
@@ -1191,6 +1345,34 @@ body {
   <img id="gunBadgeImg" data-src="images/gun-cyber-pistol.webp" alt="" decoding="async">
   <span id="gunBadgeTag">试射中</span>
 </button>
+
+<!-- 素材图鉴（Day 12 板块③）：类型 chips + 名称关键词两轴筛选。
+     三态：筛中有结果 / 空态提示 / 清空恢复全量。卡片纯展示不承担点击 -->
+<div id="dex" role="dialog" aria-modal="true" aria-label="素材图鉴" hidden>
+  <div class="dex-panel">
+    <div class="dex-head">
+      <h2>素材图鉴</h2>
+      <button id="dexClose" type="button" aria-label="关闭图鉴">✕</button>
+    </div>
+    <div class="dex-filter">
+      <div class="dex-chips" role="group" aria-label="按类型筛选">
+        <button class="dex-chip" type="button" data-type="全部" aria-pressed="true">全部</button>
+        <button class="dex-chip" type="button" data-type="场景" aria-pressed="false">场景</button>
+        <button class="dex-chip" type="button" data-type="物件" aria-pressed="false">物件</button>
+        <button class="dex-chip" type="button" data-type="武器" aria-pressed="false">武器</button>
+        <button class="dex-chip" type="button" data-type="道具" aria-pressed="false">道具</button>
+        <button class="dex-chip" type="button" data-type="角色" aria-pressed="false">角色</button>
+      </div>
+      <div class="dex-search">
+        <input id="dexInput" type="search" placeholder="搜名称，如：洗衣机" aria-label="按名称筛选素材">
+        <button id="dexClear" type="button">清空</button>
+      </div>
+    </div>
+    <div class="dex-grid" id="dexGrid"></div>
+    <div class="dex-empty" id="dexEmpty" hidden>没有匹配的素材 —— 换个关键词，或点「清空」重来</div>
+    <p class="dex-meta" id="dexMeta"></p>
+  </div>
+</div>
 
 <!-- 结束画面：全屏，只保留「再来一次」（PRD 第 4 节第 5 步 / 验收第 11 条） -->
 <div id="ending">
@@ -1949,6 +2131,79 @@ body {
   // 在街上点地面 → 镜头朝那边移过去（第一人称，与店内同一套平移）
   homeStage.addEventListener('click', (e) => {
     panWorld(e, homeStage, homeWorld);
+  });
+
+  /* ---------------- 素材图鉴（Day 12 板块③）----------------
+     两轴筛选：类型 chips + 名称关键词；三态：筛中有结果 / 空态 / 清空恢复。
+     图片复用 images/ 已有素材，首次打开才渲染（不占首屏带宽） */
+  const DEX_ITEMS = [
+    { file: 'images/home-street.webp',      name: '雨夜街口',   type: '场景' },
+    { file: 'images/scene-laundromat.webp', name: '洗衣店内',   type: '场景' },
+    { file: 'images/item-washer.webp',      name: '三号洗衣机', type: '物件' },
+    { file: 'images/item-vending.webp',     name: '贩卖机',     type: '物件' },
+    { file: 'images/item-radio.webp',       name: '收音机',     type: '物件' },
+    { file: 'images/gun-cyber-pistol.webp', name: '不夜恶魔',   type: '武器' },
+    { file: 'images/prop-weapon-case.webp', name: '武器箱',     type: '道具' },
+    { file: 'images/player-neon.webp',      name: '当班的你',   type: '角色' }
+  ];
+  const dexBtn   = document.getElementById('dexBtn');
+  const dex      = document.getElementById('dex');
+  const dexGrid  = document.getElementById('dexGrid');
+  const dexEmpty = document.getElementById('dexEmpty');
+  const dexMeta  = document.getElementById('dexMeta');
+  const dexInput = document.getElementById('dexInput');
+  const dexClose = document.getElementById('dexClose');
+  const dexClear = document.getElementById('dexClear');
+  const dexChips = Array.from(document.querySelectorAll('.dex-chip'));
+  let dexType = '全部';
+
+  function renderDex() {
+    const q = dexInput.value.trim().toLowerCase();
+    const list = DEX_ITEMS.filter(it =>
+      (dexType === '全部' || it.type === dexType) &&
+      (!q || it.name.toLowerCase().includes(q) || it.file.toLowerCase().includes(q))
+    );
+    dexGrid.innerHTML = list.map(it =>
+      '<figure class="dex-item">' +
+        '<img src="' + it.file + '" alt="' + it.name + '" loading="lazy" decoding="async">' +
+        '<b>' + it.name + '</b><i>' + it.type + '</i>' +
+      '</figure>'
+    ).join('');
+    dexEmpty.hidden = list.length > 0;
+    dexGrid.hidden = list.length === 0;
+    dexMeta.textContent = list.length === DEX_ITEMS.length
+      ? '共 ' + list.length + ' 件素材'
+      : '筛出 ' + list.length + ' / ' + DEX_ITEMS.length + ' 件';
+  }
+
+  function openDex() {
+    dex.hidden = false;
+    renderDex();
+    dexClose.focus();                   // 键盘可达（Day 11 加练欠账）
+  }
+  function closeDex() {
+    dex.hidden = true;
+    dexBtn.focus();                     // 焦点还回入口，Tab 顺序不丢
+  }
+  dexBtn.addEventListener('click', openDex);
+  dexClose.addEventListener('click', closeDex);
+  dex.addEventListener('click', (e) => { if (e.target === dex) closeDex(); });  // 点遮罩关
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !dex.hidden) closeDex();
+  });
+
+  dexChips.forEach(chip => chip.addEventListener('click', () => {
+    dexType = chip.dataset.type;
+    dexChips.forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    renderDex();
+  }));
+  dexInput.addEventListener('input', renderDex);
+  dexClear.addEventListener('click', () => {
+    dexType = '全部';
+    dexChips.forEach(c => c.setAttribute('aria-pressed', String(c.dataset.type === '全部')));
+    dexInput.value = '';
+    renderDex();
+    dexInput.focus();
   });
 
   /* ---------------- 初始化 ---------------- */
