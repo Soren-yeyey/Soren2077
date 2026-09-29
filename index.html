@@ -57,8 +57,16 @@ body {
   position: fixed;
   inset: -8%;                    /* 向外多留一圈，模糊边缘才不会露出透明缝 */
   background: url("images/home-street.webp") center / cover no-repeat #05060c;
-  filter: blur(26px) brightness(.42) saturate(1.15);
+  filter: blur(22px) brightness(.62) saturate(1.25);
   pointer-events: none;          /* 纯装饰层，不放行任何点击 */
+}
+/* Day 14 自测反馈：竖屏留白近死黑。渐变不能叠进 .backdrop——filter 会连渐变一起压暗，
+   必须独立成层放 filter 作用范围之外；青→粉对应「外霓虹」的原始设计意图 */
+.backdrop-glow {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(94, 168, 255, .38) 0%, rgba(8, 10, 18, 0) 50%, rgba(233, 64, 180, .32) 100%);
+  pointer-events: none;
 }
 /* 进店后由 JS 把这层换成洗衣店那张图（两屏各配各的底） */
 
@@ -1431,6 +1439,7 @@ body {
 
 <!-- 全屏垫底：只负责把留白填成氛围，不参与任何交互（见 CSS 第 ② 节） -->
 <div class="backdrop" aria-hidden="true"></div>
+<div class="backdrop-glow" aria-hidden="true"></div>
 
 <!-- 舞台：整幅画面都在这里面，所有元素用百分比定位 -->
 <div id="stage">
