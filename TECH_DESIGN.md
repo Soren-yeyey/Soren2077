@@ -266,3 +266,48 @@ flowchart TD
 - 通用 Web 性能测量结论：4G 网络（约 20 Mbps）下 5 MB 页面的真实加载耗时约 4–6 秒；
   图片通常占页面体积的 50–70%
 - 查证日期：2026-09-20
+
+---
+
+# 3D 街区（Day 15 转向，2026-09-29 拍板启动）
+
+## 决策
+- 技术路线：Three.js r147 UMD（`libs/three.min.js`，594KB）代码生成低模 3D；零运行时外部请求
+- 范围：只 3D 化首页街区；店内仍是 2D（`doorBtn3d` 经 `click()` 复用现有 `enterShop`，零侵入）
+- 交互：手机横屏双摇杆（左移动/右视角，动态摇杆触点即中心）；桌面 WASD+拖拽；竖屏可玩+「横屏体验更佳」提示
+- 美术：低多边形霓虹（程序化窗格 CanvasTexture、竖霓虹条、洗衣店/24H 发光字、点粒子雨、FogExp2）
+
+## 红线修订（拍板）
+- 「零第三方依赖」→「零运行时外部请求」（库自托管）
+- 素材 ≤5MB 不变；新增「代码库预算 ≤700KB」
+
+## 已知实现要点与坑
+- **移动映射**：`forward=(-sin,-cos)`、`right=(cos,-sin)`；`x += cos*mx + sin*mz`、`z += -sin*mx + cos*mz`（首版两个符号全反，W 后退的体感 bug）
+- **出生朝向**：相机默认看 -z，`yaw=0` 才面向洗衣店（首版 `yaw=Math.PI` 背对目标）
+- **filter 连坐 3D 版**：发光氛围不能塞进带 filter 的层（会连渐变一起压暗），同 Day 14 backdrop-glow 教训
+- `setPointerCapture` 需 try/catch（合成事件假 pointerId 抛 NotFoundError）
+- 真实传输体积：库 gzip 后约 150KB
+- 验证钩子：`window.__poc = { player, door3d }`（无头测试用）
+
+## 视觉质量升级（同日第二轮，用户拍板：ImageGen 路线改纯代码 + Shader）
+
+用户约束：不堆贴图（≤256px 或直接 Canvas 程序化）、用 Shader/后期特效提质感、不引外部模型库、红线不破。
+
+落地（全部零图片文件，贴图均为运行时 Canvas 生成）：
+- **Bloom 泛光**：three r147 自带 UnrealBloomPass 六件套（libs/three/，23KB，MIT 自托管）；strength .9 / radius .55 / threshold .5；ACESFilmicToneMapping + 曝光 1.15
+- **伪镜面反射**：city 组整组 scale.y=-1 沉入地面下，材质透明化（发光招牌 .5 / 其余 .22 / DoubleSide 翻转法线）；地面半透明沥青（opacity .6, metalness .25——高金属度无 envMap 会近黑，实测坑）
+- **Canvas 程序化纹理**：窗格 128×256（55% 亮窗五色随机+二次叠填提亮，emissiveMap 自发光 .6）；沥青 256²（噪点+纵向湿痕，Repeat 5×9）；霓虹字 256×64
+- **更浓赛博朋克**：竖霓虹条概率 .95、新增「便利店/酒吧」侧翼招牌、雨 1200 点加速、CSS 暗角 #threeVg
+- 修坑：玻璃 emissive 1.6 过曝成白块 → .45；pitch 正负方向（正=抬头）
+
+体积：index.html 130KB + three 594KB + bloom 23KB = 747KB（代码预算上调至 800KB，用户约束下最低可行）；images 1.1MB 不变；FPS 167（桌面）
+
+## Shader 重构（同日第三轮，用户四条约束落地）
+
+1. Bloom（已接，收力治光污染：strength .9→.75 / threshold .5→.55）+ FogExp2（0.036→0.028，ShaderMaterial 手动实现同公式雾 `1-exp(-d²·z²)`，scene.fog 只管 Standard/Basic 材质）
+2. **地面 GLSL**（删镜像组/积水片，全片元算）：沥青 value-noise 基底 → 两侧窗光晕（楼面线 ±8.2 指数衰减 + 低频噪声模糊 + 粉/青/紫 tint）→ 洗衣店/路灯两块光池 → 水渍掩码（noise 阈值：渍区反射 ×1、干区 ×0.16）→ 掠射增强（`pow(1-|viewDir.y|,2)`）→ 水面微流动
+3. **楼宇 GLSL**：世界空间 2.2×3.0 窗格，hash 决定亮灭（52%）与五色，7% 窗随时间缓慢亮灭；墙面 value-noise + 少数竖列雨水淌痕（fract 相位向下流动）；屋顶深色；法线判面（x 面/ z 面用不同世界坐标作 uv，seed 防重复）
+4. ImageGen 贴图：本轮**一张都没用**，全场景零图片文件
+
+坑：GLSL 里 vec2 p=vWorld.xz 的分量是 p.y 不是 p.z（编译器抓的）；雾两处参数必须同步改。
+体积：index.html 132KB + 库 617KB = 749KB；images 1.1MB 不变；首屏 gzip 135KB；FPS 167（桌面）。
