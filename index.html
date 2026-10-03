@@ -1550,6 +1550,67 @@ body {
 .mon-3d:active { background: rgba(30, 40, 66, .9); }
 .mon-3d:focus-visible { outline: 2px solid rgba(120, 226, 255, .8); outline-offset: 2px; }
 
+.snd-3d {                         /* 音效开关：Web Audio 合成音总闸 */
+  position: absolute;
+  right: 78px; bottom: 96px;
+  width: 52px; height: 52px;
+  font-family: inherit;
+  font-size: 16px;
+  color: #9fd8ef;
+  background: rgba(10, 14, 26, .82);
+  border: 1px solid rgba(110, 226, 255, .4);
+  border-radius: 50%;
+  display: none;
+  z-index: 5;
+}
+.snd-3d.show { display: block; }
+.snd-3d.off { color: #4a5568; border-color: rgba(110, 226, 255, .15); text-decoration: line-through; }
+.snd-3d:active { background: rgba(30, 40, 66, .9); }
+.snd-3d:focus-visible { outline: 2px solid rgba(120, 226, 255, .8); outline-offset: 2px; }
+#cluesBtn { right: 142px; font-size: 12px; letter-spacing: .05em; }   /* 档案钮：排在音效钮左边 */
+
+.clue-clock {                        /* 夜班时钟：线索页签顶部 */
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+.clue-clock b { font-size: 20px; color: #7fffd4; letter-spacing: .12em; text-shadow: 0 0 12px rgba(110, 226, 255, .5); }
+.clue-clock i { font-size: 12px; color: #8a93a8; }
+.clue-sub { font-size: 12px; letter-spacing: .18em; color: #8a93a8; padding: 10px 0 4px; }
+.term-row.perm-on .row-dot { background: #7fffd4; box-shadow: 0 0 8px rgba(127, 255, 212, .6); }
+.perm-btn {                         /* 权限升级按钮：44px 热区 */
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #0c1420;
+  background: #7fffd4;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.perm-btn:active { background: #58d9ab; }
+.perm-btn:focus-visible { outline: 2px solid rgba(127, 255, 212, .9); outline-offset: 2px; }
+
+#washerBtn {                        /* 店内：投币洗衣（洗衣机=时间流逝载体） */
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14px;
+  letter-spacing: .08em;
+  color: #ffd7ec;
+  background: rgba(8, 10, 18, .72);
+  border: 1px solid rgba(255, 120, 195, .40);
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 6;
+}
+#washerBtn:active { background: rgba(255, 120, 195, .18); }
+#washerBtn:focus-visible { outline: 2px solid rgba(255, 120, 195, .8); outline-offset: 2px; }
+#washerBtn.busy { color: #8a93a8; border-color: rgba(255, 120, 195, .16); pointer-events: none; }
+
 .nvl-dlg {                        /* 对话框：半透面板 + 选项按钮（夜班叙事） */
   position: absolute;
   inset: 0;
@@ -1645,6 +1706,7 @@ body {
 </div>
 
 <!-- 进度提示：让玩家知道有目标、还差几个（PRD 第 8 节未决问题 #3，Day 7 拍板"做"） -->
+<button id="washerBtn" type="button" aria-label="投币启动洗衣机">投币洗衣</button>
 <div id="progress">已读到 <b id="foundCount">0</b> / 3 幕</div>
 
 <!-- 剧情卡片：点物件浮出，点卡片外任意处收起（PRD 第 4 节第 4 步） -->
@@ -1661,6 +1723,8 @@ body {
     <div class="rotate-hint" id="rotateHint">横屏体验更佳</div>
     <button class="door-3d" id="doorBtn3d" type="button">推门进去</button>
     <button class="mon-3d" id="monBtn" type="button" aria-label="切换监控画面">监控</button>
+    <button class="snd-3d" id="sndBtn" type="button" aria-label="关闭音效">♪</button>
+    <button class="snd-3d" id="cluesBtn" type="button" aria-label="打开线索档案">档</button>
     <div class="interact-tip" id="interactTip" aria-live="polite"></div>
   </div>
   <!-- 对话框挂在 threeWrap 外：threeWrap 是 z-index:0 的层叠上下文，放里面永远压不过剧情卡片(z20) -->
@@ -1771,6 +1835,7 @@ body {
       <div class="term-tabs" role="tablist" aria-label="终端页签">
         <button class="term-tab" id="tabOutfit" type="button" role="tab" aria-selected="true">穿搭</button>
         <button class="term-tab" id="tabStatus" type="button" role="tab" aria-selected="false">状态·装备</button>
+        <button class="term-tab" id="tabClues" type="button" role="tab" aria-selected="false">线索·权限</button>
       </div>
       <button id="termClose" class="panel-close" type="button" aria-label="关闭个人终端">✕</button>
     </div>
@@ -1809,6 +1874,15 @@ body {
         <li class="term-row"><img src="images/prop-weapon-case.webp" alt="" decoding="async"><div><b>武器箱</b><i>道具 · 已开箱，能量核心仍在缓亮</i></div></li>
       </ul>
       <div class="term-state" id="gearState" hidden></div>
+    </section>
+
+    <!-- 视图三：线索档案 + 权限等级（M2：2D/3D 共用状态机） -->
+    <section class="term-view" id="viewClues" role="tabpanel" aria-label="线索档案与权限等级" hidden>
+      <div class="clue-clock"><b id="nightClock">02:14</b><i>夜班时钟 · 真实 1 秒 ≈ 剧情 1 分钟</i></div>
+      <p class="clue-sub">权限等级</p>
+      <ul class="term-list" id="permList"></ul>
+      <p class="clue-sub">线索档案</p>
+      <ul class="term-list" id="clueList"></ul>
     </section>
 
     <!-- 状态演示（板块③）：本地无后端，加载/失败为模拟；明示给玩家，不藏 -->
@@ -2667,24 +2741,53 @@ body {
   /* ---------------- 个人终端（Day 13 板块②）----------------
      hash 路由：#/outfit / #/status 直达对应页签；#/ 或空 回首页并收起面板。
      无路由库：hashchange 监听 + 首次解析，共约 30 行 */
+  /* ---------------- 夜班游戏状态（M2：2D/3D 两块共享） ----------------
+     线索入档 / 权限等级 / 剧情时钟（真实 1 秒 ≈ 剧情 1 分钟，02:14 起班）。
+     通知走 CustomEvent：3D 块在街上弹提示音+浮条，2D 块在店内弹 toast。
+     clock() 由 3D 块接管返回实时 streetT —— 调用必须走 NIGHT.addClue(...) 形式保住 this */
+  window.NIGHT = {
+    clues: [], perms: 1, flags: {},
+    hasClue(id) { return this.clues.some(c => c.id === id); },
+    addClue(id, text) {
+      if (this.hasClue(id)) return false;
+      this.clues.push({ id: id, text: text, at: this.clock() });
+      document.dispatchEvent(new CustomEvent('night:clue', { detail: { id: id, text: text } }));
+      return true;
+    },
+    grantPerm(lv, name) {
+      if (lv <= this.perms) return false;
+      this.perms = lv;
+      document.dispatchEvent(new CustomEvent('night:perm', { detail: { lv: lv, name: name } }));
+      return true;
+    },
+    fmtClock(sec) {
+      const t = 2 * 60 + 14 + Math.floor(sec || 0);
+      return ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + (t % 60)).slice(-2);
+    },
+    clock: function () { return 0; }      // 3D 块接管：返回剧情秒数
+  };
+
   const terminal   = document.getElementById('terminal');
   const terminalBtn = document.getElementById('terminalBtn');
   const termClose  = document.getElementById('termClose');
   const tabOutfit  = document.getElementById('tabOutfit');
   const tabStatus  = document.getElementById('tabStatus');
+  const tabClues   = document.getElementById('tabClues');
   const viewOutfit = document.getElementById('viewOutfit');
   const viewStatus = document.getElementById('viewStatus');
+  const viewClues  = document.getElementById('viewClues');
 
   function currentRoute() {
     const h = location.hash.replace(/^#\/?/, '');
-    return (h === 'outfit' || h === 'status') ? h : 'home';
+    return (h === 'outfit' || h === 'status' || h === 'clues') ? h : 'home';
   }
   function switchTermTab(route) {
-    const outfit = route === 'outfit';
-    viewOutfit.hidden = !outfit;
-    viewStatus.hidden = outfit;
-    tabOutfit.setAttribute('aria-selected', String(outfit));
-    tabStatus.setAttribute('aria-selected', String(!outfit));
+    viewOutfit.hidden = route !== 'outfit';
+    viewStatus.hidden = route !== 'status';
+    viewClues.hidden  = route !== 'clues';
+    tabOutfit.setAttribute('aria-selected', String(route === 'outfit'));
+    tabStatus.setAttribute('aria-selected', String(route === 'status'));
+    tabClues.setAttribute('aria-selected', String(route === 'clues'));
   }
   function applyRoute() {
     const r = currentRoute();
@@ -2692,7 +2795,7 @@ body {
     if (r !== 'home') {
       dex.hidden = true;                // 终端与图鉴互斥，防两层叠影
       switchTermTab(r);
-      demoState(r, 'ok');               // 每次进视图都重新「调取」一遍（板块③）
+      if (r === 'clues') { renderClues(); } else { demoState(r, 'ok'); }  // 每次进视图都重新「调取」
     }
   }
   function goto(route) {
@@ -2706,10 +2809,94 @@ body {
   termClose.addEventListener('click', () => goto('home'));
   tabOutfit.addEventListener('click', () => goto('outfit'));
   tabStatus.addEventListener('click', () => goto('status'));
+  tabClues.addEventListener('click', () => goto('clues'));
   window.addEventListener('hashchange', applyRoute);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !terminal.hidden) goto('home');
   });
+
+  /* ---------------- 线索·权限视图（M2）----------------
+     权限沿剧情解锁：Lv2 监控放大（黑衣人事件选择后）→ Lv3 后门钥匙（用 0713 线索解锁）→ Lv4 电网（天亮前） */
+  const PERMS = [
+    { lv: 1, name: '值班员',   need: null,        desc: '默认权限：店内自由行动、上下卷帘门' },
+    { lv: 2, name: '监控放大', need: 'story',     desc: '看清雨幕里的细节（跟随剧情解锁）' },
+    { lv: 3, name: '后门钥匙', need: 'code0713',  desc: '需要线索：门牌码 0713' },
+    { lv: 4, name: '电网开关', need: 'locked',    desc: '尚未启用——天亮之前再说' }
+  ];
+  function renderClues() {
+    document.getElementById('nightClock').textContent = NIGHT.fmtClock(NIGHT.clock());
+    const pl = document.getElementById('permList');
+    pl.innerHTML = '';
+    PERMS.forEach(p => {
+      const li = document.createElement('li');
+      li.className = 'term-row' + (p.lv <= NIGHT.perms ? ' perm-on' : '');
+      const dot = document.createElement('i');
+      dot.className = 'row-dot';
+      const box = document.createElement('div');
+      const b = document.createElement('b');
+      b.textContent = 'Lv' + p.lv + ' · ' + p.name + (p.lv <= NIGHT.perms ? ' ✓' : '');
+      const i = document.createElement('i');
+      i.textContent = p.desc;
+      box.appendChild(b); box.appendChild(i);
+      li.appendChild(dot); li.appendChild(box);
+      if (p.lv === NIGHT.perms + 1 && p.need !== 'story' && p.need !== 'locked' && NIGHT.hasClue(p.need)) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'perm-btn';
+        btn.textContent = p.need === 'code0713' ? '输入门牌码' : '升级';
+        btn.addEventListener('click', () => { NIGHT.grantPerm(p.lv, p.name); renderClues(); });
+        li.appendChild(btn);
+      }
+      pl.appendChild(li);
+    });
+    const cl = document.getElementById('clueList');
+    cl.innerHTML = '';
+    if (!NIGHT.clues.length) {
+      const li = document.createElement('li');
+      li.className = 'term-row';
+      const box = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = '今晚还没有线索';
+      const i = document.createElement('i'); i.textContent = '多看、多问、多投币。雨夜的街上不会无缘无故有人走动。';
+      box.appendChild(b); box.appendChild(i);
+      li.appendChild(box); cl.appendChild(li);
+    } else {
+      NIGHT.clues.forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'term-row';
+        const dot = document.createElement('i'); dot.className = 'row-dot';
+        const box = document.createElement('div');
+        const b = document.createElement('b'); b.textContent = NIGHT.fmtClock(c.at);
+        const i = document.createElement('i'); i.textContent = c.text;
+        box.appendChild(b); box.appendChild(i);
+        li.appendChild(dot); li.appendChild(box);
+        cl.appendChild(li);
+      });
+    }
+  }
+  document.addEventListener('night:clue', () => { if (!viewClues.hidden) renderClues(); });
+  document.addEventListener('night:perm', () => { if (!viewClues.hidden) renderClues(); });
+
+  /* ---------------- 洗衣机（M2）：店内的时间流逝载体 ----------------
+     投币 → 6.5 秒洗涤 → 快进剧情时钟到下一个事件 + 概率产出线索（文案 M4 定稿） */
+  const washerBtn = document.getElementById('washerBtn');
+  let washerBusy = false;
+  washerBtn.addEventListener('click', () => {
+    if (washerBusy) return;
+    washerBusy = true;
+    washerBtn.classList.add('busy');
+    washerBtn.textContent = '洗涤中…';
+    showToast('3 号机嗡嗡转起来了', '水声盖过了雨声。等它停下。');
+    setTimeout(() => {
+      washerBusy = false;
+      washerBtn.classList.remove('busy');
+      washerBtn.textContent = '投币洗衣';
+      NIGHT.jumpToNext();                 // 洗一缸 = 时间往前赶一截
+      NIGHT.addClue('washer_drum', '滚筒里缠着一件没有洗衣单编号的大衣——不是客人送来的');
+    }, 6500);
+  });
+
+  /* 街上「档案」钮：直接打开终端线索页签（终端是同一台设备，街店内通用） */
+  document.getElementById('cluesBtn').addEventListener('click', () => goto('clues'));
 
   /* ---------------- 列表四态（Day 13 板块③）----------------
      ok=列表本身；loading=骨架屏；empty=空态文案；error=失败文案+重试。
@@ -3360,6 +3547,7 @@ body {
 
   function showDialog(name, text, choices) {          // choices: [{ t: '选项文案', fn: 回调 }]
     dlgOpen = true;
+    blip(880, 0.06, 0.05);
     document.getElementById('nvlName').textContent = name;
     document.getElementById('nvlText').textContent = text;
     const box = document.getElementById('nvlChoices');
@@ -3367,7 +3555,7 @@ body {
     choices.forEach(c => {
       const b = document.createElement('button');
       b.type = 'button'; b.textContent = c.t;
-      b.addEventListener('click', () => { hideDialog(); c.fn && c.fn(); });
+      b.addEventListener('click', () => { blip(660, 0.05, 0.05); hideDialog(); c.fn && c.fn(); });
       box.appendChild(b);
     });
     dlgEl.classList.add('show');
@@ -3385,13 +3573,94 @@ body {
     if (monoTarget > 0.5) hintTip('监控画面 · 观察街上的动静', 2200);
   });
 
-  /* 轻提示（不打断）：hintUntil 期间交互提示让位 */
+  /* ---- SFX：Web Audio 纯代码合成（零音频文件；首次手势解锁） ---- */
+  const sndBtn = document.getElementById('sndBtn');
+  let AC = null, master = null, rainGain = null, humGain = null, sfxOn = true;
+  function audioInit() {                              // 必须在用户手势里调用（移动端政策）
+    if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return;
+    AC = new Ctor();
+    master = AC.createGain(); master.gain.value = sfxOn ? 1 : 0; master.connect(AC.destination);
+    /* 雨声：白噪 buffer 循环 → 带通整形（远而闷的夜雨） */
+    const len = AC.sampleRate * 2;
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const dat = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) dat[i] = Math.random() * 2 - 1;
+    const rain = AC.createBufferSource(); rain.buffer = buf; rain.loop = true;
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4;
+    const hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+    rainGain = AC.createGain(); rainGain.gain.value = 0.11;
+    rain.connect(lp); lp.connect(hp); hp.connect(rainGain); rainGain.connect(master);
+    rain.start();
+    /* 洗衣机嗡嗡：双振荡差拍 → 低通，音量随距店门距离（主循环里写） */
+    const o1 = AC.createOscillator(), o2 = AC.createOscillator();
+    o1.frequency.value = 52; o2.frequency.value = 52.8;
+    const humLp = AC.createBiquadFilter(); humLp.type = 'lowpass'; humLp.frequency.value = 220;
+    humGain = AC.createGain(); humGain.gain.value = 0;
+    o1.connect(humLp); o2.connect(humLp); humLp.connect(humGain); humGain.connect(master);
+    o1.start(); o2.start();
+  }
+  function blip(freq, dur, vol) {                     // 交互/UI 短音
+    if (!AC || !sfxOn) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'sine'; o.frequency.value = freq || 880;
+    const t = AC.currentTime, dd = dur || 0.07;
+    g.gain.setValueAtTime(vol || 0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dd);
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(t + dd + 0.02);
+  }
+  function meow() {                                   // 猫叫：三角波三段滑音
+    if (!AC || !sfxOn) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'triangle';
+    const t = AC.currentTime;
+    o.frequency.setValueAtTime(760, t);
+    o.frequency.exponentialRampToValueAtTime(430, t + 0.16);
+    o.frequency.exponentialRampToValueAtTime(560, t + 0.34);
+    g.gain.setValueAtTime(0.09, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(t + 0.45);
+  }
+  function sirenSound() {                             // 远处警笛：三循环滑音，音量压低
+    if (!AC || !sfxOn) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'sine';
+    const t = AC.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 1.2);
+    g.gain.setValueAtTime(0.045, t + 4.4);
+    g.gain.linearRampToValueAtTime(0.0001, t + 6.2);
+    for (let k = 0; k < 3; k++) {
+      o.frequency.setValueAtTime(620, t + k * 2.1);
+      o.frequency.linearRampToValueAtTime(880, t + k * 2.1 + 1.0);
+      o.frequency.linearRampToValueAtTime(620, t + k * 2.1 + 2.0);
+    }
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(t + 6.3);
+  }
+  sndBtn.addEventListener('click', () => {
+    audioInit();
+    sfxOn = !sfxOn;
+    sndBtn.classList.toggle('off', !sfxOn);
+    sndBtn.setAttribute('aria-label', sfxOn ? '关闭音效' : '开启音效');
+    if (master) master.gain.value = sfxOn ? 1 : 0;
+    if (sfxOn) blip(880, 0.08, 0.08);
+  });
+  window.addEventListener('pointerdown', audioInit, { once: true, passive: true });
+  window.addEventListener('keydown', audioInit, { once: true });
+
+  /* 轻提示（不打断）：hintUntil 期间交互提示让位。
+     ⚠️ 定时器只在自己文本仍占着提示条时才摘 show——后台/低电下 setTimeout 会被节流迟到，
+     若无条件摘掉，会把随后 updateInteract 写上的交互标签卡成「有字无类」死态（实测） */
   function hintTip(msg, ms) {
     tipEl.textContent = msg;
     tipEl.classList.add('show');
     hintUntil = performance.now() + ms;
     clearTimeout(tipTimer);
-    tipTimer = setTimeout(() => tipEl.classList.remove('show'), ms);
+    tipTimer = setTimeout(() => { if (tipEl.textContent === msg) tipEl.classList.remove('show'); }, ms);
   }
 
   /* ---- NPC：黑猫（门口纸箱上，绿眼睛） ---- */
@@ -3426,8 +3695,9 @@ body {
   function feedCat() {
     catFed = true;
     catTarget = { x: player.x * 0.6, z: Math.max(-28.6, player.z - 0.5) };   // lerp 走近玩家
+    setTimeout(() => meow(), 2400);                 // 吃完叫一声再递卡片
     setTimeout(() => showDialog('黑猫', '它吃完，从纸箱后面叼出一张卡片放在你脚边。背面写着一行小字：0713。',
-      [{ t: '把卡片收进口袋', fn: () => hintTip('获得线索：0713', 2600) }]), 2600);
+      [{ t: '把卡片收进口袋', fn: () => NIGHT.addClue('code0713', '门牌码 0713——像把钥匙，又像一句暗号') }]), 2600);
   }
 
   /* ---- NPC：黑衣人（事件触发，雨雾里注视洗衣店） ---- */
@@ -3458,7 +3728,7 @@ body {
        { t: '用监视器放大看', fn: () => {
            setMono(true);
            showDialog('监控', '画面放大。伞沿下只有一片黑，和一道很浅的反光——像是眼镜。',
-             [{ t: '关掉监控', fn: () => setMono(false) }]);
+             [{ t: '关掉监控', fn: () => { setMono(false); NIGHT.grantPerm(2, '监控放大'); } }]);
          } },
        { t: '关上灯，假装没人', fn: () => { strangerState = 'leaving'; strangerGone(); } }]);
   }
@@ -3467,6 +3737,19 @@ body {
   const interactables = [
     { x: 3.55, z: -28.1, r: 2.2, label: '看看门口的黑猫', act: catTalk },
   ];
+  /* 便利店老板（伙伴线铺垫；M3 在此位置接摩斯灯语） */
+  function bossTalk() {
+    if (!NIGHT.flags.bossIntro) {
+      NIGHT.flags.bossIntro = true;
+      showDialog('便利店老板', '隔着起雾的玻璃，他冲你摆摆手，又指了指头顶的霓虹灯，比了个「看灯」的手势。',
+        [{ t: '点头示意', fn: () => hintTip('他好像想通过灯告诉你什么。', 2800) },
+         { t: '敲敲玻璃', fn: () => hintTip('他嘘了一声，眼神扫向街口的摄像头。', 2800) }]);
+    } else {
+      showDialog('便利店老板', '他指指霓虹灯，又指指自己的眼睛——「盯着灯」。那灯的闪法，不太随机。',
+        [{ t: '记下灯的节奏', fn: () => hintTip('像是某种规律……得有对照表才能读懂。', 2800) }]);
+    }
+  }
+  interactables.push({ x: -4.7, z: -9.5, r: 2.4, id: 'boss', label: '看看便利店的窗户', act: bossTalk });
   let activeInter = null;
   function updateInteract() {
     if (dlgOpen || performance.now() < hintUntil) return;
@@ -3480,7 +3763,12 @@ body {
       if (best) {
         tipEl.innerHTML = best.label + ' · <b>按 F / 点按</b>';
         tipEl.classList.add('show');
+        blip(720, 0.07, 0.05);                        // 交互点进入范围提示音
       } else tipEl.classList.remove('show');
+    } else if (best && !tipEl.classList.contains('show')) {
+      /* 提示条被 hintTip 借用后让位：同一交互点原地恢复标签（不重复响提示音） */
+      tipEl.innerHTML = best.label + ' · <b>按 F / 点按</b>';
+      tipEl.classList.add('show');
     }
   }
   tipEl.addEventListener('click', () => { if (activeInter && !dlgOpen) activeInter.act(); });
@@ -3499,12 +3787,28 @@ body {
         interactables.push({ x: -2.6, z: -19, r: 2.8, id: 'stranger', label: '打量门外的黑衣人', act: strangerTalk });
     } },
     { at: 95, id: 'far_siren', done: false, run: () => {
+        sirenSound();
         hintTip('很远的地方有警笛声，响了一阵又没了。', 3000);
     } },
     { at: 150, id: 'cat_glance', done: false, run: () => {
         hintTip('门口的黑猫换了个姿势，继续盯着街对面。', 3000);
     } },
   ];
+
+  /* M2：2D/3D 缝合 —— NIGHT 钩子（终端/洗衣机从店内也能驱动剧情时钟与对话） */
+  NIGHT.clock = function () { return streetT; };
+  NIGHT.dialog = showDialog;
+  NIGHT.jumpToNext = function () {            // 洗衣机快进：跳到下一个未触发事件
+    for (let i = 0; i < nightEvents.length; i++) {
+      if (!nightEvents[i].done) { streetT = Math.max(streetT, nightEvents[i].at - 0.5); return nightEvents[i].id; }
+    }
+    return null;
+  };
+  /* 店内判定：2D 块的 inShop 是闭包私有，3D 块拿不到（实测 ReferenceError 会炸掉 tick 后半段）
+     —— 用 #home 的 hidden 类等效判断（enterShop 加、backHome 移除） */
+  const inShopNow = () => home.classList.contains('hidden');
+  document.addEventListener('night:clue', (e) => { blip(980, 0.1, 0.07); if (!inShopNow()) hintTip('新线索入档 · ' + e.detail.text, 2800); });
+  document.addEventListener('night:perm', (e) => { blip(1180, 0.12, 0.08); if (!inShopNow()) hintTip('权限升级 · Lv' + e.detail.lv + ' ' + e.detail.name, 2800); });
 
   /* ---- 雨：1200 点粒子循环下落（更密更急） ---- */
   const N = 1200, pos = new Float32Array(N * 3);
@@ -3613,7 +3917,7 @@ body {
         if (stranger.position.distanceTo(tmpV) < 0.18) {
           strangerState = 'inside'; stranger.visible = false;
           showDialog('夜班记录', '门铃响了一声。你转过身，柜台上多了一枚湿透的硬币。',
-            [{ t: '把硬币收进钱箱', fn: () => hintTip('记录：03:19 黑衣人到访', 2600) }]);
+            [{ t: '把硬币收进钱箱', fn: () => NIGHT.addClue('wet_coin', '一枚湿透的硬币，边缘刻着极细的编号') }]);
         }
       } else if (strangerState === 'watching') {
         strangerTimer += dt;
@@ -3629,6 +3933,12 @@ body {
       }
       updateInteract();
       gradePass.uniforms.uMono.value += (monoTarget - gradePass.uniforms.uMono.value) * Math.min(1, dt * 6);
+      /* SFX 环境音：洗衣机嗡嗡随距店门渐强；进 2D 店内后雨声压成闷响 */
+      if (humGain) {
+        const dd = Math.hypot(player.x - 1.2, player.z + 28);
+        humGain.gain.value = 0.06 * Math.max(0, 1 - dd / 16);
+      }
+      if (rainGain) rainGain.gain.value = inShopNow() ? 0.02 : 0.11;
       /* 店门接近 → 按钮亮起 */
       door3d.classList.toggle('near', player.z < -21 && Math.abs(player.x - 1.2) < 3.4);
       sharedU.uTime.value = t * 0.001;   // 驱动窗格缓变 / 雨水淌痕 / 水面微流动
@@ -3655,7 +3965,9 @@ body {
   stage2d.style.display = 'none';
   hint.textContent = '左摇杆移动 · 右摇杆转视角 · 走近店门推门进去（电脑 WASD + 拖拽）';
   document.getElementById('monBtn').classList.add('show');   // 监控钮只在 3D 街区可用
-  window.__poc = { player: player, door3d: door3d, setT: function (v) { streetT = v; } };   // 验证钩子（setT 快进夜班事件）
+  document.getElementById('sndBtn').classList.add('show');
+  document.getElementById('cluesBtn').classList.add('show');
+  window.__poc = { player: player, door3d: door3d, setT: function (v) { streetT = v; }, sfx: function () { return { on: sfxOn, ac: AC ? AC.state : 'none' }; } };   // 验证钩子（setT 快进夜班事件）
   requestAnimationFrame(tick);
 })();
 </script>

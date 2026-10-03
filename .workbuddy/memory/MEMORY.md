@@ -131,3 +131,11 @@
 - 2026-09-24（用户口径 Day 9）：定下设计硬规则六条并完成一次全站审查 + 修复；顺手把视口单位与首屏体积两处问题一并修掉；产出可复用技能 `frontend-design-audit`
 - 2026-09-25（用户口径 Day 10）：练"描述质量" —— 按用户一句话把字号整体下调一档（12/14/16/20）+ 3 处 `em` 固定成 px；横屏面板问题用户选**接受现状**；「修复后」截图已收到，Day 10 全闭环；用户提出转向 FPS 大世界的新方向（选「先做完 Day 10，另起设计文档」）并已授权启动
 - 每日细节见 `.workbuddy/memory/2026-09-*.md`
+
+## 2026-10 新增（3D 时代）
+
+- 验证路线已换：**playwright-core + 系统 Chrome 单文件脚本**（npm i -g playwright-core，executablePath 指 chrome.exe）替代 agent-browser CLI——无跨调用标签页重置、无时序漂移、page.click 是真实输入可解锁 AudioContext。agent-browser 曾全机消失（command not found），别依赖
+- 双写者结构铁律：**定时器做清理 + 状态机做写入**时，定时器回调必须带归属守卫（文本比对），状态机每帧自愈重写——后台 setTimeout 节流会让过期清理砸掉新状态（frontend-rules 坑 #5）
+- 跨 `<script>` 块（各包 IIFE）顶层 let **不互通**：引用即 ReferenceError 且**每帧炸断 rAF 循环后半段**，报错只有空消息。跨块状态挂 window.NIGHT 这类显式对象（frontend-rules 坑 #6）
+- 无头环境 AudioContext 恒 suspended 是预期（无 user activation）；playwright 真实点击可解锁 → running
+- 夜班玩法定稿：三巨头=欧湃智能/安斯洛/深祈；权限升级 Lv1→4；伙伴=便利店老板(摩斯灯语)；黑衣人=前员工反转；3 结局；8–10 分钟一局
