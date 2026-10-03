@@ -1,0 +1,7 @@
+{
+  "name": "api-health",
+  "version": "1.0.0",
+  "description": "Night shift-SOLITUDE health check (Day 15) - no deps, no DB",
+  "main": "index.js",
+  "dependencies": {}
+}
