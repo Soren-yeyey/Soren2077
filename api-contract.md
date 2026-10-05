@@ -33,6 +33,8 @@
 | flags | object | 杂项布尔标记（黑猫喂过、枪已拾取等），键值不枚举 |
 | updatedAt | string | 本行最后写入时间 |
 
+**数据库实现（Day 16 定稿，见 `db/schema.sql`）**：`playerId` VARCHAR(36) 主键；时间字段 DATETIME（API 层序列化为 ISO 8601 字符串）；`permissionLevel` TINYINT 加 CHECK 1–4；`currentScene` VARCHAR(32)；`currentStep` INT CHECK ≥0；`flags` JSON。
+
 ### 2.2 clues — 线索解锁表
 
 | 字段 | 类型 | 说明 |
@@ -43,6 +45,8 @@
 | source | string | 解锁途径：`interact`（物件）/ `npc`（对话）/ `event`（事件） |
 | unlockedAt | string | 解锁时间 |
 
+**数据库实现（Day 16 定稿，见 `db/schema.sql`）**：`id` VARCHAR(101) 主键（= playerId 36 + 分隔符 + clueKey 64）；另加 UNIQUE(playerId, clueKey) 双保险（幂等上报靠它）；`source` ENUM('interact','npc','event')；外键 `playerId` → players，ON DELETE CASCADE。
+
 ### 2.3 endings — 结局记录表
 
 | 字段 | 类型 | 说明 |
@@ -52,6 +56,10 @@
 | endingKey | string | 结局标识，三结局：`ending_truth` / `ending_escape` / `ending_silence`（暂定名，M5 定稿后回填） |
 | runDurationSec | number | 本局用时（秒） |
 | achievedAt | string | 达成时间 |
+
+**数据库实现（Day 16 定稿，见 `db/schema.sql`）**：`id` VARCHAR(120) 主键（= playerId 36 + endingKey 32 + achievedAt 19 + 两个分隔符）；`endingKey` VARCHAR(32)（**不用 ENUM**——三个键名暂定，M5 定稿后可能增改，留弹性）；`runDurationSec` INT CHECK 0–86400；外键 `playerId` → players，ON DELETE CASCADE。
+
+> 建表与种子脚本：`db/schema.sql`（可重复执行，先 DROP 后 CREATE）+ `db/seed.sql`（先删后插，固定 UUID + 固定时间，可复现）。表结构以这两个脚本 + 本节为准。
 
 ## 3. 接口清单（六个）
 
