@@ -1,148 +1,54 @@
 # 项目长期记忆 — workbuddy
 
-> 当日细节在 `YYYY-MM-DD.md` 日志里；本文件只留**跨天仍然有效**的约定、定稿与可复用的坑。
+> 当日细节见 `YYYY-MM-DD.md`。只留跨天仍有效的约定、定稿与坑。
 
-## 项目约定（硬规则）
+## 协作硬规则
 
-- 项目根 `D:\workbuddy`；用户协作规则在 `AGENTS.md`（2026-09-16 写入）
-- **清单驱动 + 单步推进**：用户每天发「今日任务清单」= 当天唯一任务范围。收到后只输出执行计划并停下等确认；此后**一次只做一个步骤**，做完报告（做了什么 / 改了哪些文件 / 怎么验证）后停下
-- 用户须回「进入下一板块」才继续；这四个字只对当前步骤有效
-- 人工操作（注册、点按钮、装软件、截图）不代做、不假装完成，给指引后停下
-- 需拍板的事（方案 / 命名 / 风格）列选项与代价给用户选，不自己决定；生成内容须等用户明确说"做"
-- 验证必须可亲眼确认（页面 / 文件 / 命令输出），不接受口头结论
-- Git：授权代提交推送，但**提交前先列改动文件清单（含属哪天的任务）**；commit 格式 `Day X｜一句话说明`；**一天全部做完并核对后才提交**；禁 `git reset --hard` 与强推，撤销用 `git revert`
-- 用户说「今天做完了」→ 逐条对照完成标准输出表格（完成标准 / 状态 / 证据）
-- 密钥、`.env`、连接串永不进代码 / 提交
+- 清单驱动+单步推进：日清单=当天唯一范围；收到先出执行计划停下等确认；一次只做一步，做完报告（做了什么/改了哪些文件/怎么验证）再停；「进入下一板块」只对当前步骤有效
+- 人工操作不代做；需拍板列选项与代价；验证必须可亲眼确认；生成内容等用户明确说「做」
+- Git：提交前先列改动文件清单（含属哪天任务）；格式 `Day X｜一句话`；禁 reset --hard/强推，撤销用 revert；密钥/.env 永不进代码与提交
+- 素材进 images/，英文小写+连字符；单张≤1MB 总量≤5MB；界面中文不夹英文；禁「赛博朋克2077」「Night City」商标，风格词可用
+- 用户说「今天做完了」→ 对照完成标准输出表格（标准/状态/证据）
 
 ## 环境事实
 
-- 工作区 `D:\workbuddy`（用户拍板不再改名）；Git `2.55.0.windows.4`；Node `v22.22.2` / npm `10.9.7`
-- GitHub 账号 `Soren-yeyey`（已有）；git 身份 `user.name=Soren-yeyey` / `user.email=288827322+Soren-yeyey@users.noreply.github.com`（noreply，避免真实 QQ 邮箱外泄）
-- 本机**没有 `gh` CLI** → 远程仓库只能用户网页手动建；首次 push 需浏览器授权一次
-- 仓库 `https://github.com/Soren-yeyey/Soren2077.git`（Public），远程名 `origin`，主分支 `main`
+- 仓库 github.com/Soren-yeyey/Soren2077（Public，main）；站点 soren-yeyey.github.io/Soren2077/；Pages 必须 Deploy from a branch / main / root；**push 后构建延迟 45–60s**
+- 本机无 gh CLI；git 身份 Soren-yeyey + noreply 邮箱；Node 用托管版 `binaries/node/versions/22.22.2-6/node.exe`，全局包装在 `binaries/node/workspace/node_modules`（运行带 NODE_PATH）
+- 浏览器验证：playwright-core + **Edge**（msedge.exe，Chrome 是坏 stub）；3D 验证钩子 `__poc` 含 player/scene/camera，playwright 运镜直接改 player 字段（瞬移后等 ≥1s 相机才落定）
+- CloudBase：环境 `soren2077-d9gn6rr04d2c15165`（到期 2027-04-03）；新控制台「SQL 数据库」是 **PostgreSQL**，云函数走 Data API（PostgREST）+ service_role API Key（名 nightshift-server，明文不进仓库）；PG 方言脚本在 `db/postgres/`
 
-## 作品与玩法定稿
+## 作品与技术定稿
 
-- **作品名 `夜班 SOLITUDE`**（仓库名 `Soren2077`，两者不同名属正常）；`<title>` 与 `<h1>` 已统一
-- 性质：**AIGC 场景 + 赛博朋克风格的网页互动叙事**；目标公开发布，电脑与手机都能玩（一套代码，不做两套适配）
-- **新方向（2026-09-25 用户拍板）**：**不另起项目**，就在《夜班》这个项目上按新构思**渐进演化**——便利店男主 + 虚构 AI 巨头掌控世界 + 逐步加入打怪 / 装备 / 枪械等 FPS 大世界元素；每天清单推进一小步。⚠️ 此前"同仓库子目录"的理解已被用户更正：无子目录、无独立文档体系，直接改现有 `index.html`。真实公司名（OpenAI / DeepSeek / Anthropic / 豆包）进游戏内必须虚构化
-- 玩法：街景首页 → 点店门进店 → 点地面移动 + **按 ①→②→③ 顺序**点 3 个物件（未轮到的只给旁白、不推进）→ 三幕读完 → 结束画面
-- 一局 **3–6 分钟**（Day 9 用户实测 **3 分钟**，踩在下限）；素材 **每张 ≤1.0 MB / 总量 ≤5 MB**
-- PRD 验收 **12 条**，Day 9 版本 **12/12 通过**（唯一没单独计时的是第 1 条"4G 下 5 秒看到开场"，按首屏 630.8 KB 推算 + 用户实机可用）
-- **命名红线**：「赛博朋克 2077」「Night City」是商标，标题与界面禁用；「cyberpunk / 赛博朋克」作风格词可用
-- 「本期不做」= research 13 条 + PRD 新砍 5 项；用户拍板**不做声音**
-- 文档落点：`research.md` / `PRD.md` / `TECH_DESIGN.md` / `RUN.md` 全在仓库根目录；**PRD 内不出现技术名词**
+- 夜班 SOLITUDE：赛博朋克 3D 街区+第一人称；单文件 index.html + 原生 JS + `libs/three.min.js`，零 CDN
+- 玩法定稿：三巨头=欧湃智能/安斯洛/深祈；权限 Lv1→4；伙伴=便利店老板（摩斯灯语，**已拍板未做**：密码 SOS/半解谜/便利店灯箱载体）；黑衣人=前员工反转；3 结局；8–10 分钟；真实公司名必须虚构化
+- 文档全在仓库根（research/PRD/TECH_DESIGN/RUN/api-contract/DEPLOY）；PRD 不出现技术名词
+- 美术管线（10-06 拍板）：Three.js 程序化→AI 精修→Blender→Remotion；步骤①剪影群②立面③便利店④洗衣店⑤街面道具⑥端点封闭**全部完成、均未提交**（端墙/填充楼带 name=capA/capB/capFill/capStrip 便于差分调试）
+- 2D 遗产坑：三层缩放模型（.world inset -10%、文字层 fixed+视口单位、backdrop 垫底）；transform 里不叠 scale；resetPan 先 no-transition；视口一律 var(--vh)；热区不用 object-fit:cover
+- 3D：走道边界 x±4.4 / z−26.5~14（tick 每帧覆写）；yaw=0 朝 −z、+π/2 朝 −x；**贴墙道具运行时选宿主楼**（硬编码必被随机楼埋）；canvas 发光贴图亮度三档（Standard 死黑→Basic；Basic 过亮 bloom 白斑→color 乘数压）
+- 设计硬规则：对比度≥4.5:1；触控≥44px；文字≥12px；间距只用 4/8 尺度；字号四档 12/14/16/20；交互必有 :active+:focus-visible；扩热区 `::after inset:-8px` 不改 width；**改字号前先 grep em**（padding/margin 连坐缩小）。完整方法见用户级技能 frontend-design-audit
 
-## 技术定稿
+## 操作纪律（本机）
 
-- 路线：**单文件 `index.html` + 原生 JS/CSS**（DOM 绝对定位 + CSS transition），图片作素材，托管 **GitHub Pages**
-- **明确没有**：后端 / 数据库 / 构建工具 / API / 环境变量 / 账号系统 / 存档（由「本期不做」推导，不是遗漏）
-- 三层缩放模型（本项目最重要的结构约定）：
-  - **场景层** —— 固定 16:9 的 `#stage` 内全用百分比定位；两屏 `#home`（街景）⇄ `#stage`（洗衣店）靠 `hidden` / `active` 切换
-  - **文字层** —— 卡片 / 进度 / 结束画面用 `position: fixed` + 视口单位（否则手机竖屏舞台只剩 390×219，字号不可读）
-  - **垫底层** `.backdrop` —— 同图模糊压暗铺满视口，把非 16:9 的留白变成氛围边框
-- **第一人称（Day 11 第二批，2026-09-26）**：角色与影子 `display:none`，镜头即玩家眼睛。两屏各有一个 `.world` 世界层：
-  - `.world { inset: -10% }`（盒子 120% = 视觉放大**全靠这一下**）+ `transform: translate(var(--pan-x), var(--pan-y))`，pan 范围 ±8.333 世界-%；**transform 里绝不能再叠 scale** —— 盒子放大 + scale = 1.44 双重放大，会把边缘物件（贩卖机 92%、收音机 5%）裁出取景框
-  - 点地面 = `panWorld()` 世界反向滑（距离决定 `--pan-dur`）；进店 / 回街 / 复位必须 `resetPan()`（先 no-transition 再回正，不然镜头漂移）
-  - **换幕时 `frameTarget()` 自动取景**：把下一幕目标拉回画面中间 50% 横带 —— 1.2 倍变焦下 92%/5% 的物件中心必然出框，不做这个第二、三幕没法点
-  - **持枪 viewmodel `#viewGun` 挂 `#stage`（取景框）不挂 `.world`** —— 枪跟相机走、平移时纹丝不动；手机竖屏钉视口会沉进 16:9 画面带下方的垫底区，跟画面脱节。掏枪/收枪用 `.drawn` + rAF（与 toast 同坑），后坐挂外层、呼吸晃动挂 img（两条动画不合并）、枪口火光独立元素 `#muzzle`
-  - 弹孔 / 冲击环挂进 `.world`，坐标按 `world.getBoundingClientRect()` 算（变换后的框，线性映射仍指同一点）
-- **视口高度一律写 `var(--vh)`**（= `dvh`），不写原生 `vh` —— iOS 微信 / Safari 的 `100vh` 比可见区域高，尺寸会偏大
-- 场景图上要放热区时**不能用 `object-fit: cover` 铺满** —— 会裁切图片、百分比坐标全错
-- 目录 / 命名：素材进 `images/`，文件名**英文小写 + 连字符**（Pages 跑在 Linux，大小写敏感）
-- 页面**零第三方依赖**（无外部字体 / CDN），全部资源自托管
-- **设计硬规则（Day 9 定，跨天有效）**：① 对比度正文 ≥4.5:1 ② 触控目标 ≥44×44px ③ 任何文字 ≥12px ④ 间距只用 4/8px 尺度 ⑤ 字号只有四档 **12 / 14 / 16 / 20**（Day 10 从 12/16/20/24 整体下调一档；大标题 `clamp` 上限 40、结束标题 36），层级靠字号 + 字重 + 颜色三者共同表达 ⑥ 可交互元素必须有 `:active` 与 `:focus-visible`，不能只靠 `:hover`
-  - 扩热区用 `::after { inset: -8px }`，**绝不改元素 width**（会动到已标定的构图）
-  - 基础节已有 `button, input, select, textarea { font: inherit }` —— `<button>` 默认 13.3333px，不加这条会整条绕过字号阶梯
-  - 完整方法（审查脚本 / 四类修法 / 三个隐藏坑）见用户级技能 **`frontend-design-audit`**
-  - **改字号档位前先全页 grep `em` 依赖** —— 基于 em 的 padding / margin 会随字号**连坐缩小**（Day 10 实测：`.btn` 的 `.85em` 若不动，高度从 51 掉到 40.6px，破 44px 触控线）
-
-## 线上环境
-
-- 站点 **`https://soren-yeyey.github.io/Soren2077/`**（2026-09-23 16:59 上线）
-- Pages 配置**必须** `Deploy from a branch` / `main` / `/ (root)`：仓库里没有任何 `.github/workflows/`，选 GitHub Actions 会永远 404
-- ⚠️ **push 完不等于线上生效**：构建延迟约 **45–60 秒**，立刻探测仍是旧内容 —— 别急着报"部署失败"
-
-## 操作纪律（本机特有，别踩）
-
-- ⚠️ **本机 `git rm` 会清空整个目录**（实测两次）→ 删仓库文件一律 `rm -f` + `git add -A`，删完**立刻 `ls` 验证**；误删用 `git checkout HEAD -- <目录>/` 恢复
-- ⚠️ **`localhost` 解析成 IPv6 `::1`**，而 `python -m http.server` 默认只听 IPv4 → 起服务一律 **`--bind ::`**（双栈：localhost / 127.0.0.1 / 局域网 IPv4 全通）。无头 Chrome 会 Happy-Eyeballs 回退 IPv4 → **我这边全绿、用户那边全红** → **实测地址一律用 `localhost`**，不要图省事用 `127.0.0.1`
-- ⚠️ **代理对 `github.com` 间歇性故障** → 失败先重试 1–2 次，再请用户换节点 / 重启代理（用户操作后通常**一次就过**）
-  - **代理端口会变**（实测 52171 → 50608），`env | grep -i proxy` 现查现用，别记死值
-  - **判别法**（区分"代理坏了"还是"只有 GitHub 这条路坏了"）：走代理打 `baidu.com` → 200 说明代理本体正常；`api.github.com` 若 CONNECT 拿到 `200 Established` 但随后 TLS 断，就是**节点对 GitHub 的线路坏了**
-  - 报 `schannel: failed to receive handshake` 时**换 `-c http.sslBackend=openssl` 没用**（改报 `unexpected eof while reading`），别在这上面耗时间
-  - 本机 `github.com` 解析到 `198.18.0.37`（代理 fake-IP 段）→ **"绕过代理直连"这条路天然不存在**，`--noproxy '*'` 必然 0.3 秒内失败
-- ⚠️ **git push 无输出挂死 = WorkBuddy PortableGit 的 `credential.helper=helper-selector` 在等 GUI 选择**（trace 卡在 `git credential-helper-selector get`）
-  - 判别：`tasklist | grep -i git` 出现 `git-credential-helper-sel` 即是；先 `taskkill //F //IM git.exe` 清残留
-  - 修法（实测一次过）：`git -c credential.helper= -c credential.helper=manager push origin main`
-  - ⚠️ `-c credential.helper=manager` 是**追加不是替换**，系统 helper-selector 仍会被先调 → 必须**先写空的 `credential.helper=` 清掉列表再追加 manager**；只写空则报 `could not read Username`
-- ⚠️ **本地写不进 `refs/remotes/origin/*`** → 查远程事实用 `git ls-remote origin refs/heads/main`，别依赖 `origin/main`
-- 查远程事实优先级：① `git ls-remote` ② `raw.githubusercontent.com/<user>/<repo>/main/<path>` 逐文件打状态码（不限流）③ `api.github.com`（未登录会限流，别首选）
-- 核验一律**纯管道不落盘**（沙箱不允许往项目目录外写）：`curl -s URL | tr -d '\r' | md5sum`；状态码 `curl -s -o /dev/null -w '%{http_code}'`
-- **比对内容一律用去 CR 后的 md5**（本地 CRLF / 仓库 LF，字节数会差"行数"个；相等或差行数都不能当结论）
-- 链式检查**一律用 `;` 不用 `&&`**（grep 无匹配返回 1 会短路掉后面全部检查）；抽查关键词**直接从文件复制**，别凭记忆写
+- ⚠️ 本机 `git rm` 会清空整个目录 → 删文件用 `rm -f` + `git add -A`，删完立刻 ls 验证
+- ⚠️ localhost 解析 IPv6 → `python -m http.server --bind ::`；实测地址一律用 localhost
+- ⚠️ 代理对 github 间歇故障：连试 2–3 次（常第 3 次过）再换节点；端口现查 `env|grep -i proxy`；解析到 198.18.x（fake-IP）→ 直连不存在
+- ⚠️ push 挂死=credential.helper-selector 等 GUI：taskkill git 后 `git -c credential.helper= -c credential.helper=manager push origin main`（先写空再追加）
+- 查远程优先级：ls-remote > raw.githubusercontent 逐文件状态码 > api.github（限流）；比对内容用**去 CR 后 md5**；链式检查用 `;` 不用 `&&`
+- 差分法定位：先关嫌疑变量再调参；验渲染前冻结动画（雨噪声淹没目标）；「该在哪」用两个独立来源交叉比对
 
 ## 关键实现坑（可复用）
 
-- **独立变换属性合成顺序 = `translate → rotate → scale → transform`**：`scale` 排在 `transform` 外层，会把 `transform: translate(-50%,-100%)` 的负号翻正 → 角色朝左走整体偏一个身宽（实测 64.7px）。**基础位移必须用独立 `translate` 属性**；镜像用独立 `scale`（不能塞 `transform`，会被 `idleFloat` 动画整个覆盖）
-- **卡片里放 16:9 图时别让它成为 flex 主轴上的项**：`flex-basis: auto` 在 column 方向会绕开 `aspect-ratio` 去取图片内在高度 → 图被拉竖（实测 380×460）。用非 flex + `calc()` 限文字区高度
-- **两条 opacity keyframes 不能合并**：`breathe` 自己就动 opacity，给 pending 另写 `opacity` 会被动画盖掉（必须单独 `breatheDim`）
-- **给带 `display` 的类配 `hidden` 切换必须显式写 `[hidden]{display:none}`**：类规则会盖掉 UA 默认行为，元素标了 hidden 照样渲染（Day 13 实测：`.term-view{display:grid}` 导致两页签内容叠显）；**且验证必须量 `getBoundingClientRect`，只读 `.hidden` 属性是假绿**
-- **透明渐变面板会吃掉底下元素的点击** → `pointer-events: none` + 内部可点元素恢复 `auto`
-- 卡片高度参数联动（**改一个必须同步改另一个**）：`#card` `max(calc(var(--vh)*0.34), 296px)`、`#cardImg` 240px、`#cardText` `calc(上面 - 195px)`；`195px = 图(135)+图距(17)+padding(40)+3`；矮视口（`@media (max-height: 520px)`）藏配图 + 卡片 `0.38 * --vh`
-- 逐句浮现：`REVEAL_STEP = 800`，首段等 **60ms**（刚插入 DOM 同帧加类浏览器不走 transition）；点卡片 = `revealAll()`；CSS 只给 `p.reveal` 初始隐藏（**不能写 `#cardText p { opacity:0 }`** —— 旁白与首页动静走同一渲染路径）
-- 接地阴影**必须是独立元素**，不能用 `filter: drop-shadow`（它跟着元素一起升降）；`scale` 已用于镜像，透视只能用 `height: calc(26% * var(--p-scale))`
-- 首屏优化：图片 `src` **点开时才写**；店内背景图用 `data-src` + 街景就绪后空闲预取（首屏 626 → 450 KB）
-- 差分法验渲染前**必须冻结所有动画**（否则雨噪声淹没目标）；元素"该在哪"要**用两个独立来源交叉比对**（JS 写入值 vs `getBoundingClientRect()`）
+- 独立变换合成顺序 translate→rotate→scale→transform：scale 在外层会翻 translate 负号（整体偏一个身宽）；镜像用独立 scale
+- 带display 类配 hidden 必须显式 `[hidden]{display:none}`；验证量 getBoundingClientRect，只读属性是假绿
+- 双写者（定时器清理+状态机写入）→ 定时器回调必须带归属守卫
+- 跨 `<script>` 块顶层 let 不互通（引用即每帧炸断 rAF、报错空消息）→ 状态挂 window.NIGHT
+- 两条 opacity keyframes 不能合并；卡片 16:9 图别做 flex 主轴项；透明渐变面板 pointer-events:none；接地阴影独立元素；首屏 src 点开才写+空闲预取
+- 无头 AudioContext 恒 suspended 是预期；playwright 真实 page.click 可解锁
 
-## 提交历史
+## Day 编号（硬规则）
 
-| hash | Day | 说明 |
-|---|---|---|
-| `d4d5f20` | 2 | 建仓库占位页 |
-| `033caed` | 3 | research.md |
-| `c6006b3` | 4 | PRD.md |
-| `f8224b0` | 5 | TECH_DESIGN.md |
-| `d82ff85` | 6 | AGENTS.md 追加三节 |
-| `7fddbff` | 7 | MVP + RUN.md + 2 图 |
-| `f3c7047` | 8 | 街景首页 + mock 渲染 + 统一角色 |
-| `660ac70` | 9 | 走动手感 3A–3E + 三张物件图 + 三幕叙事 |
-| `41dce83` | 9 | 技术文档与 PRD 的过期口径 |
-| `4968c86` | 9 | 删旧立绘 + 同步 RUN / TECH |
-| `c1e1bbd` | 9 | 文字挡画面三步（首页单条 / 卡片贴底 / 逐句浮现） |
-| `42b1116` | 9 | 补记人工验收与终局核对 |
-| `d5ff8f5` | 9 | 统一视口单位口径 + 店内大图延后加载 |
-| `6ce8162` | 9 | 按设计规则修掉 7 处前端问题 |
-| `3ca9585` | 9 | 补记推送核验与「修复后」截图 |
-| `a5b9afd` | 10 | 字号整体下调一档（12/14/16/20）+ 3 处 em 固定成 px |
-| `ee16706` | 11 | 武器箱 + 「不夜恶魔」手枪 + 试射/弹孔闭环 |
-| `60c7d76` | 11 | 当日日志补记 |
-| `3110ecd` | 11 | 全游戏改第一人称（world 镜头层 + viewGun + 自动取景） |
+- 仓库旧 Day 15/16/17 提交全按 **Day 14** 算；2026-10-03（CloudBase 部署日）=标准 Day 15；编号**只以用户当天清单标注为准**，严禁自作主张顺延
 
 ## 待议（不影响玩）
 
-- 要不要给「点卡片立即全显」加一行极淡提示（我倾向不加）
-- `PRD.md` 第 8 节「未决问题」5 条其实全已决，是否加标注
-- **（Day 10 已决）横屏 844×390 面板偏高**：字号下调后 `.home-panel` 182.9 → 174.7px（仍比原始设计高 36.7px）→ 用户拍板**接受现状，不再收紧**。结论：面板高度由内边距 + 固定行数撑着，**降字号救不回来**（只降 8.2px）
-
-## 工作日志
-
-- 2026-09-16：把用户指定的协作规则写入 `AGENTS.md`（七节：任务边界、交互式推进、人机分工、讲清楚环节、Git 与提交、当日收尾、出问题的时候）
-- 2026-09-24（用户口径 Day 9）：定下设计硬规则六条并完成一次全站审查 + 修复；顺手把视口单位与首屏体积两处问题一并修掉；产出可复用技能 `frontend-design-audit`
-- 2026-09-25（用户口径 Day 10）：练"描述质量" —— 按用户一句话把字号整体下调一档（12/14/16/20）+ 3 处 `em` 固定成 px；横屏面板问题用户选**接受现状**；「修复后」截图已收到，Day 10 全闭环；用户提出转向 FPS 大世界的新方向（选「先做完 Day 10，另起设计文档」）并已授权启动
-- 2026-10-03（标准 Day 15，用户口径纠正日）：CloudBase 接入全绿——云函数 /api/health 上线、整站静态托管、api-contract.md（三表六接口占位）；tcb CLI 三坑（--dir bug / installDependency 异常壳 / MSYS 路径转换）都进了 DEPLOY.md 实战附录
-- 2026-10-04（Day 16，用户口径）：db/schema.sql + db/seed.sql（MySQL 8，三表从 api-contract.md 推导，可重复执行，5 玩家+8 线索+5 结局固定种子）；契约已回写「数据库实现」小节；本机无 mysql，select 验证在用户控制台做；endings.endingKey 刻意不用 ENUM（暂定名留弹性）
-- 每日细节见 `.workbuddy/memory/2026-09-*.md`
-
-## 2026-10 新增（3D 时代）
-
-- 验证路线已换：**playwright-core + 系统 Chrome 单文件脚本**（npm i -g playwright-core，executablePath 指 chrome.exe）替代 agent-browser CLI——无跨调用标签页重置、无时序漂移、page.click 是真实输入可解锁 AudioContext。agent-browser 曾全机消失（command not found），别依赖
-- 双写者结构铁律：**定时器做清理 + 状态机做写入**时，定时器回调必须带归属守卫（文本比对），状态机每帧自愈重写——后台 setTimeout 节流会让过期清理砸掉新状态（frontend-rules 坑 #5）
-- 跨 `<script>` 块（各包 IIFE）顶层 let **不互通**：引用即 ReferenceError 且**每帧炸断 rAF 循环后半段**，报错只有空消息。跨块状态挂 window.NIGHT 这类显式对象（frontend-rules 坑 #6）
-- 无头环境 AudioContext 恒 suspended 是预期（无 user activation）；playwright 真实点击可解锁 → running
-- 夜班玩法定稿：三巨头=欧湃智能/安斯洛/深祈；权限升级 Lv1→4；伙伴=便利店老板(摩斯灯语)；黑衣人=前员工反转；3 结局；8–10 分钟一局
-
-## Day 编号口径（2026-10-03 用户纠正，硬规则）
-- **仓库里旧的 Day 15/16/17 提交（3D 街区/夜班玩法框架/声音+缝合）全部按 Day 14 算**
-- **今天（2026-10-03，CloudBase 部署日）才是标准 Day 15**
-- 以后 day 编号**只以用户当天清单的明确标注为准**，严禁自作主张顺延或推断
+- 「点卡片立即全显」要不要极淡提示（倾向不加）；PRD 第 8 节未决问题其实全已决；横屏面板偏高已拍板接受现状

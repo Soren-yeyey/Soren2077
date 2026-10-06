@@ -1442,6 +1442,167 @@ body {
 }
 #threeWrap canvas { display: block; width: 100%; height: 100%; }
 
+/* ---- 调参面板（D-Art 开发期工具）----
+   z-index 9：压在 3D 画面(0)与摇杆(3)之上，但低于剧情卡片(20)与结局画面(30) —— 读剧情时不挡字 */
+#tunePanel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font: inherit;
+}
+#tuneToggle {
+  min-width: 64px;
+  min-height: 44px;                /* 触控目标 ≥44px */
+  padding: 8px 12px;
+  border: 1px solid rgba(120, 226, 255, .35);
+  border-radius: var(--border-radius-md, 8px);
+  background: rgba(10, 14, 26, .82);
+  color: #9fe6ff;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+#tuneToggle:active { background: rgba(20, 30, 48, .92); }
+#tuneToggle:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+
+#tuneBody {
+  width: 240px;
+  padding: 12px;
+  border: 1px solid rgba(120, 226, 255, .22);
+  border-radius: var(--border-radius-lg, 12px);
+  background: rgba(8, 12, 22, .92);
+}
+#tunePanel[data-open="0"] #tuneBody { display: none; }
+/* 矮视口（手机横屏 390 高）：8 行 × 44px = 面板高 473px，会顶出视口顶部。
+   行高不压到 44 以下（守住触控线），改为整条面板限高 + 内部滚动。 */
+@media (max-height: 560px) {
+  #tunePanel { right: 8px; bottom: 8px; max-height: calc(var(--vh, 100dvh) - 16px); }
+  #tuneBody { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+}
+
+.tune-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #8b93a6;                 /* 对比度 ≥4.5:1（暗底浅灰） */
+}
+.tune-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;                /* 每行 ≥44px：滑杆行也满足触控线 */
+}
+.tune-row label { font-size: 12px; color: #cdd6e4; }
+.tune-row output { font-size: 12px; color: #9fe6ff; text-align: right; font-variant-numeric: tabular-nums; }
+.tune-row input[type="range"] { width: 100%; height: 44px; margin: 0; background: transparent; }
+.tune-row input[type="range"]:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+
+/* 取色器：原生 color 控件很矮（~24px），撑到 44px 触控线；宽高都显式给，
+   不靠 padding 撑 —— 换 padding 会改动行高、连带影响上面几行的标定位置 */
+/* 原生 color 控件做不出 44px 高的可视色块（会变形），色块保持 32px；
+   外面套一层 .tune-color-hit撑满 44px 行高并转发点击 ——
+   input 是 replaced element，它的 ::after 不接管点击（实测 elementFromPoint
+   仍命中父行），所以热区必须靠真实的包裹元素，不能靠伪元素。 */
+.tune-color-hit {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  cursor: pointer;
+}
+.tune-row-color input[type="color"] {
+  width: 100%;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid rgba(120, 226, 255, .25);
+  border-radius: var(--border-radius-md, 8px);
+  background: rgba(16, 24, 40, .9);
+  cursor: pointer;
+}
+.tune-row-color input[type="color"]:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+.tune-row-color output { color: #8b93a6; text-transform: uppercase; }
+
+/* 粘贴还原：默认收起，避免面板常驻时多占两行 */
+.tune-paste-toggle {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px dashed rgba(120, 226, 255, .35);
+  border-radius: var(--border-radius-md, 8px);
+  background: transparent;
+  color: #8b93a6;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tune-paste-toggle:active { background: rgba(28, 40, 62, .6); }
+.tune-paste-toggle:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+#tunePasteBox { display: none; margin-top: 8px; }
+#tunePasteBox[data-open="1"] { display: block; }
+.tune-paste-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #8b93a6;
+}
+#tunePasteInput {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(120, 226, 255, .25);
+  border-radius: var(--border-radius-md, 8px);
+  background: rgba(6, 10, 18, .95);
+  color: #cdd6e4;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
+#tunePasteInput:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+#tunePasteApply {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(120, 226, 255, .35);
+  border-radius: var(--border-radius-md, 8px);
+  background: rgba(16, 24, 40, .9);
+  color: #9fe6ff;
+  font-size: 12px;
+  cursor: pointer;
+}
+#tunePasteApply:active { background: rgba(28, 40, 62, .95); }
+#tunePasteApply:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+#tunePasteHint.is-err { color: #f09595; }
+
+.tune-acts { display: flex; gap: 8px; margin-top: 8px; }
+.tune-acts button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid rgba(120, 226, 255, .35);
+  border-radius: var(--border-radius-md, 8px);
+  background: rgba(16, 24, 40, .9);
+  color: #9fe6ff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tune-acts button:active { background: rgba(28, 40, 62, .95); }
+.tune-acts button:focus-visible { outline: 2px solid #78e2ff; outline-offset: 2px; }
+.tune-copy-hint {
+  margin: 8px 0 0;
+  min-height: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #7fd6a0;
+}
+.tune-copy-hint:empty { margin-top: 0; }
+
 .stick {                          /* 动态摇杆：触点即中心（左移动 / 右视角） */
   position: absolute;
   width: 104px;
@@ -1727,6 +1888,85 @@ body {
     <button class="snd-3d" id="cluesBtn" type="button" aria-label="打开线索档案">档</button>
     <div class="interact-tip" id="interactTip" aria-live="polite"></div>
   </div>
+  <!-- 调参面板（D-Art 开发期工具）：默认折叠，挂在 threeWrap 外避开 z-index:0 层叠上下文。
+       纯开发用，不写localStorage；线上访客看不到数值面板也能正常玩 -->
+  <div id="tunePanel" data-open="0">
+    <button id="tuneToggle" type="button" aria-expanded="false" aria-controls="tuneBody">
+      <span id="tuneToggleTxt">调参</span>
+    </button>
+    <div id="tuneBody">
+      <p class="tune-note">开发期工具，刷新即恢复原值</p>
+
+      <div class="tune-row">
+        <label for="tuneWin">窗光强度</label>
+        <input type="range" id="tuneWin" min="0.2" max="2" step="0.01" value="1.15">
+        <output id="tuneWinOut">1.15</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneBloomS">光晕强度</label>
+        <input type="range" id="tuneBloomS" min="0" max="2" step="0.01" value="0.95">
+        <output id="tuneBloomSOut">0.95</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneBloomT">光晕阈值</label>
+        <input type="range" id="tuneBloomT" min="0" max="1" step="0.01" value="0.42">
+        <output id="tuneBloomTOut">0.42</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneFog">雾浓度</label>
+        <input type="range" id="tuneFog" min="0" max="0.08" step="0.001" value="0.02">
+        <output id="tuneFogOut">0.020</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneExp">曝光</label>
+        <input type="range" id="tuneExp" min="0.4" max="2" step="0.01" value="1.22">
+        <output id="tuneExpOut">1.22</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneFar">远景栋数</label>
+        <input type="range" id="tuneFar" min="0" max="80" step="1" value="46">
+        <output id="tuneFarOut">46</output>
+      </div>
+
+      <div class="tune-row">
+        <label for="tuneRoof">近景栋数</label>
+        <input type="range" id="tuneRoof" min="0" max="0" step="1" value="0">
+        <output id="tuneRoofOut">0</output>
+      </div>
+
+      <div class="tune-row tune-row-color">
+        <label for="tuneSign">招牌色</label>
+        <span class="tune-color-hit">
+          <input type="color" id="tuneSign" value="#ffb060">
+        </span>
+        <output id="tuneSignOut">—</output>
+      </div>
+
+      <div class="tune-acts">
+        <button id="tuneCopy" type="button">复制参数</button>
+        <button id="tuneReset" type="button">恢复默认</button>
+      </div>
+      <p class="tune-copy-hint" id="tuneCopyHint" aria-live="polite"></p>
+
+      <!-- 粘贴还原：把「复制参数」产出的串贴回来，一键套用。
+           闭环用法：调好一组值 → 复制 → 存进笔记/提给AI → 随时贴回来复原 -->
+      <button id="tunePasteToggle" type="button" class="tune-paste-toggle"
+              aria-expanded="false" aria-controls="tunePasteBox">粘贴参数还原</button>
+      <div id="tunePasteBox">
+        <label for="tunePasteInput" class="tune-paste-label">参数串</label>
+        <textarea id="tunePasteInput" rows="2" spellcheck="false"
+                  placeholder="TUNE win=1.00 bloomS=0.85 ..."></textarea>
+        <button id="tunePasteApply" type="button">套用</button>
+      </div>
+      <p class="tune-copy-hint" id="tunePasteHint" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- 对话框挂在 threeWrap 外：threeWrap 是 z-index:0 的层叠上下文，放里面永远压不过剧情卡片(z20) -->
   <div class="nvl-dlg" id="nvlDlg" role="dialog" aria-modal="true">
     <div class="nvl-box">
@@ -2973,19 +3213,19 @@ body {
   catch (e) { return; }                            // WebGL 不可用 → 2D 兜底
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;   // 电影级调色：霓虹高光更有层次
-  renderer.toneMappingExposure = 1.12;                  // 曝光回调：墙面露出轮廓，不再死黑
+  renderer.toneMappingExposure = 1.22;                  // B 方案「暖夜市井」：曝光回调，墙面露出轮廓
   wrap.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x070912);
-  scene.fog = new THREE.FogExp2(0x0a0c1c, 0.028);
+  scene.fog = new THREE.FogExp2(0x0a0c1c, 0.020);
 
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 120);  // FOV 60：街道显窄、楼显高耸
 
   /* ---- Bloom 泛光后期：发光体拉光晕（赛博朋克质感的核心一步） ---- */
   const composer = new THREE.EffectComposer(renderer);
   composer.addPass(new THREE.RenderPass(scene, camera));
-  const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(844, 390), 0.95, 0.6, 0.36);
+  const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(844, 390), 0.95, 0.6, 0.42);
   composer.addPass(bloom);
   /* ---- 终帧调色 Pass：色差 + 胶片噪点 + 暗角 + 压暗提对比（电影质感收尾） ---- */
   const gradePass = new THREE.ShaderPass({
@@ -3068,14 +3308,15 @@ body {
   const sharedU = {
     uTime: { value: 0 },
     uFogColor: { value: new THREE.Color(0x0a0c1c) },
-    uFogDensity: { value: 0.028 }
+    uFogDensity: { value: 0.028 },
+    uWinBoost: { value: 1.15 }    // 窗光总倍率：B 方案「暖夜市井」；调参面板可拖（D-Art 调参工具）
   };
 
   /* ---- 楼宇 ShaderMaterial：世界空间噪声窗格（亮灭/缓变/五色）+ 墙面雨水淌痕，零贴图 ---- */
   const buildingMat = new THREE.ShaderMaterial({
     uniforms: sharedU, vertexShader: VERT,
     fragmentShader: GLSL_COMMON + `
-    uniform float uTime; uniform vec3 uFogColor; uniform float uFogDensity;
+    uniform float uTime; uniform vec3 uFogColor; uniform float uFogDensity; uniform float uWinBoost;
     varying vec3 vWorld; varying vec3 vNorm; varying float vDepth; varying vec3 vView;
     void main(){
       vec3 n = normalize(vNorm);
@@ -3086,18 +3327,32 @@ body {
         vec2 uv; float seed;
         if (abs(n.x) > 0.5) { uv = vec2(vWorld.z, vWorld.y); seed = floor(vWorld.x*0.13); }
         else                { uv = vec2(vWorld.x, vWorld.y); seed = floor(vWorld.z*0.13); }
+        /* —— 底层商铺带（y<3.2）：大玻璃橱窗，点灯率更高、色温更暖 —— */
+        float shop = step(uv.y, 3.2);
+        vec2 sg = uv / vec2(2.9, 3.2);
+        vec2 sid = floor(sg); vec2 sf = fract(sg);
+        float swin = step(0.10,sf.x)*step(sf.x,0.90)*step(0.18,sf.y)*step(sf.y,0.78);
+        float sr = hash(sid + seed*23.0);
+        float sbri = 0.45 + 0.55*hash(sid + 7.0);              // 店铺各自亮度（防整排白斑）
+        vec3 swc = sr<0.45 ? vec3(1.0,0.80,0.55) : sr<0.72 ? vec3(0.95,0.92,0.80) : vec3(0.56,0.91,1.0);
         vec2 g = uv / vec2(2.2, 3.0);                          // 世界空间 2.2×3.0 一格窗
         vec2 id = floor(g); vec2 f = fract(g);
-        float win = step(0.18,f.x)*step(f.x,0.82)*step(0.25,f.y)*step(f.y,0.85);
-        float r = hash(id + seed*17.0);
-        float lit = step(r, 0.52);
-        lit *= mix(1.0, step(0.5, hash(id + floor(uTime*0.22))), step(0.93, hash(id*3.1)));
-        vec3 wc = r<0.20 ? vec3(1.0,0.85,0.63) : r<0.40 ? vec3(0.56,0.91,1.0)
-                : r<0.55 ? vec3(1.0,0.72,0.88) : vec3(0.78,0.71,1.0);
+        float win = mix(step(0.18,f.x)*step(f.x,0.82)*step(0.25,f.y)*step(f.y,0.85), swin, shop);
+        float r = mix(hash(id + seed*17.0), sr, shop);
+        float lit = step(r, mix(0.52, 0.50, shop));
+        lit *= mix(1.0, step(0.5, hash(id + floor(uTime*0.22))), step(0.93, hash(id*3.1))*(1.0-shop));
+        vec3 wc = mix(r<0.20 ? vec3(1.0,0.85,0.63) : r<0.40 ? vec3(0.56,0.91,1.0)
+                : r<0.55 ? vec3(1.0,0.72,0.88) : vec3(0.78,0.71,1.0), swc, shop);
         float bri = 0.4 + 0.6*hash(id + 7.0);
         float wallN = vnoise(uv*vec2(0.8, 0.5));
         vec3 wall = vec3(0.044, 0.049, 0.076) * (0.75 + 0.65*wallN);   // 墙面提亮：露出立面轮廓
-        col = mix(wall, wc*bri*1.5, win*lit);
+        /* —— 立面分层：楼板暗线（每 3m）+ 竖向壁柱（每 4.4m）+ 店顶檐口线 + 墙脚 AO —— */
+        float slab = smoothstep(0.28, 0.04, mod(uv.y, 3.0));
+        float pil = smoothstep(0.38, 0.02, abs(fract(uv.x/4.4) - 0.5));
+        float fascia = smoothstep(0.45, 0.0, abs(uv.y - 3.5));
+        wall *= 1.0 - 0.28*slab - 0.20*pil - 0.30*fascia;
+        wall *= 0.70 + 0.30*smoothstep(0.0, 1.8, uv.y);
+        col = mix(wall, wc*bri*mix(1.05, 0.78, shop)*mix(1.0, sbri, shop)*uWinBoost, win*lit);
         float colH = hash(vec2(floor(uv.x*5.0), seed));        // 雨水淌痕：更密的竖列
         if (colH > 0.68) {
           float y = fract(uv.y*0.35 - uTime*(0.5+colH*0.4) + colH*9.0);
@@ -3177,8 +3432,12 @@ body {
   const neonCols = [0xff4fa8, 0x4fd8ff, 0xb44fff];
   const faces = [], flickers = [];               // flickers：需闪烁/故障的霓虹材质登记表
   const cageMat = mat(0x0e1119, 0.8, 0.5);       // 防盗窗框
+  const acMat = mat(0x151a24, 0.85, 0.18);       // 墙面空调外机
+  const pipeMat = mat(0x10141d, 0.8, 0.12);      // 落水管
+  const bbFrameMat = mat(0x0c0f16, 0.7, 0.25);   // 广告牌深框
   for (let side = -1; side <= 1; side += 2) {
     for (let i = 0; i < 8; i++) {
+      if (side === -1 && i === 3) continue;        // 便利店槽位：下方单独精建，不走随机楼
       const w = 5 + Math.random() * 3, h = 9 + Math.random() * 14, d = 5;
       const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildingMat);
       b.position.set(side * 9.5, h / 2, -28 + i * 6.4);
@@ -3225,14 +3484,274 @@ body {
         st2.rotation.z = side * 0.25;
         city.add(st2);
       }
+      /* —— 立面精修②：空调机位竖列 / 落水管 / 高层横幅广告牌 —— */
+      if (Math.random() < 0.4) {                     // 空调外机竖列：同一竖线层间错落
+        const acy = 4.2 + Math.random() * 2.0, acz = bz + (Math.random() - 0.5) * 3.0;
+        const acM = 1 + (Math.random() * 2 | 0);
+        for (let k = 0; k < acM; k++) {
+          const u2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.48), acMat);
+          u2.position.set(fx - side * 0.10, acy + k * 1.7 + (Math.random() - 0.5) * 0.3, acz + (Math.random() - 0.5) * 0.4);
+          city.add(u2);
+        }
+      }
+      if (Math.random() < 0.3) {                     // 落水管：贴墙直落接地
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h - 1.4, 6), pipeMat);
+        pipe.position.set(fx - side * 0.06, (h - 1.4) / 2 + 0.4, bz + (Math.random() < 0.5 ? -1 : 1) * 2.15);
+        city.add(pipe);
+      }
+      if (h > 13 && Math.random() < 0.35) {          // 高层横幅广告牌：发光面板 + 深框，接闪烁表
+        const bc = [0xff8a3d, 0x4fd8ff, 0xff4fa8, 0x8affd0][(Math.random() * 4) | 0];
+        const bw = 2.0 + Math.random() * 1.0, bh2 = 0.8 + Math.random() * 0.4;
+        const fr2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, bh2 + 0.16, bw + 0.16), bbFrameMat);
+        fr2.position.set(fx - side * 0.07, h * (0.58 + Math.random() * 0.2), bz + (Math.random() - 0.5) * 1.6);
+        city.add(fr2);
+        const bd = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh2), mat(0x111418, 0.5, 0, bc, 1.15));
+        bd.position.set(fx - side * 0.14, fr2.position.y, fr2.position.z);
+        bd.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+        flickers.push({ m: bd.material, base: 1.15, ph: Math.random() * 10, spd: 4 + Math.random() * 10, glitch: Math.random() < 0.35 });
+        city.add(bd);
+      }
     }
   }
 
+  /* ---- 便利店精建（玩家主场景，side=-1 i=3 槽位，楼体 h=7 两层小楼）----
+     招牌灯箱 / 暖光橱窗（canvas 货架剪影）/ 玻璃门 / 雨篷+沿口霓虹 / 门口堆头。
+     临街墙面 x=-6.9，法线 +x；物件从墙面向 +x 依次外露，防 z-fight 分层排布 */
+  const SW2 = 5.2, SH2 = 7, SZ2 = -8.8, FX2 = -6.9;
+  const storeB = new THREE.Mesh(new THREE.BoxGeometry(SW2, SH2, 5), buildingMat);
+  storeB.position.set(-9.5, SH2 / 2, SZ2); city.add(storeB);
+  const storeDark = mat(0x0d1017, 0.75, 0.35);               // 门店框料
+  /* 招牌灯箱：通长深箱，霓虹字贴在箱面（字位置见下方 neonText 调整） */
+  const sbox = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.0, 5.0), storeDark);
+  sbox.position.set(FX2 + 0.11, 4.6, SZ2); city.add(sbox);
+  /* 暖光橱窗：canvas 画货架剪影（暗架板 + 彩色货点），亮度压在 bloom 阈值下 */
+  const shopCv = document.createElement('canvas'); shopCv.width = 256; shopCv.height = 128;
+  const sg2 = shopCv.getContext('2d');
+  const bgGrad = sg2.createLinearGradient(0, 0, 0, 128);
+  bgGrad.addColorStop(0, '#33261a'); bgGrad.addColorStop(1, '#1c130c');
+  sg2.fillStyle = bgGrad; sg2.fillRect(0, 0, 256, 128);
+  const goodsCols = ['#c96a2a', '#3d8ea0', '#b8b0a0', '#8a4a9a', '#c9a23a'];
+  for (let row = 0; row < 3; row++) {
+    const ry = 26 + row * 34;
+    sg2.fillStyle = '#0c0e14'; sg2.fillRect(10, ry, 236, 14);          // 货架板剪影
+    for (let it = 0; it < 14; it++) {                                   // 货品小色块
+      sg2.fillStyle = goodsCols[(Math.random() * goodsCols.length) | 0];
+      sg2.globalAlpha = 0.5 + Math.random() * 0.5;
+      sg2.fillRect(14 + it * 16.5, ry - 10 + Math.random() * 4, 9, 10);
+    }
+    sg2.globalAlpha = 1.0;
+  }
+  const shopWin = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 2.35),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shopCv) }));
+  shopWin.position.set(FX2 + 0.05, 1.5, SZ2 + 0.75);
+  shopWin.rotation.y = Math.PI / 2; city.add(shopWin);
+  const winFr = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.55, 3.5), storeDark);
+  winFr.position.set(FX2 - 0.02, 1.5, SZ2 + 0.75); city.add(winFr);
+  const mull = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.35, 0.06), storeDark);
+  mull.position.set(FX2 + 0.07, 1.5, SZ2 + 0.75); city.add(mull);      // 竖梃分双pane
+  /* 玻璃门（暖光门芯 + 把手） */
+  const doorFr = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.5, 1.34), storeDark);
+  doorFr.position.set(FX2 - 0.02, 1.25, SZ2 - 1.65); city.add(doorFr);
+  const doorG = new THREE.Mesh(new THREE.PlaneGeometry(1.06, 2.26),
+    new THREE.MeshBasicMaterial({ color: 0x6a5236 }));
+  doorG.position.set(FX2 + 0.05, 1.24, SZ2 - 1.65);
+  doorG.rotation.y = Math.PI / 2; city.add(doorG);
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.35, 0.05),
+    mat(0x111111, 0.5, 0, 0xffd9a0, 1.4));
+  handle.position.set(FX2 + 0.08, 1.15, SZ2 - 1.3); city.add(handle);
+  /* 雨篷（外沿下倾）+ 沿口粉霓虹条（接闪烁表） */
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.07, 4.9), mat(0x231633, 0.9, 0.05));
+  canopy.position.set(FX2 + 0.55, 2.98, SZ2); canopy.rotation.z = -0.16; city.add(canopy);
+  const canStrip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 4.7),
+    mat(0x111111, 0.5, 0, 0xffb8e0, 1.6));
+  canStrip.position.set(FX2 + 1.08, 2.84, SZ2); city.add(canStrip);
+  flickers.push({ m: canStrip.material, base: 1.6, ph: Math.random() * 10, spd: 5 + Math.random() * 8, glitch: Math.random() < 0.3 });
+  /* 悬挂式 24H 小灯箱（垂直探向街道） */
+  const mini = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 0.08), mat(0x181820, 0.6, 0.2, 0x4fd8ff, 1.5));
+  mini.position.set(FX2 + 0.25, 3.45, SZ2 - 2.2); city.add(mini);
+  flickers.push({ m: mini.material, base: 1.5, ph: 3.0, spd: 7.0, glitch: true });
+  /* 门口堆头：纸箱三只 + 垃圾桶 + 地垫 */
+  const cardMat = new THREE.MeshStandardMaterial({ color: 0x4a3a22, roughness: 0.95 });
+  const cboxes = [[-6.2, 0.22, -10.55, 0], [-6.2, 0.66, -10.55, 0.25], [-5.75, 0.21, -10.05, 0.5]];
+  for (const [cx2, cy2, cz2, cr] of cboxes) {
+    const cb = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), cardMat);
+    cb.position.set(cx2, cy2, cz2); cb.rotation.y = cr; city.add(cb);
+  }
+  const bin2 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.72, 10), mat(0x18201c, 0.9, 0.2));
+  bin2.position.set(-6.25, 0.36, -6.75); city.add(bin2);
+  const mat2 = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9), mat(0x14161e, 0.95, 0));
+  mat2.rotation.x = -Math.PI / 2; mat2.position.set(-6.25, 0.012, SZ2 - 1.6); city.add(mat2);
+
+  /* ==== 天际线重铺（三层景深）：远景剪影群 / 中景地标塔 / 近景楼顶细节 ====
+     全部复用 buildingMat（窗格着色器世界空间自适应，远楼自动带上千窗）与 flickers 登记表，零新依赖 */
+
+  /* 航空障碍灯：慢速红脉冲（两套相位错开），挂 flickers 正弦通道 */
+  const beaconMatA = new THREE.MeshStandardMaterial({ color: 0x220a0a, emissive: 0xff2d3f, emissiveIntensity: 2.4, roughness: 0.5 });
+  const beaconMatB = new THREE.MeshStandardMaterial({ color: 0x220a0a, emissive: 0xff2d3f, emissiveIntensity: 2.4, roughness: 0.5 });
+  flickers.push({ m: beaconMatA, base: 2.4, ph: 0.0, spd: 2.1, glitch: false });
+  flickers.push({ m: beaconMatB, base: 2.4, ph: Math.PI * 0.7, spd: 1.6, glitch: false });
+  function beacon(x, y, z, matB) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), matB);
+    s.position.set(x, y, z); city.add(s);
+  }
+  function antenna(x, y, z, hgt) {
+    const a = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, hgt, 5), mat(0x11141d, 0.8, 0.6));
+    a.position.set(x, y + hgt / 2, z); city.add(a);
+  }
+
+  /* —— 远景剪影群：两侧翼 + 店后 + 玩家身后，纯盒体铺量（雾把它们压成剪影，只透窗光）——
+     调参面板的「远景密度」：预建到上限、靠 visible 开关显示前 N 栋。
+     为什么不实时重建 —— 拖滑杆时反复 new BoxGeometry + add/remove 会掉帧，
+     预建一次之后拖动只是切visible，零几何重建开销 */
+  const farMax = 80;                        // 预建上限（原先实际用 34）
+  const farPool = [];                       // 按「重要度」排序：前 N 栋 = 保留显示的那批
+  (function buildFarSkyline() {
+    const seg = [[], [], [], []];           // 四段分桶：侧- / 侧+ / 店后 / 身后
+    for (let side2 = -1; side2 <= 1; side2 += 2) {
+      const segIdx = side2 < 0 ? 0 : 1;
+      for (let i = 0; i < 20; i++) {                // 每侧 20（原先 10，留出加密余量）
+        const fw = 6 + Math.random() * 5, fh = 13 + Math.random() * 23, fd = 6 + Math.random() * 4;
+        const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
+        fb.position.set(side2 * (16 + Math.random() * 17), fh / 2, -45 + i * 3.2 + (Math.random() - 0.5) * 2);
+        seg[segIdx].push(fb); city.add(fb);
+      }
+    }
+    for (let i = 0; i < 20; i++) {                // 店后（z −42~−62）：越远越高，垫出地平线
+      const fw = 7 + Math.random() * 6, fh = 18 + i * 1.2 + Math.random() * 12, fd = 7 + Math.random() * 5;
+      const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
+      fb.position.set(-26 + i * 3.6 + (Math.random() - 0.5) * 2, fh / 2, -(42 + Math.random() * 20));
+      seg[2].push(fb); city.add(fb);
+    }
+    for (let i = 0; i < 20; i++) {                // 玩家身后（z +18~+34）：回头也有城市
+      const fw = 6 + Math.random() * 5, fh = 11 + Math.random() * 18, fd = 6 + Math.random() * 4;
+      const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
+      fb.position.set(-24 + i * 2.6 + (Math.random() - 0.5) * 3, fh / 2, 18 + Math.random() * 16);
+      seg[3].push(fb); city.add(fb);
+    }
+    /* 四路轮转交错：按「侧-/侧+/店后/身后」四段连续取前 N 栋的话，
+       密度一降就会先抹掉整段、地平线缺一块。轮转取让四段同步稀释。 */
+    for (let k = 0; k < 20; k++) {
+      for (let s = 0; s < 4; s++) if (seg[s][k]) farPool.push(seg[s][k]);
+    }
+  })();
+
+  /* —— 中景地标塔 ×3：收分冠部 + 天线 + 航空灯 + 大竖霓虹条，撑起天际线轮廓 —— */
+  function tower(x, z, h, w, neonColor) {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), buildingMat);
+    body.position.set(x, h / 2, z); city.add(body);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(w * 0.62, h * 0.12, w * 0.62), buildingMat);
+    crown.position.set(x, h + h * 0.06, z); city.add(crown);           // 收分冠部：顶部收窄一截
+    antenna(x, h + h * 0.12, z, 5 + h * 0.08);
+    beacon(x, h + h * 0.12 + 5 + h * 0.08, z, Math.random() < 0.5 ? beaconMatA : beaconMatB);
+    const n2 = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.14, h * 0.55),
+      mat(0x111111, 0.5, 0, neonColor, 3.2));                          // 通高竖霓虹条
+    n2.position.set(x - w * 0.51, h * 0.45, z);
+    n2.rotation.y = x > 0 ? -Math.PI / 2 : Math.PI / 2;
+    if (Math.abs(x) < 6) n2.rotation.y = 0;                            // 正对街口的塔面朝街道
+    flickers.push({ m: n2.material, base: 3.2, ph: Math.random() * 10, spd: 5 + Math.random() * 8, glitch: Math.random() < 0.35 });
+    city.add(n2);
+  }
+  tower(-26, -18, 52, 9, 0xff4fa8);
+  tower(28, -4, 46, 8, 0x4fd8ff);
+  tower(-5, -55, 60, 11, 0xb44fff);                  // 店后正中最高塔：从街口望过去压住洗衣店天际线
+
+  /* —— ⑥ 街道端点封闭：两堵横跨街道的端头楼墙 + 侧翼填充楼 ——
+     之前走廊两头是「楼排一停、地面延伸进雾里」的世界断口；现在各用一堵宽 44m 的
+     端墙封死视线，窗格由 buildingMat 世界空间网格自动生成，侧翼矮楼堵住走廊口两侧空缝。
+     端墙高度压在 20/18：店后最高塔（60m，z=-55）仍从端墙上方露出来，天际线构图不破。 */
+  (function buildEndCaps() {
+    const capA = new THREE.Mesh(new THREE.BoxGeometry(44, 20, 7), buildingMat);
+    capA.position.set(0, 10, -44.5); capA.name = 'capA'; city.add(capA);            // 店后端（-z）
+    const capB = new THREE.Mesh(new THREE.BoxGeometry(44, 18, 7), buildingMat);
+    capB.position.set(0, 9, 25.5); capB.name = 'capB'; city.add(capB);              // 身后端（+z）
+    const fillA1 = new THREE.Mesh(new THREE.BoxGeometry(12, 13, 7), buildingMat);
+    fillA1.position.set(-10.5, 6.5, -34.5); fillA1.name = 'capFill'; city.add(fillA1);
+    const fillA2 = new THREE.Mesh(new THREE.BoxGeometry(12, 17, 7), buildingMat);
+    fillA2.position.set(10.5, 8.5, -33.5); fillA2.name = 'capFill'; city.add(fillA2);
+    const fillB1 = new THREE.Mesh(new THREE.BoxGeometry(12, 12, 6), buildingMat);
+    fillB1.position.set(-10.5, 6, 21.5); fillB1.name = 'capFill'; city.add(fillB1);
+    const fillB2 = new THREE.Mesh(new THREE.BoxGeometry(12, 15, 6), buildingMat);
+    fillB2.position.set(10.5, 7.5, 21.5); fillB2.name = 'capFill'; city.add(fillB2);
+    /* 端墙面霓虹：竖条店招 + 顶部横向灯带（远处读作高架/灯带轮廓），登记进 flickers 做故障闪烁 */
+    function capStrip(x, y, w, h, z, ry, col, ei) {
+      const s = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(0x111111, 0.5, 0, col, ei));
+      s.position.set(x, y, z); s.rotation.y = ry; s.name = 'capStrip';
+      flickers.push({ m: s.material, base: ei, ph: Math.random() * 10, spd: 5 + Math.random() * 9, glitch: Math.random() < 0.35 });
+      city.add(s);
+    }
+    capStrip(-6, 4.6, 0.55, 6.5, -40.9, 0, 0xff4fa8, 3.2);       // 端墙A 朝街面
+    capStrip(5.5, 5.4, 0.55, 8, -40.9, 0, 0x4fd8ff, 3.2);
+    capStrip(0, 14.6, 9, 0.5, -40.9, 0, 0xb44fff, 2.6);          // 端墙A 顶部横带
+    capStrip(-4.5, 4.2, 0.55, 6, 21.9, Math.PI, 0x4fd8ff, 3.2);  // 端墙B 朝街面
+    capStrip(6, 5.2, 0.55, 7.5, 21.9, Math.PI, 0xff4fa8, 3.2);
+  })();
+
+  /* —— 近景楼顶细节：水塔 / 空调外机 / 天线+航空灯，filling 现有 16 栋的天际轮廓 —— */
+  const roofMat  = new THREE.MeshStandardMaterial({ color: 0x1c2130, roughness: 0.9,  metalness: 0.35 });
+  const roofMat2 = new THREE.MeshStandardMaterial({ color: 0x262c40, roughness: 0.85, metalness: 0.45 });
+  const roofPool = [];              /* 每栋的屋顶细节装一个 Group：调参面板按显示前 N 组控制密度 */
+  for (let i = 0; i < faces.length; i++) {
+    const fce = faces[i];
+    const rx = fce.x + (Math.random() - 0.5) * 2.2, rz = fce.z + (Math.random() - 0.5) * 2.6;
+    const g = new THREE.Group();
+    if (Math.random() < 0.5) {                        // 屋顶水塔（圆柱 + 锥顶）
+      const tk = new THREE.Mesh(new THREE.CylinderGeometry(0.55 + Math.random() * 0.25, 0.6 + Math.random() * 0.25, 1.1, 9), roofMat);
+      tk.position.set(rx, fce.h + 0.55, rz); g.add(tk);
+      const cap2 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.4, 9), roofMat2);
+      cap2.position.set(rx, fce.h + 1.3, rz); g.add(cap2);
+    }
+    const acN = 1 + (Math.random() * 2 | 0);          // 空调外机 1–2 台
+    for (let ac = 0; ac < acN; ac++) {
+      const u = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.5), Math.random() < 0.5 ? roofMat : roofMat2);
+      u.position.set(fce.x + (Math.random() - 0.5) * (3.2 - 0.9), fce.h + 0.25, fce.z + (Math.random() - 0.5) * (4 - 0.6));
+      g.add(u);
+    }
+    if (Math.random() < 0.4) {                        // 楼顶天线 + 航空灯
+      const ah = 1.6 + Math.random() * 1.8;
+      antenna(rx, fce.h, rz, ah);
+      beacon(rx, fce.h + ah, rz, Math.random() < 0.5 ? beaconMatA : beaconMatB);
+    }
+    roofPool.push(g); city.add(g);
+  }
+
   /* ---- 洗衣店门面（街尽头，z=-30）+ 霓虹字 ---- */
-  const shop = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 4), mat(0x141824, 0.8, 0.2));
+  const shop = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 4), buildingMat);   // 楼体接入楼宇着色器：自动得立面分层/二楼窗/屋顶色
   shop.position.set(0, 3.5, -32); city.add(shop);
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.4), mat(0x0e2030, 0.1, 0.9, 0x2a6a8a, 0.45));
-  glass.position.set(0, 1.8, -29.98); city.add(glass);
+  /* 橱窗：canvas 画洗衣店内景剪影（晾衣横杆 + 成排洗衣机圆窗，部分发青光/暖光） */
+  const ldyCv = document.createElement('canvas'); ldyCv.width = 256; ldyCv.height = 128;
+  const lg2 = ldyCv.getContext('2d');
+  const lbg = lg2.createLinearGradient(0, 0, 0, 128);
+  lbg.addColorStop(0, '#24343e'); lbg.addColorStop(1, '#131c22');
+  lg2.fillStyle = lbg; lg2.fillRect(0, 0, 256, 128);
+  lg2.fillStyle = 'rgba(90,170,200,0.10)'; lg2.fillRect(0, 0, 256, 128);      // 店内青蓝环境光
+  lg2.strokeStyle = '#060a0e'; lg2.lineWidth = 3;                              // 晾衣横杆
+  lg2.beginPath(); lg2.moveTo(6, 22); lg2.lineTo(250, 22); lg2.stroke();
+  const ldyCloth = ['#141c26', '#1c1824', '#16241f', '#241c22', '#1a222e'];
+  for (let cl = 0; cl < 9; cl++) {                                             // 挂着的深色衣服剪影
+    lg2.fillStyle = ldyCloth[(Math.random() * ldyCloth.length) | 0];
+    const cw = 14 + Math.random() * 8, chh = 16 + Math.random() * 10;
+    lg2.fillRect(12 + cl * 27 + Math.random() * 6, 22, cw, chh);
+  }
+  for (let wm = 0; wm < 5; wm++) {                                             // 成排洗衣机：机身 + 圆窗
+    const wx = 10 + wm * 48;
+    lg2.fillStyle = '#1a232c'; lg2.fillRect(wx, 52, 40, 68);
+    lg2.fillStyle = '#0e131a'; lg2.fillRect(wx + 4, 56, 32, 10);               // 顶置旋钮面板
+    lg2.beginPath(); lg2.arc(wx + 20, 96, 14, 0, Math.PI * 2); lg2.fill();     // 舱门圆窗
+    if (Math.random() < 0.55) {                                                // 过半在转：青光/暖光透出
+      lg2.fillStyle = Math.random() < 0.6 ? 'rgba(140,225,240,0.65)' : 'rgba(255,215,160,0.55)';
+      lg2.beginPath(); lg2.arc(wx + 20, 96, 10, 0, Math.PI * 2); lg2.fill();
+    }
+  }
+  const ldyWin = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.4),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ldyCv) }));
+  ldyWin.position.set(0, 1.8, -29.98); city.add(ldyWin);
+  const ldyFrMat = new THREE.MeshStandardMaterial({ color: 0x0c0f18, roughness: 0.6, metalness: 0.6 });
+  const ldyFr = new THREE.Mesh(new THREE.BoxGeometry(7.3, 3.7, 0.1), ldyFrMat);
+  ldyFr.position.set(0, 1.8, -30.0); city.add(ldyFr);
+  for (let mu = 0; mu < 2; mu++) {                                             // 两根竖梃分三扇
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 3.4, 0.06), ldyFrMat);
+    bar.position.set(mu ? 2.33 : -2.33, 1.8, -29.96); city.add(bar);
+  }
 
   /* ---- 店面细节：玻璃门 / 门框 / 台阶 / 雨篷 / 半开卷帘门 / 洗衣篮 / 休息椅 ---- */
   const frameMat = new THREE.MeshStandardMaterial({ color: 0x0c0f18, roughness: 0.6, metalness: 0.6 });
@@ -3279,6 +3798,27 @@ body {
     leg.position.set(lg % 2 ? 0.17 : -0.17, 0.21, lg < 2 ? 0.17 : -0.17); chair.add(leg);
   }
   chair.position.set(-0.7, 0, -29.2); chair.rotation.y = 0.55; city.add(chair);
+  /* 洗衣店屋顶：女儿墙 / 水塔 / 两根烘干机排气管 —— 街口抬头可见的轮廓 */
+  const parapet = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.35, 0.16), mat(0x10141f, 0.85, 0.3));
+  parapet.position.set(0, 7.12, -30.02); city.add(parapet);
+  const wtk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.86, 1.4, 10), roofMat);
+  wtk.position.set(-3.6, 7.75, -32.2); city.add(wtk);
+  const wtkCap = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.5, 10), roofMat2);
+  wtkCap.position.set(-3.6, 8.7, -32.2); city.add(wtkCap);
+  const ventMat = mat(0x1a2029, 0.8, 0.55);
+  for (let vn = 0; vn < 2; vn++) {
+    const vp = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.1, 7), ventMat);
+    vp.position.set(2.4 + vn * 1.1, 7.55, -31.2 - vn * 1.4); city.add(vp);
+    const vcap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.1, 0.16, 7), ventMat);
+    vcap.position.set(2.4 + vn * 1.1, 8.14, -31.2 - vn * 1.4); city.add(vcap);
+  }
+  /* 临街墙面：右侧外机 + 落水管 + 地下室通风格栅 */
+  const shopAC = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.38, 0.2), acMat);
+  shopAC.position.set(4.7, 4.3, -29.92); city.add(shopAC);
+  const shopPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5.6, 6), pipeMat);
+  shopPipe.position.set(5.85, 3.2, -29.88); city.add(shopPipe);
+  const grate = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.26, 0.05), mat(0x0d1017, 0.8, 0.4));
+  grate.position.set(4.9, 0.32, -29.97); city.add(grate);
   function neonText(txt, color, x, y, size, z, rotY) {
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
     const g = cv.getContext('2d');
@@ -3291,10 +3831,20 @@ body {
     if (rotY) m.rotation.y = rotY;
     flickers.push({ m: m.material, base: null, ph: Math.random() * 10, spd: 5 + Math.random() * 9, glitch: Math.random() < 0.5 });
     city.add(m);
+    m.userData.recolor = function (c) {        /* 调参面板改招牌色：重绘 canvas 而不是换材质实例，
+                                                否则 flickers 登记表会指向旧材质、闪烁失效 */
+      const g2 = cv.getContext('2d');
+      g2.clearRect(0, 0, 256, 64);
+      g2.font = 'bold 44px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle';
+      g2.shadowColor = c; g2.shadowBlur = 18; g2.fillStyle = c;
+      g2.fillText(txt, 128, 34); g2.fillText(txt, 128, 34);
+      m.material.map.needsUpdate = true;
+    };
+    return m;
   }
   neonText('洗衣店', '#ff4fa8', -2.4, 4.3, 4.2, -29.95, 0);
   neonText('24H', '#4fd8ff', 3.0, 4.4, 2.2, -29.95, 0);
-  neonText('便利店', '#ffb8e0', -6.9, 3.8, 2.4, -8, Math.PI / 2);   // 两翼再点亮两块
+  const storeSign = neonText('便利店', '#ffb060', -6.66, 4.6, 4.2, SZ2, Math.PI / 2);   // B 方案暖橙招牌（调参面板可改色）
   neonText('酒吧', '#b44fff', 6.9, 3.4, 2.0, -16, -Math.PI / 2);
 
   /* ---- 体积光束（伪 God Rays）：加色混合锥筒，法线·视线夹角做软边，uv.y 做灯口→落地衰减 ---- */
@@ -3319,7 +3869,7 @@ body {
     city.add(m);
   }
   beam(0xff4fa8, 0.3, 2.5, -29.3, 0.5, 2.5, 4.8, 0.30);   // 洗衣店粉光洒落门口
-  beam(0x4fd8ff, -6.6, 2.1, -8.3, 0.4, 1.9, 3.8, 0.20);   // 便利店青光
+  beam(0xffc9df, -5.9, 1.9, -10.0, 0.35, 1.7, 3.4, 0.22);  // 便利店暖粉光（门廊洒落）
   beam(0xb44fff, 6.6, 1.9, -16.3, 0.35, 1.6, 3.4, 0.16);  // 酒吧紫光
 
   /* ---- 场景 Dressing：外机 / 管道 / 电线杆+电线 / 路障 —— 打破平坦空旷，全代码几何 ---- */
@@ -3443,6 +3993,77 @@ body {
     cbx.rotation.y = Math.random() * 0.8;
     city.add(cbx);
   }
+
+  /* 自动贩卖机：便利店门口旁 —— 机身 + 发光饮料格（canvas）+ 顶部灯条（接故障闪烁，呼应叙事「贩卖机自己亮了一下」） */
+  const vndCanvas = document.createElement('canvas'); vndCanvas.width = 128; vndCanvas.height = 256;
+  const vg = vndCanvas.getContext('2d');
+  vg.fillStyle = '#0d1319'; vg.fillRect(0, 0, 128, 256);
+  vg.fillStyle = '#10161e'; vg.fillRect(10, 18, 100, 176);            // 饮料格内腔
+  const vndCols = ['#5a8ba8', '#8a5a72', '#a87d5a', '#5aa87d', '#7d5aa8', '#9aa0ad'];
+  for (let vr = 0; vr < 5; vr++) {                                     // 5 层货架 × 3 列罐子
+    vg.fillStyle = '#060a0e'; vg.fillRect(12, 38 + vr * 32, 96, 3);    // 层板
+    for (let vc = 0; vc < 3; vc++) {
+      if (Math.random() < 0.22) continue;                              // 缺货格
+      vg.fillStyle = vndCols[(Math.random() * vndCols.length) | 0];
+      vg.fillRect(18 + vc * 32, 18 + vr * 32 + 6, 14, 24);
+      vg.fillStyle = 'rgba(220,235,245,0.35)';                         // 罐身高光
+      vg.fillRect(18 + vc * 32 + 3, 18 + vr * 32 + 8, 3, 20);
+    }
+  }
+  vg.fillStyle = 'rgba(127,216,232,0.16)'; vg.fillRect(0, 0, 128, 256); // 整面板青气罩光
+  const vndTex = new THREE.CanvasTexture(vndCanvas); vndTex.colorSpace = THREE.SRGBColorSpace;
+  const vnd = new THREE.Group();
+  const vndBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.85, 0.68), mat(0x161c26, 0.7, 0.3));
+  vndBody.position.y = 0.925; vnd.add(vndBody);
+  const vndFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 1.5), new THREE.MeshBasicMaterial({ map: vndTex }));
+  vndFace.position.set(0.41, 1.05, 0); vndFace.rotation.y = Math.PI / 2; vnd.add(vndFace);
+  const vndStrip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.6), mat(0x111111, 0.5, 0, 0x4fd8ff, 1.3));
+  vndStrip.position.set(0, 1.88, 0); vnd.add(vndStrip);
+  flickers.push({ m: vndStrip.material, base: 1.3, ph: Math.random() * 10, spd: 6 + Math.random() * 9, glitch: true });
+  vnd.position.set(-6.35, 0, -5.3); vnd.rotation.y = 0.06; city.add(vnd);
+
+  /* 飞贴海报墙：左墙长条 canvas —— 层层叠叠旧海报（撕裂角/褪色标题条/假字行）+ 底部涂鸦 */
+  const pwCanvas = document.createElement('canvas'); pwCanvas.width = 512; pwCanvas.height = 256;
+  const pg = pwCanvas.getContext('2d');
+  pg.fillStyle = '#39424f'; pg.fillRect(0, 0, 512, 256);
+  const pwTints = ['#7c8ba0', '#8d7a88', '#7a8d82', '#93876e', '#828ea3', '#93808f'];
+  for (let pp = 0; pp < 9; pp++) {                                     // 9 张随机叠贴的旧海报
+    const px = pp * 52 + Math.random() * 30, py = 14 + Math.random() * 60;
+    const pw2 = 62 + Math.random() * 46, ph2 = 88 + Math.random() * 62;
+    pg.save();
+    pg.translate(px + pw2 / 2, py + ph2 / 2); pg.rotate((Math.random() - 0.5) * 0.10);
+    pg.fillStyle = pwTints[(Math.random() * pwTints.length) | 0];
+    pg.fillRect(-pw2 / 2, -ph2 / 2, pw2, ph2);
+    pg.fillStyle = 'rgba(16,22,30,0.8)';                            // 褪色标题条
+    pg.fillRect(-pw2 / 2 + 6, -ph2 / 2 + 8, pw2 - 12, 12);
+    pg.fillStyle = 'rgba(210,225,240,0.42)';                          // 假字行
+    for (let tl = 0; tl < 3; tl++) pg.fillRect(-pw2 / 2 + 6, -ph2 / 2 + 28 + tl * 12, pw2 - 12 - Math.random() * 22, 4);
+    pg.restore();
+  }
+  pg.strokeStyle = 'rgba(255,110,180,0.30)'; pg.lineWidth = 5;         // 底部粉色涂鸦划痕
+  pg.beginPath(); pg.moveTo(30, 224);
+  pg.bezierCurveTo(140, 196, 260, 244, 480, 210); pg.stroke();
+  const pwTex = new THREE.CanvasTexture(pwCanvas); pwTex.colorSpace = THREE.SRGBColorSpace;
+  /* 贴墙策略：左侧随机楼面 x ∈ [-7,-5.5]，硬编码坐标会埋进楼体 → 运行时选左侧最深（x 最小）的楼面贴上去 */
+  const pwHost = faces.filter(ff => ff.side === -1 && ff.z > -27 && ff.z < 11).reduce((a, b) => (b.x < a.x ? b : a));
+  const hoard = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.3, 3.9), mat(0x1a2029, 0.9, 0.1));   // 独立围挡板
+  hoard.position.set(pwHost.x + 0.05, 1.15, pwHost.z); city.add(hoard);
+  const posterWall = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.8), new THREE.MeshBasicMaterial({ map: pwTex, color: 0x77808f }));
+  posterWall.position.set(pwHost.x + 0.13, 1.35, pwHost.z); posterWall.rotation.y = Math.PI / 2; city.add(posterWall);
+  const pwLamp = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.07), mat(0x111111, 0.5, 0, 0xffd9a0, 1.6));  // 墙上一盏照画小灯
+  pwLamp.position.set(pwHost.x + 0.19, 2.35, pwHost.z - 1.1); pwLamp.rotation.y = Math.PI / 2; city.add(pwLamp);
+
+  /* 配电箱：贴左墙 + 闪烁工作灯（橙） */
+  const ebox = new THREE.Group();
+  const eboxBody = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 0.6), mat(0x1a2029, 0.8, 0.4));
+  eboxBody.position.y = 1.5; ebox.add(eboxBody);
+  for (let bl = 0; bl < 3; bl++) {                                     // 三颗指示灯，中间的接闪烁
+    const led2 = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.05),
+      mat(0x0a0a0a, 0.5, 0, bl === 1 ? 0xff8a3d : 0x4fd8ff, bl === 1 ? 1.4 : 1.0));
+    led2.position.set(0.09, 1.72 - bl * 0.16, -0.12); led2.rotation.y = Math.PI / 2; ebox.add(led2);
+    if (bl === 1) flickers.push({ m: led2.material, base: 1.4, ph: 2.2, spd: 11, glitch: true });
+  }
+  ebox.position.set(pwHost.x + 0.08, 0, pwHost.z + 2.3); ebox.rotation.y = Math.PI / 2; city.add(ebox);   // 跟宿主楼贴墙，防埋楼
 
   /* 晾衣绳：横跨街道的垂线 + 挂着的旧衣物（暗色布片剪影） */
   const clothCols = [0x2a2438, 0x1f2b33, 0x33222b, 0x223038];
@@ -3961,13 +4582,238 @@ body {
     requestAnimationFrame(tick);
   }
 
+  /* ======================================================================
+     调参面板（D-Art 开发期工具）
+     把原来写死的数值变成可拖控件：拖一下立刻看到，刷新即回原值。
+     不写 localStorage —— 项目拍板不做存档系统，也不引入持久化。
+     ====================================================================== */
+  (function initTunePanel() {
+    const panel = document.getElementById('tunePanel');
+    const btn = document.getElementById('tuneToggle');
+    const copyBtn = document.getElementById('tuneCopy');
+    const resetBtn = document.getElementById('tuneReset');
+    const copyHint = document.getElementById('tuneCopyHint');
+    if (!panel || !btn) return;
+
+    /* 每个控件：id / 读值 / 写值到引擎 / 格式化位数 */
+    /* 默认值＝天际线重铺时美术定的样子：远景 34 栋、近景全显示（池长）。
+       far 写死 34（美术口径），roof 用 null 代表「取池长」——
+       近景楼栋数是 2×8−1=15 算出来的，不该凭记忆写 16。 */
+    const DEFAULTS = { win: 1.15, bloomS: 0.95, bloomT: 0.42, fog: 0.020, exp: 1.22,
+                       far: 46, roof: null, sign: '#ffb060' };
+    const items = [
+      { id: 'tuneWin', out: 'tuneWinOut', key: 'win', dec: 2,
+        read: function (el) { return parseFloat(el.value); },
+        write: function (v) { sharedU.uWinBoost.value = v; } },
+      { id: 'tuneBloomS', out: 'tuneBloomSOut', key: 'bloomS', dec: 2,
+        read: function (el) { return parseFloat(el.value); },
+        write: function (v) { bloom.strength = v; } },
+      { id: 'tuneBloomT', out: 'tuneBloomTOut', key: 'bloomT', dec: 2,
+        read: function (el) { return parseFloat(el.value); },
+        write: function (v) { bloom.threshold = v; } },
+      { id: 'tuneFog', out: 'tuneFogOut', key: 'fog', dec: 3,
+        read: function (el) { return parseFloat(el.value); },
+        write: function (v) { sharedU.uFogDensity.value = v; } },
+      { id: 'tuneExp', out: 'tuneExpOut', key: 'exp', dec: 2,
+        read: function (el) { return parseFloat(el.value); },
+        write: function (v) { renderer.toneMappingExposure = v; } },
+      /* 密度类：只切 visible，不重建几何体 —— 预建池在场景里已就位 */
+      { id: 'tuneFar', out: 'tuneFarOut', key: 'far', dec: 0, int: true,
+        read: function (el) { return Math.round(parseFloat(el.value)); },
+        write: function (v) { for (let i = 0; i < farPool.length; i++) farPool[i].visible = i < v; } },
+      { id: 'tuneRoof', out: 'tuneRoofOut', key: 'roof', dec: 0, int: true,
+        read: function (el) { return Math.round(parseFloat(el.value)); },
+        write: function (v) { for (let i = 0; i < roofPool.length; i++) roofPool[i].visible = i < v; } },
+      /* 招牌色：重绘 canvas 贴图（见 neonText 的 userData.recolor） */
+      { id: 'tuneSign', out: 'tuneSignOut', key: 'sign', dec: 0, isColor: true,
+        read: function (el) { return el.value; },
+        write: function (v) { if (storeSign && storeSign.userData.recolor) storeSign.userData.recolor(v); } }
+    ];
+
+    const els = items.map(function (it) {
+      const el = document.getElementById(it.id);
+      const out = document.getElementById(it.out);
+      return { it: it, el: el, out: out };
+    });
+
+    function applyAll() {
+      els.forEach(function (b) {
+        if (!b.el) return;
+        const v = b.it.read(b.el);
+        b.it.write(v);
+        if (!b.out) return;
+        /* 颜色控件不做 toFixed（NaN），直接显示原值；其余按档位显示 */
+        b.out.textContent = b.it.isColor ? v : v.toFixed(b.it.dec);
+      });
+    }
+
+    /* 折叠/展开：默认折叠，只露一个 64×44 的按钮 */
+    btn.addEventListener('click', function () {
+      const open = panel.getAttribute('data-open') === '1';
+      panel.setAttribute('data-open', open ? '0' : '1');
+      btn.setAttribute('aria-expanded', String(!open));
+      document.getElementById('tuneToggleTxt').textContent = open ? '调参' : '收起';
+    });
+
+    els.forEach(function (b) {
+      if (!b.el) return;
+      b.el.addEventListener('input', applyAll);
+      /* 原生 color 控件在部分浏览器只派发 change，两个都挂才每次都生效 */
+      if (b.it.isColor) b.el.addEventListener('change', applyAll);
+    });
+
+    /* 取色器热区：色块只有 32px，外层包裹 44px。点包裹层空白处要能唤起取色器
+       —— input 是 replaced element，伪元素与外层都不自动转发点击，必须显式 click() */
+    const colorHit = document.querySelector('.tune-color-hit');
+    const colorEl = document.getElementById('tuneSign');
+    if (colorHit && colorEl) {
+      colorHit.addEventListener('click', function (e) {
+        if (e.target === colorEl) return;          // 点在色块本体上让它自己处理
+        colorEl.click();
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        els.forEach(function (b) {
+          if (!b.el) return;
+          const d = DEFAULTS[b.it.key];
+          b.el.value = String(d === null ? b.el.max : d);   // null = 池子全开
+        });
+        applyAll();
+        if (copyHint) { copyHint.textContent = ''; copyHint.classList.remove('is-err'); }
+      });
+    }
+
+    /* 复制参数：把调好的值导成一段可直接粘进代码的赋值语句 */
+    if (copyBtn && copyHint) {
+      copyBtn.addEventListener('click', function () {
+        const parts = els.filter(function (b) { return b.el; })
+          .map(function (b) {
+            const raw = b.it.read(b.el);
+            return b.it.key + '=' + (b.it.isColor ? raw : raw.toFixed(b.it.dec));
+          });
+        const text = 'TUNE ' + parts.join(' ');
+        /* 剪贴板失败时必须显式说明「没复制成功」，不能只回显纯串让用户以为复制了。
+           串照样显示在提示里，用户可手动选中复制 */
+        const done = function () { copyHint.textContent = '已复制：' + text; };
+        const failed = function () {
+          copyHint.textContent = '复制失败，请手动选中：' + text;
+          copyHint.classList.add('is-err');
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, failed);
+        } else {
+          failed();
+        }
+      });
+    }
+
+    /* 密度滑杆的上限与默认值必须取「池子真实长度」——
+       近景楼栋实际是 2侧×8层 − 便利店 1 槽 = 15，不是记忆里写的 16。
+       写死上限会让滑杆拖到比池子还大的值，面板显示 16 而引擎只有 15（面板说谎）。 */
+    const farEl = document.getElementById('tuneFar'), roofEl = document.getElementById('tuneRoof');
+    if (farEl)  { farEl.max = String(farPool.length);  farEl.value  = String(Math.min(46, farPool.length)); }
+    if (roofEl) { roofEl.max = String(roofPool.length); roofEl.value = String(roofPool.length); }
+
+    /* ---- 粘贴还原：把参数串套回引擎 ----
+       串格式：TUNE win=1.00 bloomS=0.85 ... sign=#ffb8e0
+       容错要点：① 数值超范围要夹到滑杆的 min/max，不能让引擎拿到越界值
+                 ② 颜色要容忍带引号与不带引号（手贴时容易带引号）
+                 ③ 认不出的 key 要跳过并报出来，不能静默吞掉
+                 ④ 缺项不动（保持当前值），不做「缺项补默认」——
+                    那会把用户已经调好的其他参数冲掉 */
+    const pToggle = document.getElementById('tunePasteToggle');
+    const pBox= document.getElementById('tunePasteBox');
+    const pInput = document.getElementById('tunePasteInput');
+    const pApply = document.getElementById('tunePasteApply');
+    const pHint = document.getElementById('tunePasteHint');
+
+    if (pToggle && pBox) {
+      pToggle.addEventListener('click', function () {
+        const open = pBox.getAttribute('data-open') === '1';
+        pBox.setAttribute('data-open', open ? '0' : '1');
+        pToggle.setAttribute('aria-expanded', String(!open));
+        if (!open && pInput) pInput.focus();
+      });
+    }
+
+    function setHint(el, msg, isErr) {
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.toggle('is-err', !!isErr);
+    }
+
+    if (pApply && pInput) {
+      pApply.addEventListener('click', function () {
+        const raw = pInput.value || '';
+        if (!raw.trim()) { setHint(pHint, '先粘贴一段参数串', true); return; }
+        /* key=值 逐段切分：允许换行 / 多空格 / 中英文逗号 / 分号分隔 */
+        const pairs = raw.replace(/[\r\n]+/g, ' ').split(/[\s,;　]+/);
+        const applied = [], skipped = [], clamped = [];
+        pairs.forEach(function (kv) {
+          if (!kv || kv === 'TUNE' || kv === 'tune') return;
+          const eq = kv.indexOf('=');
+          if (eq < 0) { skipped.push(kv); return; }
+          const key = kv.slice(0, eq).trim();
+          let val = kv.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+          if (!val) { skipped.push(key); return; }
+          /* 找到对应控件（按 key 匹配 items 声明的 key） */
+          let hit = null;
+          els.forEach(function (b) { if (b.it.key === key) hit = b; });
+          if (!hit || !hit.el) { skipped.push(key); return; }
+          if (hit.it.isColor) {
+            /* 颜色只收 #rgb / #rrggbb */
+            if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) { skipped.push(key); return; }
+            if (val.length === 4) {  // #abc → #aabbcc
+              val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
+            }
+            hit.el.value = val;
+            applied.push(key);
+            return;
+          }
+          const n = parseFloat(val);
+          if (!isFinite(n)) { skipped.push(key); return; }
+          const min = parseFloat(hit.el.min), max = parseFloat(hit.el.max);
+          let v = n;
+          if (isFinite(min) && v < min) { v = min; clamped.push(key + ' → ' + min); }
+          else if (isFinite(max) && v > max) { v = max; clamped.push(key + ' → ' + max); }
+          hit.el.value = String(v);
+          applied.push(key);
+        });
+        applyAll();
+        const parts = [];
+        if (applied.length) parts.push('已套用 ' + applied.length + ' 项');
+        if (clamped.length) parts.push('超范围已夹到边界：' + clamped.join('、'));
+        if (skipped.length) parts.push('未识别：' + skipped.join('、'));
+        setHint(pHint, parts.length ? parts.join('；') : '串里没有可识别的参数', skipped.length > 0);
+      });
+    }
+
+    applyAll();       // 用面板当前值对齐引擎，保证与写死值一致
+  })();
+
   /* ---- 3D 模式启用：隐藏 2D 街景层，改提示词 ---- */
   stage2d.style.display = 'none';
   hint.textContent = '左摇杆移动 · 右摇杆转视角 · 走近店门推门进去（电脑 WASD + 拖拽）';
   document.getElementById('monBtn').classList.add('show');   // 监控钮只在 3D 街区可用
   document.getElementById('sndBtn').classList.add('show');
   document.getElementById('cluesBtn').classList.add('show');
-  window.__poc = { player: player, door3d: door3d, setT: function (v) { streetT = v; }, sfx: function () { return { on: sfxOn, ac: AC ? AC.state : 'none' }; } };   // 验证钩子（setT 快进夜班事件）
+  window.__poc = { player: player, door3d: door3d, setT: function (v) { streetT = v; }, sfx: function () { return { on: sfxOn, ac: AC ? AC.state : 'none' }; }, scene: scene, camera: camera };   // 验证钩子（setT 快进夜班事件）
+  /* 调参面板的引擎侧读数：用于「面板显示值 ↔ 引擎真实值」交叉比对，
+     只读不写，避免变成第二条写入路径（双写者结构铁律） */
+  window.__tuneProbe = {
+    win:   function () { return sharedU.uWinBoost.value; },
+    fog:   function () { return sharedU.uFogDensity.value; },
+    bloomS:function () { return bloom.strength; },
+    bloomT:function () { return bloom.threshold; },
+    exp:   function () { return renderer.toneMappingExposure; },
+    /* 密度探针：返回「当前可见栋数」，与滑杆值交叉比对 */
+    far:   function () { return farPool.filter(function (m) { return m.visible; }).length; },
+    roof:  function () { return roofPool.filter(function (g) { return g.visible; }).length; },
+    farTotal:  function () { return farPool.length; },
+    roofTotal: function () { return roofPool.length; }
+  };
   requestAnimationFrame(tick);
 })();
 </script>
