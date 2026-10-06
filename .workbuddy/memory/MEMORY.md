@@ -25,6 +25,7 @@
 - 美术管线（10-06 拍板）：Three.js 程序化→AI 精修→Blender→Remotion；步骤①剪影群②立面③便利店④洗衣店⑤街面道具⑥端点封闭**全部完成、均未提交**（端墙/填充楼带 name=capA/capB/capFill/capStrip 便于差分调试）
 - 2D 遗产坑：三层缩放模型（.world inset -10%、文字层 fixed+视口单位、backdrop 垫底）；transform 里不叠 scale；resetPan 先 no-transition；视口一律 var(--vh)；热区不用 object-fit:cover
 - 3D：走道边界 x±4.4 / z−26.5~14（tick 每帧覆写）；yaw=0 朝 −z、+π/2 朝 −x；**贴墙道具运行时选宿主楼**（硬编码必被随机楼埋）；canvas 发光贴图亮度三档（Standard 死黑→Basic；Basic 过亮 bloom 白斑→color 乘数压）
+- 美术定调（Day 18 A 步）：**雾色必须比墙面亮**（雾=发光青霾 0x0c2028；暗雾会让距离=变黑）；窗「少而亮」lit 率普通 0.34/店铺 0.58；终值 fog 0.026 / bloomS 0.78 / bloomT 0.50 / win 1.0 / exp 1.12 / Hemisphere 0x2a4a58×1.05 / 墙基色 0.088,0.104,0.118。调参生效链：载入 applyAll() 读**滑杆值**（DEFAULTS 只服务重置按钮），改默认值要滑杆+引擎构造+DEFAULTS 三处同步
 - 设计硬规则：对比度≥4.5:1；触控≥44px；文字≥12px；间距只用 4/8 尺度；字号四档 12/14/16/20；交互必有 :active+:focus-visible；扩热区 `::after inset:-8px` 不改 width；**改字号前先 grep em**（padding/margin 连坐缩小）。完整方法见用户级技能 frontend-design-audit
 
 ## 操作纪律（本机）

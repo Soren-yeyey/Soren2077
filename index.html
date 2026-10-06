@@ -3308,7 +3308,7 @@ body {
   const sharedU = {
     uTime: { value: 0 },
     uFogColor: { value: new THREE.Color(0x0a0c1c) },
-    uFogDensity: { value: 0.028 },
+    uFogDensity: { value: 0.020 },
     uWinBoost: { value: 1.15 }    // 窗光总倍率：B 方案「暖夜市井」；调参面板可拖（D-Art 调参工具）
   };
 
@@ -3424,6 +3424,67 @@ body {
   /* ---- 街道主体全部装进 city 组 ---- */
   const city = new THREE.Group();
 
+  /* ---- 视锥剔除（开放大世界地基·第一件）----
+     无缝大地图意味着几千个物体，手机端显存会直接爆。剔除是前提：
+     相机看不到的不进渲染管线，drawcall 与显存占用随视野收缩。
+
+     实现要点（踩过的坑都写这）：
+     ① 包围盒要**扩大**一档。computeBoundingSphere 给的是精确球，
+        相机近裁剪面附近的物体会被误剔除（闪一下消失）。
+        这里给每个球加 CULL_PAD 米余量。
+     ② **只剔除大物体**。小于阈值的（路灯、招牌、纸箱）剔除收益低于遍历开销，
+        反而白费 CPU。小物体靠 fog 本身遮住即可。
+     ③ 每 N 帧重算一次，不必每帧 —— 相机移动是连续的，
+        而反复 setFromProjectionMatrix 在移动端是纯浪费。
+     ④ 剔除只改 object.visible，不动场景图结构。 */
+  const CULL_PAD = 2.5;                        // 包围球额外余量（米）
+  const CULL_MIN_R = 3.0;                      // 半径小于此值不参与剔除（收益低于开销）
+  const CULL_EVERY = 4;                        // 每 4 帧重算一次
+  const _cullFrustum = new THREE.Frustum();
+  const _cullMat4 = new THREE.Matrix4();
+  const _cullSphere = new THREE.Sphere();
+  const cullables = [];
+  const cullIndex = new Map();// obj → 剔除记录
+  let cullFrame = 0;
+
+  /* 把一个物体登记进剔除表；必须在物体位置/尺寸设好之后调用 */
+  function registerCullable(obj) {
+    if (!obj.geometry) return;
+    if (!obj.geometry.boundingSphere) obj.geometry.computeBoundingSphere();
+    const s = obj.geometry.boundingSphere;
+    /* 物体自身的 scale 会放大包围球，这里按最大轴保守取 */
+    const sc = Math.max(obj.scale.x, obj.scale.y, obj.scale.z);
+    const r = s.radius * sc + CULL_PAD;
+    /* enabled = 密度滑杆的期望可见性（由 write() 维护）；
+       culled  = 本帧剔除结果。两者与 visible 分开存，
+       避免「被剔除 → 跳过 → 永久不可见」的自锁。 */
+    const rec = { obj: obj, r: r, cx: 0, cy: 0, cz: 0, enabled: true, culled: false };
+    cullables.push(rec);
+    cullIndex.set(obj, rec);          // Map 反查：滑杆与剔除都要用，O(1) 而非 O(n) 遍历
+  }
+
+  function updateCulling() {
+    if (!cullables.length) return;
+    camera.updateMatrixWorld();
+    _cullMat4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    _cullFrustum.setFromProjectionMatrix(_cullMat4);
+    for (let i = 0; i < cullables.length; i++) {
+      const c = cullables[i], o = c.obj;
+      /* ⚠️ 踩过的坑：这里绝不能写`if (!o.visible) continue`。
+         被剔除的物体 visible 就是 false，下一帧就会被这行跳过 →
+         再也不会被重新判定 → **锁死在剔除态**（实测第一帧误剔一批后，
+         整个场景远景楼再也不出现，转头也回不来）。
+         正确做法：用独立的 culled 标志记住「是否被剔除」，
+         visible 由「密度滑杆的期望可见性」与「剔除结果」共同决定。 */
+      if (!c.enabled) continue;                  // 密度滑杆已关掉的，不参与剔除
+      o.getWorldPosition(_cullSphere.center);
+      c.cx = _cullSphere.center.x; c.cy = _cullSphere.center.y; c.cz = _cullSphere.center.z;
+      _cullSphere.radius = c.r;
+      c.culled = !_cullFrustum.intersectsSphere(_cullSphere);
+      o.visible = c.enabled && !c.culled;
+    }
+  }
+
   /* 地面：Shader 伪镜面反射（窗光晕 + 水渍都在片元里算，不再要镜像组/积水片） */
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 96), groundMat);
   ground.rotation.x = -Math.PI / 2; scene.add(ground);
@@ -3519,7 +3580,7 @@ body {
      临街墙面 x=-6.9，法线 +x；物件从墙面向 +x 依次外露，防 z-fight 分层排布 */
   const SW2 = 5.2, SH2 = 7, SZ2 = -8.8, FX2 = -6.9;
   const storeB = new THREE.Mesh(new THREE.BoxGeometry(SW2, SH2, 5), buildingMat);
-  storeB.position.set(-9.5, SH2 / 2, SZ2); city.add(storeB);
+  storeB.position.set(-9.5, SH2 / 2, SZ2); city.add(storeB); registerCullable(storeB);
   const storeDark = mat(0x0d1017, 0.75, 0.35);               // 门店框料
   /* 招牌灯箱：通长深箱，霓虹字贴在箱面（字位置见下方 neonText 调整） */
   const sbox = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.0, 5.0), storeDark);
@@ -3631,7 +3692,7 @@ body {
     /* 四路轮转交错：按「侧-/侧+/店后/身后」四段连续取前 N 栋的话，
        密度一降就会先抹掉整段、地平线缺一块。轮转取让四段同步稀释。 */
     for (let k = 0; k < 20; k++) {
-      for (let s = 0; s < 4; s++) if (seg[s][k]) farPool.push(seg[s][k]);
+      for (let s = 0; s < 4; s++) if (seg[s][k]) { farPool.push(seg[s][k]); registerCullable(seg[s][k]); }
     }
   })();
 
@@ -3716,14 +3777,14 @@ body {
 
   /* ---- 洗衣店门面（街尽头，z=-30）+ 霓虹字 ---- */
   const shop = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 4), buildingMat);   // 楼体接入楼宇着色器：自动得立面分层/二楼窗/屋顶色
-  shop.position.set(0, 3.5, -32); city.add(shop);
+  shop.position.set(0, 3.5, -32); city.add(shop); registerCullable(shop);
   /* 橱窗：canvas 画洗衣店内景剪影（晾衣横杆 + 成排洗衣机圆窗，部分发青光/暖光） */
   const ldyCv = document.createElement('canvas'); ldyCv.width = 256; ldyCv.height = 128;
   const lg2 = ldyCv.getContext('2d');
   const lbg = lg2.createLinearGradient(0, 0, 0, 128);
-  lbg.addColorStop(0, '#24343e'); lbg.addColorStop(1, '#131c22');
+  lbg.addColorStop(0, '#3d5a66'); lbg.addColorStop(1, '#1d2e36');
   lg2.fillStyle = lbg; lg2.fillRect(0, 0, 256, 128);
-  lg2.fillStyle = 'rgba(90,170,200,0.10)'; lg2.fillRect(0, 0, 256, 128);      // 店内青蓝环境光
+  lg2.fillStyle = 'rgba(120,200,225,0.14)'; lg2.fillRect(0, 0, 256, 128);      // 店内青蓝环境光
   lg2.strokeStyle = '#060a0e'; lg2.lineWidth = 3;                              // 晾衣横杆
   lg2.beginPath(); lg2.moveTo(6, 22); lg2.lineTo(250, 22); lg2.stroke();
   const ldyCloth = ['#141c26', '#1c1824', '#16241f', '#241c22', '#1a222e'];
@@ -4012,6 +4073,11 @@ body {
   }
   vg.fillStyle = 'rgba(127,216,232,0.16)'; vg.fillRect(0, 0, 128, 256); // 整面板青气罩光
   const vndTex = new THREE.CanvasTexture(vndCanvas); vndTex.colorSpace = THREE.SRGBColorSpace;
+  /* B 步精修：AI 生成真实感面板，异步换上；canvas 版保留作加载占位与图片缺失兜底 */
+  new THREE.TextureLoader().load('images/prop-vending-front.webp', (tx) => {
+    tx.colorSpace = THREE.SRGBColorSpace;
+    vndFace.material.map = tx; vndFace.material.needsUpdate = true;
+  });
   const vnd = new THREE.Group();
   const vndBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.85, 0.68), mat(0x161c26, 0.7, 0.3));
   vndBody.position.y = 0.925; vnd.add(vndBody);
@@ -4044,6 +4110,12 @@ body {
   pg.beginPath(); pg.moveTo(30, 224);
   pg.bezierCurveTo(140, 196, 260, 244, 480, 210); pg.stroke();
   const pwTex = new THREE.CanvasTexture(pwCanvas); pwTex.colorSpace = THREE.SRGBColorSpace;
+  /* B 步精修：AI 海报墙贴图异步换上（canvas 版同上，作占位与兜底）；AI 图自带细节，减淡压色 */
+  new THREE.TextureLoader().load('images/prop-poster-wall.webp', (tx) => {
+    tx.colorSpace = THREE.SRGBColorSpace;
+    posterWall.material.map = tx; posterWall.material.needsUpdate = true;
+    posterWall.material.color.set(0xb8bec8);
+  });
   /* 贴墙策略：左侧随机楼面 x ∈ [-7,-5.5]，硬编码坐标会埋进楼体 → 运行时选左侧最深（x 最小）的楼面贴上去 */
   const pwHost = faces.filter(ff => ff.side === -1 && ff.z > -27 && ff.z < 11).reduce((a, b) => (b.x < a.x ? b : a));
   const hoard = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.3, 3.9), mat(0x1a2029, 0.9, 0.1));   // 独立围挡板
@@ -4321,21 +4393,32 @@ body {
       [{ t: '把卡片收进口袋', fn: () => NIGHT.addClue('code0713', '门牌码 0713——像把钥匙，又像一句暗号') }]), 2600);
   }
 
-  /* ---- NPC：黑衣人（事件触发，雨雾里注视洗衣店） ---- */
+  /* ---- NPC：黑衣人（事件触发，雨雾里注视洗衣店）——C 步 AI 立绘 billboard，程序化盒人留作加载兜底 ---- */
   const stranger = new THREE.Group();
   const strMat = new THREE.MeshStandardMaterial({ color: 0x030409, roughness: 1 });
+  const strParts = [];
   for (const lx of [-0.08, 0.08]) {
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.8, 5), strMat);
-    leg.position.set(lx, 0.4, 0); stranger.add(leg);
+    leg.position.set(lx, 0.4, 0); stranger.add(leg); strParts.push(leg);
   }
   const sTorso = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.7, 0.22), strMat);
-  sTorso.position.y = 1.15; stranger.add(sTorso);
+  sTorso.position.y = 1.15; stranger.add(sTorso); strParts.push(sTorso);
   const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), strMat);
-  sHead.position.y = 1.62; stranger.add(sHead);
+  sHead.position.y = 1.62; stranger.add(sHead); strParts.push(sHead);
   const sStick = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4), strMat);
-  sStick.position.set(0.1, 1.75, 0); stranger.add(sStick);
+  sStick.position.set(0.1, 1.75, 0); stranger.add(sStick); strParts.push(sStick);
   const sUmb = new THREE.Mesh(new THREE.ConeGeometry(0.56, 0.22, 7), strMat);
-  sUmb.position.set(0.1, 2.1, 0); stranger.add(sUmb);
+  sUmb.position.set(0.1, 2.1, 0); stranger.add(sUmb); strParts.push(sUmb);
+  /* 立绘面片：512x713（含伞全高）→ 世界高 2.2m 宽 1.58m；alphaTest 裁透明边避免排序问题 */
+  const strBill = new THREE.Mesh(new THREE.PlaneGeometry(1.58, 2.2),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, alphaTest: 0.08, depthWrite: false, fog: true }));
+  strBill.position.y = 1.1; stranger.add(strBill);
+  new THREE.TextureLoader().load('images/npc-stranger.webp', (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    strBill.material.map = t; strBill.material.opacity = 1;
+    strBill.material.needsUpdate = true;
+    for (const p of strParts) p.visible = false;      // 贴图就位后撤掉程序化兜底
+  }, undefined, () => { strBill.visible = false; });    // 加载失败保留盒人
   stranger.visible = false; scene.add(stranger);
   let strangerState = 'none', strangerTimer = 0;      // none | watching | entering | leaving | inside
   const tmpV = new THREE.Vector3();
@@ -4370,6 +4453,14 @@ body {
         [{ t: '记下灯的节奏', fn: () => hintTip('像是某种规律……得有对照表才能读懂。', 2800) }]);
     }
   }
+  /* 便利店老板立绘：AI 黑底抠像，暖光挥手。放在橱窗前一片（让开竖梃），冷色调+半透明=隔雾玻璃观感 */
+  const bossBill = new THREE.Mesh(new THREE.PlaneGeometry(1.22, 1.7),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, color: 0xc2d2da }));
+  bossBill.position.set(FX2 + 0.14, 1.22, -8.72); bossBill.rotation.y = Math.PI / 2; city.add(bossBill);
+  new THREE.TextureLoader().load('images/npc-boss.webp', (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    bossBill.material.map = t; bossBill.material.opacity = 0.92; bossBill.material.needsUpdate = true;
+  }, undefined, () => { bossBill.visible = false; });
   interactables.push({ x: -4.7, z: -9.5, r: 2.4, id: 'boss', label: '看看便利店的窗户', act: bossTalk });
   let activeInter = null;
   function updateInteract() {
@@ -4497,6 +4588,8 @@ body {
   let last = performance.now(), streetT = 0;
   function tick(t) {
     const dt = Math.min((t - last) / 1000, 0.05); last = t;
+    /* 视锥剔除：每 CULL_EVERY 帧重算一次（不是每帧，省移动端 CPU） */
+    if ((cullFrame++ % CULL_EVERY) === 0) updateCulling();
     if (!home.classList.contains('hidden')) {
       /* 视角（灵敏度调低：右摇杆 2.6→1.7 / 俯仰 1.8→1.2，手机上不再一碰就甩头） */
       player.yaw   -= S.look.dx * 1.7 * dt;
@@ -4547,6 +4640,7 @@ body {
         stranger.position.lerp(tmpV.set(-5.4, 0, -14), 1 - Math.exp(-0.8 * dt));
         if (stranger.position.distanceTo(tmpV) < 0.25) { strangerState = 'none'; stranger.visible = false; }
       }
+      if (stranger.visible) stranger.rotation.y = Math.atan2(player.x - stranger.position.x, player.z - stranger.position.z);
       if (catTarget) {
         cat.position.lerp(tmpV.set(catTarget.x, cat.position.y, catTarget.z), 1 - Math.exp(-2.2 * dt));
         cat.lookAt(player.x, cat.position.y, player.z);
@@ -4620,7 +4714,16 @@ body {
       /* 密度类：只切 visible，不重建几何体 —— 预建池在场景里已就位 */
       { id: 'tuneFar', out: 'tuneFarOut', key: 'far', dec: 0, int: true,
         read: function (el) { return Math.round(parseFloat(el.value)); },
-        write: function (v) { for (let i = 0; i < farPool.length; i++) farPool[i].visible = i < v; } },
+        write: function (v) {
+          for (let i = 0; i < farPool.length; i++) {
+            const want = i < v;                  // 密度滑杆的期望可见性
+            farPool[i].visible = want;
+            /* 同步剔除表的 enabled：剔除与滑杆都写 visible，必须共用一个真相源，
+               否则两者互相覆盖（曾经导致远景楼被剔掉后再也回不来） */
+            const rec = cullIndex.get(farPool[i]);
+            if (rec) rec.enabled = want;
+          }
+        } },
       { id: 'tuneRoof', out: 'tuneRoofOut', key: 'roof', dec: 0, int: true,
         read: function (el) { return Math.round(parseFloat(el.value)); },
         write: function (v) { for (let i = 0; i < roofPool.length; i++) roofPool[i].visible = i < v; } },
@@ -4812,6 +4915,35 @@ body {
     far:   function () { return farPool.filter(function (m) { return m.visible; }).length; },
     roof:  function () { return roofPool.filter(function (g) { return g.visible; }).length; },
     farTotal:  function () { return farPool.length; },
+    /* 剔除探针：总登记数 / 当前可见数 —— 两者差值就是剔除省下的物体数 */
+    cullTotal: function () { return cullables.length; },
+    cullVisible: function () {
+      let n = 0;
+      for (let i = 0; i < cullables.length; i++) if (cullables[i].obj.visible) n++;
+      return n;
+    },
+    cullCulled: function () {
+      let n = 0;
+      for (let i = 0; i < cullables.length; i++) if (cullables[i].culled) n++;
+      return n;
+    },
+    cullForce: function () { updateCulling(); },
+    /* 诊断：看frustum 本身是否算对 */
+    cullDiag: function () {
+      const pl = window.__poc.player;
+      return {
+        camPos: [camera.position.x, camera.position.y, camera.position.z].map(function(v){return Math.round(v);}),
+        camRotY: Math.round(camera.rotation.y * 57.3),
+        plPos: [pl.x, pl.z],
+        mwiValid: camera.matrixWorldInverse.elements.slice(0,4).map(function(v){return +v.toFixed(3);}),
+        frustumPlanes: _cullFrustum.planes ? _cullFrustum.planes.length : 'none',
+        firstObj: cullables.length ? {
+          name: cullables[0].obj.type, vis: cullables[0].obj.visible,
+          c: [cullables[0].cx, cullables[0].cy, cullables[0].cz].map(function(v){return Math.round(v);}),
+          r: +cullables[0].r.toFixed(1)
+        } : null
+      };
+    },
     roofTotal: function () { return roofPool.length; }
   };
   requestAnimationFrame(tick);
