@@ -1,8 +1,8 @@
 # api-contract.md —《夜班 SOLITUDE》前后端接口契约（占位稿）
 
-> 标准版式 Day 15 板块③。**本文档只是契约约定，本周不实现任何业务接口。**
-> 已上线的只有 `GET /api/health`（健康检查，不连数据库、无业务逻辑）。
-> 后端：腾讯云 CloudBase（环境 `soren2077`）；数据库计划用 CloudBase 文档型数据库，一个集合对应一张表。
+> 标准版式 Day 15 板块③创建，Day 17 起进入实现阶段。
+> 已上线：`GET /api/health`（Day 15）、`GET /api/progress` 与 `GET /api/clues`（Day 17，读接口）；POST 写接口仍为占位（Day 18）。
+> 后端：腾讯云 CloudBase（环境 `soren2077`）；数据库：**CloudBase SQL 数据库（PostgreSQL）**，云函数经官方 Data API（PostgREST）读写，服务端 API Key 走云函数环境变量 `CLOUDBASE_API_KEY`（不进代码不进仓库）。
 
 ## 1. 通用约定
 
@@ -60,15 +60,17 @@
 **数据库实现（Day 16 定稿，见 `db/schema.sql`）**：`id` VARCHAR(120) 主键（= playerId 36 + endingKey 32 + achievedAt 19 + 两个分隔符）；`endingKey` VARCHAR(32)（**不用 ENUM**——三个键名暂定，M5 定稿后可能增改，留弹性）；`runDurationSec` INT CHECK 0–86400；外键 `playerId` → players，ON DELETE CASCADE。
 
 > 建表与种子脚本：`db/schema.sql`（可重复执行，先 DROP 后 CREATE）+ `db/seed.sql`（先删后插，固定 UUID + 固定时间，可复现）。表结构以这两个脚本 + 本节为准。
+>
+> **Day 17 更新——线上库实为 PostgreSQL**：CloudBase 体验版环境自带的是 SQL 数据库（PostgreSQL），线上建表用等价方言版 `db/postgres/schema.sql` + `db/postgres/seed.sql`（MySQL 版保留作 Day 16 历史产物）。差异只有两点：① 字段名转 snake_case（`player_id` 等），API 层映射回本契约的 camelCase；② MySQL 的列内 COMMENT / ENUM 改为 `COMMENT ON` / `CHECK IN`，约束逻辑完全一致。数据导入用 `db/seed-export/*.jsonl` 的同源数据。
 
 ## 3. 接口清单（六个）
 
 | # | 方法 | 路径 | 说明 | 状态 |
 |---|---|---|---|---|
 | 1 | GET | `/api/health` | 健康检查 | ✅ 已上线 |
-| 2 | GET | `/api/progress` | 读取玩家进度 | ⏳ 占位 |
-| 3 | POST | `/api/progress` | 写入玩家进度 | ⏳ 占位 |
-| 4 | GET | `/api/clues` | 拉取已解锁线索列表 | ⏳ 占位 |
+| 2 | GET | `/api/progress` | 读取玩家进度 | ✅ 已实现（Day 17） |
+| 3 | POST | `/api/progress` | 写入玩家进度 | ⏳ 占位（Day 18） |
+| 4 | GET | `/api/clues` | 拉取已解锁线索列表 | ✅ 已实现（Day 17） |
 | 5 | POST | `/api/clues` | 上报解锁一条线索 | ⏳ 占位 |
 | 6 | POST | `/api/endings` | 上报达成结局 | ⏳ 占位 |
 
@@ -81,13 +83,15 @@ GET /api/health
 → 200 { "ok": true, "service": "Night shift-SOLITUDE" }
 ```
 
-### 3.2 GET /api/progress ⏳
+### 3.2 GET /api/progress ✅ 已实现（Day 17）
 
 ```
 GET /api/progress?playerId={uuid}
 → 200 { "ok": true, "data": { ...players 行, "endings": [ {endingKey, achievedAt} ] } }
 → 200 { "ok": true, "data": null }        # 新玩家，尚无记录
 ```
+
+实现：云函数 `api-progress`，经 Data API 查 players（`player_id=eq.{uuid}&limit=1`）+ endings（`order=achieved_at.desc`）；playerId 白名单校验 UUID 后经 URLSearchParams 构造查询，无注入面。
 
 ### 3.3 POST /api/progress ⏳
 
@@ -99,12 +103,14 @@ body { "playerId": "...", "permissionLevel": 2, "currentScene": "shop", "current
 
 客户端策略：场景切换 / 权限变化 / 结局达成时各写一次，不做心跳高频写。
 
-### 3.4 GET /api/clues ⏳
+### 3.4 GET /api/clues ✅ 已实现（Day 17）
 
 ```
-GET /api/clues?playerId={uuid}
+GET /api/clues?playerId={uuid}&limit={1..50}
 → 200 { "ok": true, "data": [ { "clueKey": "...", "source": "...", "unlockedAt": "..." } ] }
 ```
+
+实现：云函数 `api-clues`，按 `unlocked_at` 升序；`limit` 为 Day 17 余力加练参数（默认 50，越界返回 BAD_REQUEST）；未知玩家返回空数组（契约不定义 NOT_FOUND）。
 
 ### 3.5 POST /api/clues ⏳
 
@@ -129,4 +135,4 @@ body { "playerId": "...", "endingKey": "ending_escape", "runDurationSec": 512 }
 - 账号系统 / 登录态（`playerId` 仅是本地标识）
 - 排行榜、跨玩家数据
 - 接口的限流、签名校验（CloudBase HTTP 触发器自带基础防护）
-- **以上六个占位接口的任何服务端实现**——写完本文档即止，实现排期到后续 Day 再由用户拍板
+- POST 写接口（§3.3 / §3.5 / §3.6）的服务端实现——占位至 Day 18 再实现
