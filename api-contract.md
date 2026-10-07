@@ -1,7 +1,7 @@
 # api-contract.md —《夜班 SOLITUDE》前后端接口契约（占位稿）
 
 > 标准版式 Day 15 板块③创建，Day 17 起进入实现阶段。
-> 已上线：`GET /api/health`（Day 15）、`GET /api/progress` 与 `GET /api/clues`（Day 17，读接口）；POST 写接口仍为占位（Day 18）。
+> 已上线：`GET /api/health`（Day 15）、`GET /api/progress` 与 `GET /api/clues`（Day 17，读接口）、`POST /api/clues`（Day 18，写接口）；`POST /api/progress`、`POST /api/endings` 仍为占位。
 > 后端：腾讯云 CloudBase（环境 `soren2077`）；数据库：**CloudBase SQL 数据库（PostgreSQL）**，云函数经官方 Data API（PostgREST）读写，服务端 API Key 走云函数环境变量 `CLOUDBASE_API_KEY`（不进代码不进仓库）。
 
 ## 1. 通用约定
@@ -71,7 +71,7 @@
 | 2 | GET | `/api/progress` | 读取玩家进度 | ✅ 已实现（Day 17） |
 | 3 | POST | `/api/progress` | 写入玩家进度 | ⏳ 占位（Day 18） |
 | 4 | GET | `/api/clues` | 拉取已解锁线索列表 | ✅ 已实现（Day 17） |
-| 5 | POST | `/api/clues` | 上报解锁一条线索 | ⏳ 占位 |
+| 5 | POST | `/api/clues` | 上报解锁一条线索 | ✅ 已实现（Day 18） |
 | 6 | POST | `/api/endings` | 上报达成结局 | ⏳ 占位 |
 
 > 结局的**查询**不单开接口：从 `GET /api/progress` 顺带返回该玩家 endings 摘要即可，少一次请求。
@@ -112,15 +112,17 @@ GET /api/clues?playerId={uuid}&limit={1..50}
 
 实现：云函数 `api-clues`，按 `unlocked_at` 升序；`limit` 为 Day 17 余力加练参数（默认 50，越界返回 BAD_REQUEST）；未知玩家返回空数组（契约不定义 NOT_FOUND）。
 
-### 3.5 POST /api/clues ⏳
+### 3.5 POST /api/clues ✅ 已实现（Day 18）
 
 ```
 POST /api/clues
 body { "playerId": "...", "clueKey": "clue_washer_clock", "source": "interact" }
-→ 200 { "ok": true, "data": { "unlockedAt": "..." } }
+→ 200 { "ok": true, "data": { "unlockedAt": "...", "duplicated": false } }
 ```
 
-幂等：同一 `{playerId, clueKey}` 重复上报返回首次的 `unlockedAt`，不报错。
+幂等：同一 `{playerId, clueKey}` 重复上报返回首次的 `unlockedAt`，不报错；响应 `data` 增补 `duplicated: true` 标记命中已存在记录（新增字段，向后兼容）。
+
+实现：云函数 `api-clues` 同函数按 `httpMethod` 分流（GET/POST 同路径同 URL）；校验失败中文报错且所有问题一次报出——playerId 必须 UUID、clueKey 白名单 `[A-Za-z0-9_-]{3,64}`（比 DB 层 CHECK ≥3 字符更严）、source ∈ interact/npc/event；未知玩家 BAD_REQUEST 拒绝（防脏数据）；幂等靠查重 + UNIQUE(player_id, clue_key) 409 兜底双保险；OPTIONS 预检应答 CORS 头；`unlocked_at` 由数据库 default now() 生成；服务端打印 created / duplicated 日志。
 
 ### 3.6 POST /api/endings ⏳
 
@@ -135,4 +137,4 @@ body { "playerId": "...", "endingKey": "ending_escape", "runDurationSec": 512 }
 - 账号系统 / 登录态（`playerId` 仅是本地标识）
 - 排行榜、跨玩家数据
 - 接口的限流、签名校验（CloudBase HTTP 触发器自带基础防护）
-- POST 写接口（§3.3 / §3.5 / §3.6）的服务端实现——占位至 Day 18 再实现
+- POST 写接口 §3.3（/api/progress）与 §3.6（/api/endings）的服务端实现——§3.5 已于 Day 18 实现，其余仍占位
