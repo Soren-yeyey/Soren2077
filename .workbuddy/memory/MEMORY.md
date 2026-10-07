@@ -16,6 +16,7 @@
 - 本机无 gh CLI；git 身份 Soren-yeyey + noreply 邮箱；Node 用托管版 `binaries/node/versions/22.22.2-6/node.exe`，全局包装在 `binaries/node/workspace/node_modules`（运行带 NODE_PATH）
 - 浏览器验证：playwright-core + **Edge**（msedge.exe，Chrome 是坏 stub）；3D 验证钩子 `__poc` 含 player/scene/camera，playwright 运镜直接改 player 字段（瞬移后等 ≥1s 相机才落定）
 - CloudBase：环境 `soren2077-d9gn6rr04d2c15165`（到期 2027-04-03）；新控制台「SQL 数据库」是 **PostgreSQL**，云函数走 Data API（PostgREST）+ service_role API Key（名 nightshift-server，明文不进仓库）；PG 方言脚本在 `db/postgres/`
+- tcb CLI 曾内置于托管 node 22.22.2-5，**版本目录被清理即丢**（凭据 `~/.config/.cloudbase` 不丢、免扫码）；重装=系统 npm 往 `binaries/node/workspace` 装 @cloudbase/cli（入口包内 `bin/tcb` 非 cli.js）；部署 stage 在 `$TMP/fnstage`（cloudbaserc.json 含 CLOUDBASE_API_KEY envVariables）；**证明新代码上线用 PUT 探针对比报错文案**
 
 ## 作品与技术定稿
 
