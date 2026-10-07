@@ -153,3 +153,34 @@ curl https://soren2077-d9gn6rr04d2c15165.service.tcloudbase.com/api/health
 - 字段映射：PG 是 snake_case（player_id），API 层转回契约 camelCase（playerId）
 - 只支持 `public` schema；PostgREST 语法 `eq./order=字段.asc/limit` 全部由白名单校验后的值经 URLSearchParams 构造
 - 踩坑：① 控制台「Publishable Key」不是服务端 Key，拿它调 REST 报 401 INVALID_CREDENTIALS；② zip 模式下云函数**不内置** @cloudbase/node-sdk（INTERNAL + RESOURCE_NOT_FOUND 迷惑弹），改走 Data API 后零依赖回归 zip；③ Windows node 不认 MSYS 的 /tmp 路径，写文件先 `cygpath -w`
+
+## Day 18 附录：POST /api/clues 部署记录（2026-10-07）
+
+CLI 通道一次性成功，**无「函数状态异常」坑**（因为 `installDependency: false` 已配好、且部署前 `tcb fn list` 确认函数状态是 `Deployment completed`）。
+
+```bash
+# 1) 同步仓库代码到 stage（必须做，stage 里是旧版）
+cp /d/workbuddy/cloudbase/functions/api-clues/index.js  /tmp/fnstage/functions/api-clues/
+# 2) 部署（cd stage，不带 --dir；带 --dir 有已知 bug 会打包整个项目）
+cd /tmp/fnstage && tcb fn deploy api-clues --deployMode zip --force -e soren2077-d9gn6rr04d2c15165
+```
+
+**线上验证 9 项实测结果**（`https://soren2077-d9gn6rr04d2c15165.service.tcloudbase.com/api/clues`）：
+
+| 用例 | 期望 | 实测 |
+|---|---|---|
+| OPTIONS 预检 | 204 + CORS 三头 | ✅ `204` + `Allow-Methods: GET, POST, OPTIONS` |
+| DELETE | 拒绝 | ✅ `只支持 GET 或 POST 请求` |
+| GET 未知玩家 | 空数组 | ✅ `{"ok":true,"data":[]}` |
+| GET 缺 playerId | 报错 | ✅ `playerId 缺失或不是合法 UUID` |
+| POST 三重脏数据 | 一次全报 | ✅ 三个问题同框 |
+| POST 未知玩家 | 拒绝 | ✅ `玩家不存在：playerId 未注册` |
+| POST 首次写入 | `duplicated:false` | ✅ `unlockedAt` 由 DB 生成 |
+| POST 重复上报 | `duplicated:true` | ✅ 同一 `unlockedAt`，不报错 |
+| GET 拉回 | 含 `source` 字段 | ✅ `clue_washer_clock / interact` |
+
+**建测试玩家的正确字段**（`players` 表**没有** `nickname` 列，写错报 `DATABASE_PGRST204`）：
+`{"player_id":"<uuid>","permission_level":1,"current_scene":"street","current_step":0}`
+
+**清理测试数据**（PostgREST DELETE，注意 `Prefer: return=representation` 才会回显被删行）：
+`DELETE /v1/rdb/rest/clues?player_id=eq.<uuid>` → `DELETE /v1/rdb/rest/players?player_id=eq.<uuid>`（先删子表，避免外键约束）
