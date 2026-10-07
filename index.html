@@ -2148,6 +2148,7 @@ body {
 
 <script>window.addEventListener('error', function (e) { window.__err = (e.message || 'resource-fail') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno; });</script>
 <script src="libs/three.min.js"></script>
+<script src="libs/three/GLTFLoader.js"></script>
 <!-- Bloom 后期（three.js r147 自带示例，UMD 全局挂 THREE.*，自托管 MIT） -->
 <script src="libs/three/CopyShader.js"></script>
 <script src="libs/three/LuminosityHighPassShader.js"></script>
@@ -3661,40 +3662,54 @@ body {
   }
 
   /* —— 远景剪影群：两侧翼 + 店后 + 玩家身后，纯盒体铺量（雾把它们压成剪影，只透窗光）——
-     调参面板的「远景密度」：预建到上限、靠 visible 开关显示前 N 栋。
-     为什么不实时重建 —— 拖滑杆时反复 new BoxGeometry + add/remove 会掉帧，
-     预建一次之后拖动只是切visible，零几何重建开销 */
+     开放大世界地基·第二件：**实例化渲染**。
+     改造前：80 栋 = 80 个 Mesh = 80 次 drawcall，且每栋一个 BoxGeometry（80 份顶点缓冲）。
+     改造后：**1 个 InstancedMesh = 1 次 drawcall**，几何体只存一份，尺寸走矩阵缩放。
+     依据：无缝大地图要 4000–8000 物体，逐个 Mesh 绝对撑不住，必须合批。
+
+     ⚠️ 取舍（要知道再改）：InstancedMesh 整体只有一个包围盒 → 视锥剔除按「全部」判，
+     只要有一栋在视野内，80 栋全画。对远景剪影可接受（本就近、被雾压扁、互相遮挡）；
+     **需要近距离剔除的主体楼（faces 那 15 栋）刻意不实例化**，保持逐栋剔除。 */
   const farMax = 80;                        // 预建上限（原先实际用 34）
-  const farPool = [];                       // 按「重要度」排序：前 N 栋 = 保留显示的那批
+  const farData = [];                       // 每栋的 {x,y,z,w,h,d}，供实例矩阵与密度滑杆共用
   (function buildFarSkyline() {
     const seg = [[], [], [], []];           // 四段分桶：侧- / 侧+ / 店后 / 身后
     for (let side2 = -1; side2 <= 1; side2 += 2) {
       const segIdx = side2 < 0 ? 0 : 1;
-      for (let i = 0; i < 20; i++) {                // 每侧 20（原先 10，留出加密余量）
-        const fw = 6 + Math.random() * 5, fh = 13 + Math.random() * 23, fd = 6 + Math.random() * 4;
-        const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
-        fb.position.set(side2 * (16 + Math.random() * 17), fh / 2, -45 + i * 3.2 + (Math.random() - 0.5) * 2);
-        seg[segIdx].push(fb); city.add(fb);
+      for (let i = 0; i < 20; i++) {
+        seg[segIdx].push({ x: side2 * (16 + Math.random() * 17), y: 0, z: -45 + i * 3.2 + (Math.random() - 0.5) * 2,
+                           w: 6 + Math.random() * 5, h: 13 + Math.random() * 23, d: 6 + Math.random() * 4 });
       }
     }
     for (let i = 0; i < 20; i++) {                // 店后（z −42~−62）：越远越高，垫出地平线
-      const fw = 7 + Math.random() * 6, fh = 18 + i * 1.2 + Math.random() * 12, fd = 7 + Math.random() * 5;
-      const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
-      fb.position.set(-26 + i * 3.6 + (Math.random() - 0.5) * 2, fh / 2, -(42 + Math.random() * 20));
-      seg[2].push(fb); city.add(fb);
+      seg[2].push({ x: -26 + i * 3.6 + (Math.random() - 0.5) * 2, y: 0, z: -(42 + Math.random() * 20),
+                    w: 7 + Math.random() * 6, h: 18 + i * 1.2 + Math.random() * 12, d: 7 + Math.random() * 5 });
     }
     for (let i = 0; i < 20; i++) {                // 玩家身后（z +18~+34）：回头也有城市
-      const fw = 6 + Math.random() * 5, fh = 11 + Math.random() * 18, fd = 6 + Math.random() * 4;
-      const fb = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd), buildingMat);
-      fb.position.set(-24 + i * 2.6 + (Math.random() - 0.5) * 3, fh / 2, 18 + Math.random() * 16);
-      seg[3].push(fb); city.add(fb);
+      seg[3].push({ x: -24 + i * 2.6 + (Math.random() - 0.5) * 3, y: 0, z: 18 + Math.random() * 16,
+                    w: 6 + Math.random() * 5, h: 11 + Math.random() * 18, d: 6 + Math.random() * 4 });
     }
     /* 四路轮转交错：按「侧-/侧+/店后/身后」四段连续取前 N 栋的话，
        密度一降就会先抹掉整段、地平线缺一块。轮转取让四段同步稀释。 */
-    for (let k = 0; k < 20; k++) {
-      for (let s = 0; s < 4; s++) if (seg[s][k]) { farPool.push(seg[s][k]); registerCullable(seg[s][k]); }
-    }
+    for (let k = 0; k < 20; k++) for (let s = 0; s < 4; s++) if (seg[s][k]) farData.push(seg[s][k]);
   })();
+
+  /* 单位盒 + 实例矩阵：一个几何体、一次 drawcall，尺寸全靠矩阵缩放 */
+  const farMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), buildingMat, farData.length);
+  farMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);   // 密度滑杆会改 count，标记为动态
+  const _fm4 = new THREE.Matrix4(), _fq = new THREE.Quaternion(), _fv = new THREE.Vector3(), _fs = new THREE.Vector3();
+  function writeFarInstance(i) {
+    const d = farData[i];
+    _fq.identity();
+    _fv.set(d.x, d.h / 2, d.z);          // 盒心抬到半高（原来是 BoxGeometry(h) + position.y=h/2）
+    _fs.set(d.w, d.h, d.d);
+    farMesh.setMatrixAt(i, _fm4.compose(_fv, _fq, _fs));
+  }
+  for (let i = 0; i < farData.length; i++) writeFarInstance(i);
+  farMesh.instanceMatrix.needsUpdate = true;
+  farMesh.frustumCulled = false;          // 手动剔除接管（见 cullInstanced）
+  city.add(farMesh);
+  registerCullable(farMesh);             // 整体登记：按全部可见处理（取舍见上方注释）
 
   /* —— 中景地标塔 ×3：收分冠部 + 天线 + 航空灯 + 大竖霓虹条，撑起天际线轮廓 —— */
   function tower(x, z, h, w, neonColor) {
@@ -3776,6 +3791,7 @@ body {
   }
 
   /* ---- 洗衣店门面（街尽头，z=-30）+ 霓虹字 ---- */
+  const oldF = [];                       // Blender 精修门脸上线后要退役的程序化件（循环内创建的收集于此）
   const shop = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 4), buildingMat);   // 楼体接入楼宇着色器：自动得立面分层/二楼窗/屋顶色
   shop.position.set(0, 3.5, -32); city.add(shop); registerCullable(shop);
   /* 橱窗：canvas 画洗衣店内景剪影（晾衣横杆 + 成排洗衣机圆窗，部分发青光/暖光） */
@@ -3811,7 +3827,7 @@ body {
   ldyFr.position.set(0, 1.8, -30.0); city.add(ldyFr);
   for (let mu = 0; mu < 2; mu++) {                                             // 两根竖梃分三扇
     const bar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 3.4, 0.06), ldyFrMat);
-    bar.position.set(mu ? 2.33 : -2.33, 1.8, -29.96); city.add(bar);
+    bar.position.set(mu ? 2.33 : -2.33, 1.8, -29.96); city.add(bar); oldF.push(bar);
   }
 
   /* ---- 店面细节：玻璃门 / 门框 / 台阶 / 雨篷 / 半开卷帘门 / 洗衣篮 / 休息椅 ---- */
@@ -3823,7 +3839,7 @@ body {
   doorR.position.set(1.85, 1.15, -29.45); doorR.rotation.y = -0.55; city.add(doorR);
   for (let s = 0; s < 2; s++) {
     const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.45, 0.1), frameMat);
-    jamb.position.set(s ? 2.32 : 0.26, 1.22, -29.96); city.add(jamb);
+    jamb.position.set(s ? 2.32 : 0.26, 1.22, -29.96); city.add(jamb); oldF.push(jamb);
   }
   const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.16, 0.12, 0.12), frameMat);
   lintel.position.set(1.29, 2.48, -29.96); city.add(lintel);
@@ -3840,13 +3856,13 @@ body {
   roll.rotation.z = Math.PI / 2; roll.position.set(-1.7, 3.55, -29.9); city.add(roll);
   for (let sl = 0; sl < 7; sl++) {
     const slat = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 0.04), mat(0x1d222f, 0.8, 0.4));
-    slat.position.set(-2.25, 3.32 - sl * 0.16, -29.88); city.add(slat);
+    slat.position.set(-2.25, 3.32 - sl * 0.16, -29.88); city.add(slat); oldF.push(slat);
   }
   /* 洗衣篮：一摞两只 + 一只翻倒 */
   const basketMat = new THREE.MeshStandardMaterial({ color: 0x2a3050, roughness: 0.9 });
   for (let bk = 0; bk < 2; bk++) {
     const bask = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.4, 10), basketMat);
-    bask.position.set(3.15, 0.2 + bk * 0.4, -29.15); city.add(bask);
+    bask.position.set(3.15, 0.2 + bk * 0.4, -29.15); city.add(bask); oldF.push(bask);
   }
   const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.38, 10), basketMat);
   tip.position.set(3.75, 0.25, -28.7); tip.rotation.z = Math.PI / 2.2; tip.rotation.y = 0.5; city.add(tip);
@@ -3871,7 +3887,7 @@ body {
     const vp = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.1, 7), ventMat);
     vp.position.set(2.4 + vn * 1.1, 7.55, -31.2 - vn * 1.4); city.add(vp);
     const vcap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.1, 0.16, 7), ventMat);
-    vcap.position.set(2.4 + vn * 1.1, 8.14, -31.2 - vn * 1.4); city.add(vcap);
+    vcap.position.set(2.4 + vn * 1.1, 8.14, -31.2 - vn * 1.4); city.add(vcap); oldF.push(vp, vcap);
   }
   /* 临街墙面：右侧外机 + 落水管 + 地下室通风格栅 */
   const shopAC = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.38, 0.2), acMat);
@@ -3880,6 +3896,23 @@ body {
   shopPipe.position.set(5.85, 3.2, -29.88); city.add(shopPipe);
   const grate = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.26, 0.05), mat(0x0d1017, 0.8, 0.4));
   grate.position.set(4.9, 0.32, -29.97); city.add(grate);
+  /* ---- Blender 精修门脸（models/laundry-facade.glb ≈146KB）：加载成功替换程序化细节，失败全保留兜底 ---- */
+  const facadeGl = new THREE.Group(); city.add(facadeGl);
+  new THREE.GLTFLoader().load('models/laundry-facade.glb', (g) => {
+    g.scene.traverse(o => {
+      if (o.isMesh) {
+        const ms = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of ms) {
+          if (/neon/i.test(m.name)) m.emissiveIntensity = 2.2;
+          if (m.name === 'glass') { m.emissive.setHex(0x1d4a60); m.emissiveIntensity = 0.5; }  // 门芯青辉光（对齐旧版观感）
+        }
+      }
+    });
+    facadeGl.add(g.scene);
+    ldyWin.position.z = -30.36;            // 橱窗 canvas 沉入 0.45 深凹龛，露出侧壁 depth 感
+    for (const o of [ldyFr, doorL, doorR, step1, awn, trim, roll, chair, tip,
+                     parapet, wtk, wtkCap, shopAC, shopPipe, grate, ...oldF]) o.visible = false;
+  }, undefined, () => { facadeGl.visible = false; });   // 加载失败：程序化门脸全量兜底
   function neonText(txt, color, x, y, size, z, rotY) {
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
     const g = cv.getContext('2d');
@@ -4715,14 +4748,10 @@ body {
       { id: 'tuneFar', out: 'tuneFarOut', key: 'far', dec: 0, int: true,
         read: function (el) { return Math.round(parseFloat(el.value)); },
         write: function (v) {
-          for (let i = 0; i < farPool.length; i++) {
-            const want = i < v;                  // 密度滑杆的期望可见性
-            farPool[i].visible = want;
-            /* 同步剔除表的 enabled：剔除与滑杆都写 visible，必须共用一个真相源，
-               否则两者互相覆盖（曾经导致远景楼被剔掉后再也回不来） */
-            const rec = cullIndex.get(farPool[i]);
-            if (rec) rec.enabled = want;
-          }
+          /* 实例化后密度控制 = 改 instanceMesh.count（drawcall 数量），零矩阵重建。
+             实例是按 farData 的四路轮转顺序写入的，取前 N 个即「四段同步稀释」，
+             与改造前的行为一致。 */
+          farMesh.count = Math.max(0, Math.min(farData.length, Math.round(v)));
         } },
       { id: 'tuneRoof', out: 'tuneRoofOut', key: 'roof', dec: 0, int: true,
         read: function (el) { return Math.round(parseFloat(el.value)); },
@@ -4816,7 +4845,7 @@ body {
        近景楼栋实际是 2侧×8层 − 便利店 1 槽 = 15，不是记忆里写的 16。
        写死上限会让滑杆拖到比池子还大的值，面板显示 16 而引擎只有 15（面板说谎）。 */
     const farEl = document.getElementById('tuneFar'), roofEl = document.getElementById('tuneRoof');
-    if (farEl)  { farEl.max = String(farPool.length);  farEl.value  = String(Math.min(46, farPool.length)); }
+    if (farEl)  { farEl.max = String(farData.length);  farEl.value  = String(Math.min(46, farData.length)); }
     if (roofEl) { roofEl.max = String(roofPool.length); roofEl.value = String(roofPool.length); }
 
     /* ---- 粘贴还原：把参数串套回引擎 ----
@@ -4912,9 +4941,9 @@ body {
     bloomT:function () { return bloom.threshold; },
     exp:   function () { return renderer.toneMappingExposure; },
     /* 密度探针：返回「当前可见栋数」，与滑杆值交叉比对 */
-    far:   function () { return farPool.filter(function (m) { return m.visible; }).length; },
+    far:   function () { return farMesh.count; },
     roof:  function () { return roofPool.filter(function (g) { return g.visible; }).length; },
-    farTotal:  function () { return farPool.length; },
+    farTotal:  function () { return farData.length; },
     /* 剔除探针：总登记数 / 当前可见数 —— 两者差值就是剔除省下的物体数 */
     cullTotal: function () { return cullables.length; },
     cullVisible: function () {
