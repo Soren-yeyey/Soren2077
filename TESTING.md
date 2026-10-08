@@ -121,3 +121,21 @@
 5. 2:40–3:00 收尾：「进度已上云，两个写接口下周继续」→ 停止录制（Win+Alt+R）
 6. 成片在「视频捕获」文件夹，检查有声音再交
 
+
+---
+
+## 五、Day 23 安全自查清单（每项含验证方法）
+
+| # | 检查项 | 结论 | 验证方法 |
+|---|---|---|---|
+| 1 | 仓库无硬编码密钥（5 类特征词） | ✅ 0 条 | `grep -rn -E "(api_key\|secret\|password\|token)\s*[:=]\s*['\"][A-Za-z0-9_-]{16,}" --exclude-dir=node_modules .` → 0；另扫 sk- / PRIVATE KEY / CLOUDBASE_API_KEY=值 / AKID，全 0 |
+| 2 | Git 历史无曾提交的密钥 | ✅ 干净 | `git log --all --oneline -- cloudbaserc.json` 无记录；`git log --all -p \| grep -c "Bearer <30位token>"` = 0 → **无需作废重发** |
+| 3 | 密钥只住两处非仓库位置 | ✅ | 云函数环境变量（控制台可查）+ 本机 Temp stage；代码只 `process.env.CLOUDBASE_API_KEY` 引用变量名 |
+| 4 | .env 不在仓库且被忽略 | ✅ | `git check-ignore .env` 命中；`git ls-files \| grep .env` = 0 |
+| 5 | .env.example 存在且无真实值 | ✅（Day 23 新增） | 文件只有变量名与注释；`git check-ignore .env.example` 不命中（正常追踪） |
+| 6 | 文档不落密钥完整标识 | ✅（Day 23 打码） | DEPLOY.md Key ID 已改 `CtDx…xSlHQ`；搜旧 ID 应为 0 |
+| 7 | 三类错误（输入/网络/服务端）全中文 | ✅ | 输入错：curl 缺字段→「缺少必填字段 clueKey」；网络错：断网模拟→toast「网络不通或跨域被拦」；服务端错：Data API 500→「服务端内部错误」（裸报错只进日志） |
+| 8 | 无裸 e.message 直达用户 | ✅ | `grep "showToast(.*e.message" index.html` = 0；所有 catch 用固定中文文案 |
+| 9 | 请求日志（时间/路径/结果） | ✅（余力加练） | 两函数 withRequestLog wrapper：`[api-clues] 2026-10-08T13:57Z POST q={} → 200 2ms`，桩测输出可见 |
+
+**Day 23 修复项**：① deleteTest 的 fetch 原在 try 外（网络错→未捕获异常+按钮卡死），已移入 try；② DEPLOY.md Key ID 打码；③ .gitignore 扩充 + .env.example 新增。

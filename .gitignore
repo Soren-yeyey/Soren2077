@@ -1,1 +1,13 @@
+# 密钥与本地环境（Day 23 审计扩充）——明文密钥只住 云函数环境变量 / 本机 stage，永不进仓库
 .env
+.env.*
+!.env.example
+*.key
+apikey.txt
+
+# 部署 stage（含真 key 的 cloudbaserc.json 副本所在临时目录在系统 Temp，不在此；防未来移位）
+fnstage/
+
+# 系统杂物
+Thumbs.db
+.DS_Store

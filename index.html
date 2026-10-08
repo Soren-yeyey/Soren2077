@@ -2982,8 +2982,10 @@ body {
   }
   async function deleteTest() {
     deleteTestBtn.disabled = true;
-    const r = await fetch(API_BASE + '/api/clues?playerId=' + PLAYER_ID + '&clueKey=clue_day20_selftest', { method: 'DELETE' });
     try {
+      /* Day 23 审计修复：fetch 原来写在 try 外 —— 网络一断它自己就抛异常，
+         catch 接不到 → 按钮永久卡死 + 未捕获报错。网络错也要走人话提示 */
+      const r = await fetch(API_BASE + '/api/clues?playerId=' + PLAYER_ID + '&clueKey=clue_day20_selftest', { method: 'DELETE' });
       const p = await r.json();
       if (p && p.ok) {
         showToast('删除成功', '库里少了一行 —— 列表随之刷新，GET 不会再返回它');

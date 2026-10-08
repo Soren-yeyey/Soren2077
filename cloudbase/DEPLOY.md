@@ -149,7 +149,7 @@ curl https://soren2077-d9gn6rr04d2c15165.service.tcloudbase.com/api/health
   `https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/{表名}?select=...&字段=eq.值&order=...&limit=...`
 - 鉴权：`Authorization: Bearer <服务端 API Key>`；Key 用 CLI 创建（明文只显示一次）：
   `tcb env apikey create nightshift-server -e {envId} --type api_key --json`
-  （Key ID `CtDxix1BSDqk6xuC2xSlHQ`；**明文不落任何文档**，配进云函数环境变量 `CLOUDBASE_API_KEY`，见 stage 的 cloudbaserc.json `envVariables` 字段）
+  （Key ID 打码 `CtDx…xSlHQ`，Day 23 审计起不在文档落完整标识；**明文不落任何文档**，配进云函数环境变量 `CLOUDBASE_API_KEY`，见 stage 的 cloudbaserc.json `envVariables` 字段）
 - 字段映射：PG 是 snake_case（player_id），API 层转回契约 camelCase（playerId）
 - 只支持 `public` schema；PostgREST 语法 `eq./order=字段.asc/limit` 全部由白名单校验后的值经 URLSearchParams 构造
 - 踩坑：① 控制台「Publishable Key」不是服务端 Key，拿它调 REST 报 401 INVALID_CREDENTIALS；② zip 模式下云函数**不内置** @cloudbase/node-sdk（INTERNAL + RESOURCE_NOT_FOUND 迷惑弹），改走 Data API 后零依赖回归 zip；③ Windows node 不认 MSYS 的 /tmp 路径，写文件先 `cygpath -w`

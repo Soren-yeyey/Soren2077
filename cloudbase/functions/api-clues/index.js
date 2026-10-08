@@ -168,7 +168,21 @@ async function handlePost(event) {
   }
 }
 
-exports.main = async (event = {}) => {
+/* Day 23 余力加练：请求日志（时间 · 方法 · 查询参数 · 结果 · 耗时）。
+   wrapper 包住原逻辑，一行业务代码不用动；POST body 不打（含无敏感但保持精简） */
+function withRequestLog(name, handler) {
+  return async (event = {}) => {
+    const t0 = Date.now();
+    const method = String((event && event.httpMethod) || 'GET').toUpperCase();
+    const q = JSON.stringify((event && event.queryStringParameters) || {});
+    const res = await handler(event);
+    console.log('[' + name + '] ' + new Date().toISOString() + ' ' + method + ' q=' + q +
+      ' → ' + res.statusCode + ' ' + (Date.now() - t0) + 'ms');
+    return res;
+  };
+}
+
+exports.main = withRequestLog('api-clues', async (event = {}) => {
   try {
     const method = String(event.httpMethod || 'GET').toUpperCase();
     if (method === 'OPTIONS') {
@@ -204,7 +218,7 @@ exports.main = async (event = {}) => {
   } catch (err) {
     return withCors(event, internalError('api-clues', err));
   }
-};
+});
 
 /* —— 测试钩子（不影响线上）：转发到底座的桩注入 —— */
 exports.__testOnlySetFetch = function (fn) { restClient.__setFetch(fn); };
