@@ -63,16 +63,17 @@
 >
 > **Day 17 更新——线上库实为 PostgreSQL**：CloudBase 体验版环境自带的是 SQL 数据库（PostgreSQL），线上建表用等价方言版 `db/postgres/schema.sql` + `db/postgres/seed.sql`（MySQL 版保留作 Day 16 历史产物）。差异只有两点：① 字段名转 snake_case（`player_id` 等），API 层映射回本契约的 camelCase；② MySQL 的列内 COMMENT / ENUM 改为 `COMMENT ON` / `CHECK IN`，约束逻辑完全一致。数据导入用 `db/seed-export/*.jsonl` 的同源数据。
 
-## 3. 接口清单（六个）
+## 3. 接口清单（Day 22 起为七个）
 
 | # | 方法 | 路径 | 说明 | 状态 |
 |---|---|---|---|---|
 | 1 | GET | `/api/health` | 健康检查 | ✅ 已上线 |
 | 2 | GET | `/api/progress` | 读取玩家进度 | ✅ 已实现（Day 17） |
-| 3 | POST | `/api/progress` | 写入玩家进度 | ⏳ 占位（Day 18） |
+| 3 | PATCH | `/api/progress` | 修改玩家进度（部分字段） | ✅ 已实现（Day 22，原 POST 设计改为 PATCH） |
 | 4 | GET | `/api/clues` | 拉取已解锁线索列表 | ✅ 已实现（Day 17） |
 | 5 | POST | `/api/clues` | 上报解锁一条线索 | ✅ 已实现（Day 18） |
 | 6 | POST | `/api/endings` | 上报达成结局 | ⏳ 占位 |
+| 7 | DELETE | `/api/clues` | 删除一条线索记录 | ✅ 已实现（Day 22） |
 
 > 结局的**查询**不单开接口：从 `GET /api/progress` 顺带返回该玩家 endings 摘要即可，少一次请求。
 
@@ -93,13 +94,15 @@ GET /api/progress?playerId={uuid}
 
 实现：云函数 `api-progress`，经 Data API 查 players（`player_id=eq.{uuid}&limit=1`）+ endings（`order=achieved_at.desc`）；playerId 白名单校验 UUID 后经 URLSearchParams 构造查询，无注入面。
 
-### 3.3 POST /api/progress ⏳
+### 3.3 PATCH /api/progress ✅ 已实现（Day 22）
 
 ```
-POST /api/progress
-body { "playerId": "...", "permissionLevel": 2, "currentScene": "shop", "currentStep": 5, "flags": { "fedCat": true } }
-→ 200 { "ok": true, "data": { "updatedAt": "..." } }
+PATCH /api/progress?playerId={uuid}
+body { "currentScene": "shop", "currentStep": 5 }   ← 只提交要改的字段
+→ 200 { "ok": true, "data": { ...更新后的完整玩家行 } }
 ```
+
+Day 22 实现说明：原设计的 POST 全量写入改为 PATCH 部分更新（保存进度本就是改一行的部分字段，PATCH 语义更准，也避免并发覆盖）。可改字段白名单：`currentScene`（street/shop/ending）、`currentStep`（≥0 整数）、`permissionLevel`（1–4 整数）、`flags`（JSON 对象或 null）、`lastSeenAt`（时间字符串或 null）；白名单外字段拒绝，校验问题一次报全（中文）。修改不存在的 playerId 返回 `NOT_FOUND`（GET 返回 data:null 是「新玩家」语义，PATCH 是明确写操作，两种语义分开）。`updated_at` 由服务端在更新时写入。
 
 客户端策略：场景切换 / 权限变化 / 结局达成时各写一次，不做心跳高频写。
 
@@ -125,6 +128,15 @@ body { "playerId": "...", "clueKey": "clue_washer_clock", "source": "interact" }
 实现：云函数 `api-clues` 同函数按 `httpMethod` 分流（GET/POST 同路径同 URL）；校验失败中文报错且所有问题一次报出——playerId 必须 UUID、clueKey 白名单 `[A-Za-z0-9_-]{3,64}`（比 DB 层 CHECK ≥3 字符更严）、source ∈ interact/npc/event；未知玩家 BAD_REQUEST 拒绝（防脏数据）；幂等靠查重 + UNIQUE(player_id, clue_key) 409 兜底双保险；OPTIONS 预检应答 CORS 头；`unlocked_at` 由数据库 default now() 生成；服务端打印 created / duplicated 日志。
 
 CORS（Day 20）：`Access-Control-Allow-Origin` 不用 `*`，按白名单回显——仅放行本项目两个静态托管域名（CloudBase `soren2077-d9gn6rr04d2c15165-1499948517.tcloudbaseapp.com`、GitHub Pages `soren-yeyey.github.io`）与本地开发地址（localhost/127.0.0.1 的 8000 端口）；非白名单来源不带该头，浏览器自行拦截；白名单命中时响应带 `Vary: Origin`。已知环境行为：CloudBase 网关会在函数未带 ACAO 时自行注入本环境静态托管域名的 ACAO 头（函数已带时让位，不会出现重复头）。
+
+### 3.7 DELETE /api/clues ✅ 已实现（Day 22）
+
+```
+DELETE /api/clues?playerId={uuid}&clueKey={key}
+→ 200 { "ok": true, "data": { "deleted": "{playerId}:{clueKey}" } }
+```
+
+Day 22 实现说明：按 `{playerId}:{clueKey}` 精确删除一条线索记录。id 不存在返回 `NOT_FOUND`（中文说明，不静默成功——接口层先查存在性再删，删后用「影响行数」复核并发场景）；删除成功返回被删记录的 id。物理删除（软删除为余力加练，尚未实施）。前端删除入口带两段式二次确认（第一次点进入确认态，3 秒内再点才执行，超时回弹）。
 
 ### 3.6 POST /api/endings ⏳
 

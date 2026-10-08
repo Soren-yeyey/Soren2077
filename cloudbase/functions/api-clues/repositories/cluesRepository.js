@@ -43,4 +43,20 @@ async function insert(rowId, playerId, clueKey, source) {
   return { unlockedAt: row.unlocked_at };
 }
 
-module.exports = { listByPlayer: listByPlayer, findById: findById, insert: insert };
+/* Day 22：按主键删除一行。返回 true=删了 / false=条件没命中（id 不存在）。
+   判断依据用「影响行数」而非先查后删：先查后删两步之间记录可能被并发删掉，
+   DELETE 的返回值才是唯一可靠的事实 */
+async function deleteById(rowId) {
+  const deleted = await restClient.restDelete('clues', {
+    id: 'eq.' + rowId,
+    select: 'id',
+  });
+  return Array.isArray(deleted) && deleted.length > 0;
+}
+
+module.exports = {
+  listByPlayer: listByPlayer,
+  findById: findById,
+  insert: insert,
+  deleteById: deleteById,
+};

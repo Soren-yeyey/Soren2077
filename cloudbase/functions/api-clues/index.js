@@ -61,6 +61,40 @@ function internalError(scope, err) {
   return fail('INTERNAL', '服务端内部错误');
 }
 
+/* DELETE（Day 22，契约 §3.6）：按 {playerId, clueKey} 精确删除一条线索记录 */
+async function handleDelete(event) {
+  const qs = event.queryStringParameters || {};
+  const problems = [];
+  const playerId = qs.playerId;
+  if (!playerId) {
+    problems.push('缺少必填参数 playerId');
+  } else if (!UUID_RE.test(String(playerId))) {
+    problems.push('playerId 不是合法 UUID');
+  }
+  const clueKey = qs.clueKey;
+  if (!clueKey) {
+    problems.push('缺少必填参数 clueKey');
+  } else if (!CLUE_KEY_RE.test(String(clueKey))) {
+    problems.push('clueKey 只能由 3-64 个字母、数字、下划线或连字符组成');
+  }
+  if (problems.length > 0) return fail('BAD_REQUEST', problems.join('；'));
+
+  /* 先确认存在：给用户明确的「为什么没删成」，而不是静默成功 */
+  const rowId = String(playerId) + ':' + String(clueKey);
+  const existing = await cluesRepository.findById(rowId);
+  if (existing.length === 0) {
+    return fail('NOT_FOUND', '要删除的线索不存在：playerId=' + playerId + ' clueKey=' + clueKey + ' 没有对应记录');
+  }
+
+  const deleted = await cluesRepository.deleteById(rowId);
+  if (!deleted) {
+    /* 查到但删时没了（并发删除）：如实报告，不谎报成功 */
+    return fail('NOT_FOUND', '线索不存在：可能刚被其他操作删除');
+  }
+  console.log('[api-clues] DELETE ok playerId=' + playerId + ' clueKey=' + clueKey);
+  return ok({ deleted: rowId });
+}
+
 async function handlePost(event) {
   /* 1) 解析 JSON body：HTTP 触发器给字符串，兼容 base64 与已解析对象 */
   let raw = event.body;
@@ -142,14 +176,15 @@ exports.main = async (event = {}) => {
       return withCors(event, {
         statusCode: 204,
         headers: Object.assign({}, CORS_HEADERS, {
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
         }),
         body: '',
       });
     }
     if (method === 'POST') return withCors(event, await handlePost(event));
-    if (method !== 'GET') return withCors(event, fail('BAD_REQUEST', '只支持 GET 或 POST 请求'));
+    if (method === 'DELETE') return withCors(event, await handleDelete(event));
+    if (method !== 'GET') return withCors(event, fail('BAD_REQUEST', '只支持 GET、POST 或 DELETE 请求'));
 
     const qs = event.queryStringParameters || {};
     const playerId = qs.playerId;
@@ -176,6 +211,6 @@ exports.__testOnlySetFetch = function (fn) { restClient.__setFetch(fn); };
 exports.__testOnlySetApiKey = function (k) { restClient.__setApiKey(k); };
 exports.__testHelpers = {
   UUID_RE: UUID_RE, CLUE_KEY_RE: CLUE_KEY_RE, SOURCE_VALUES: SOURCE_VALUES,
-  ok: ok, fail: fail, handlePost: handlePost,
+  ok: ok, fail: fail, handlePost: handlePost, handleDelete: handleDelete,
   CORS_ALLOWLIST: CORS_ALLOWLIST, withCors: withCors,
 };

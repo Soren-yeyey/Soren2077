@@ -499,6 +499,12 @@ body {
 .check-btn::after { content: ""; position: absolute; inset: -8px; }   /* 扩热区，不改自身尺寸 */
 .check-btn:active { transform: translateY(1px); }
 .check-btn:disabled { opacity: .5; cursor: default; }
+/* Day 22：删除按钮的两段式确认态 —— 第一次点后按钮变警示色，3 秒不确认自动回弹 */
+.check-btn.confirm {
+  color: #ffb3c0;
+  background: rgba(255, 110, 140, .14);
+  border-color: rgba(255, 110, 140, .55);
+}
 
 .home-hint {
   /* 8px 尺度（原来是 clamp(7px, 1.1vh, 12px)，手机 844 高算出 9.28px 的碎值） */
@@ -2068,6 +2074,7 @@ body {
       <span id="healthText">服务检测中…</span>
       <em id="lastFetch"></em>
       <button class="check-btn" id="writeTestBtn" type="button">写入测试</button>
+      <button class="check-btn" id="deleteTestBtn" type="button" aria-label="删除自检线索，需要确认两次">删除测试</button>
     </div>
     <ul class="card-list" id="homeList"></ul>
     <div class="panel-state" id="homeState"></div>
@@ -2960,6 +2967,51 @@ body {
     }
   }
   writeTestBtn.addEventListener('click', (e) => { e.stopPropagation(); writeTest(); });
+
+  /* 删除测试（Day 22）：DELETE 一条自检线索。
+     两段式二次确认 —— 删除出事是数据直接没了，所以多一道门槛：
+     第一次点只是把按钮点亮成「确认删除？」，3 秒内再点才真删，超时自动回弹。
+     自检线索删了也不心疼：点「写入测试」随时能再写回来 */
+  const deleteTestBtn = document.getElementById('deleteTestBtn');
+  let confirmTimer = null;
+  function disarmDelete() {
+    clearTimeout(confirmTimer);
+    confirmTimer = null;
+    deleteTestBtn.classList.remove('confirm');
+    deleteTestBtn.textContent = '删除测试';
+  }
+  async function deleteTest() {
+    deleteTestBtn.disabled = true;
+    const r = await fetch(API_BASE + '/api/clues?playerId=' + PLAYER_ID + '&clueKey=clue_day20_selftest', { method: 'DELETE' });
+    try {
+      const p = await r.json();
+      if (p && p.ok) {
+        showToast('删除成功', '库里少了一行 —— 列表随之刷新，GET 不会再返回它');
+        await loadNotesRemote();
+      } else if (p && p.error && p.error.code === 'NOT_FOUND') {
+        showToast('删除 · 无可删记录', '这条线索本来就不在库里（可先点「写入测试」再加回来）');
+      } else {
+        showToast('删除被拒', (p && p.error && p.error.message) || '服务端返回失败');
+      }
+    } catch (e) {
+      showToast('删除失败', '网络不通或跨域被拦 —— F12 控制台有详情');
+    } finally {
+      deleteTestBtn.disabled = false;
+      disarmDelete();
+    }
+  }
+  deleteTestBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (deleteTestBtn.disabled) return;
+    if (confirmTimer) {            // 第二次点：确认，执行删除
+      disarmDelete();
+      deleteTest();
+      return;
+    }
+    deleteTestBtn.classList.add('confirm');   // 第一次点：进入确认态
+    deleteTestBtn.textContent = '确认删除？';
+    confirmTimer = setTimeout(disarmDelete, 3000);
+  });
 
   // 场景图挂掉时不能白屏 —— 得让玩家知道发生了什么，并留一个重新连接的入口
   homeBg.addEventListener('error', () => {

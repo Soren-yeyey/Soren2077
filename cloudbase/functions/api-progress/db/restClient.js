@@ -31,8 +31,30 @@ async function restGet(table, params) {
   return res.json();
 }
 
+/* Day 22：PATCH 部分更新——body 必须是 snake_case 字段对象（映射是 repository 的职责）；
+   Prefer: return=representation 让 PostgREST 把更新后的行吐回来（拿真值，不自己猜） */
+async function restPatch(table, filter, body) {
+  const url = REST_BASE + '/' + table + '?' + new URLSearchParams(filter).toString();
+  const res = await _fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: 'Bearer ' + apiKey(),
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(function () { return ''; });
+    throw new Error('DATA_API_' + res.status + ': ' + text.slice(0, 200));
+  }
+  return res.json();
+}
+
 module.exports = {
   restGet: restGet,
+  restPatch: restPatch,
   __setFetch: function (fn) { _fetch = fn; },
   __setApiKey: function (k) { _apiKey = k; },
 };

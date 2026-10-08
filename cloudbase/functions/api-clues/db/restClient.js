@@ -53,9 +53,31 @@ async function restPost(table, body) {
   return res.json();
 }
 
+/* Day 22：DELETE 按过滤条件删行——filter 是 PostgREST 过滤参数（如 {id: 'eq.xxx'}）；
+   Prefer: return=representation 拿回被删的行（返回空数组 = 条件没命中任何行） */
+async function restDelete(table, filter) {
+  const url = REST_BASE + '/' + table + '?' + new URLSearchParams(filter).toString();
+  const res = await _fetch(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: 'Bearer ' + apiKey(),
+      Accept: 'application/json',
+      Prefer: 'return=representation',
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(function () { return ''; });
+    const err = new Error('DATA_API_' + res.status + ': ' + text.slice(0, 200));
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 module.exports = {
   restGet: restGet,
   restPost: restPost,
+  restDelete: restDelete,
   __setFetch: function (fn) { _fetch = fn; },
   __setApiKey: function (k) { _apiKey = k; },
 };
