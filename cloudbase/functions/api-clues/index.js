@@ -12,6 +12,8 @@
  *   data.duplicated=true 标记命中已存在记录；校验失败中文报错（一次报出）；
  *   未知玩家 BAD_REQUEST 拒绝
  * OPTIONS：浏览器跨域 POST 预检应答（204 + CORS 头）
+ * Day 20：CORS 从 * 通配改为白名单回显——只放行自己的静态托管域名，
+ *   非白名单来源不带 Access-Control-Allow-Origin，浏览器自行拦截
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const restClient = require('./db/restClient');
@@ -22,10 +24,31 @@ const cluesRepository = require('./repositories/cluesRepository');
 const SOURCE_VALUES = ['interact', 'npc', 'event'];
 const CLUE_KEY_RE = /^[A-Za-z0-9_-]{3,64}$/;
 
+/* CORS 白名单（Day 20）：ACAO 头一次只能带一个 Origin，所以按请求回显单一值；
+   Vary: Origin 提醒缓存按请求头区分，防止 A 站的响应被缓存后吐给 B 站 */
+const CORS_ALLOWLIST = [
+  'https://soren2077-d9gn6rr04d2c15165-1499948517.tcloudbaseapp.com', // CloudBase 静态托管（Day 15）
+  'https://soren-yeyey.github.io',                          // GitHub Pages（同仓库双部署）
+  'http://localhost:8000',                                  // 本地开发（python http.server，Day 20）
+  'http://127.0.0.1:8000',
+];
+
 const CORS_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
-  'Access-Control-Allow-Origin': '*',
 };
+
+/* 给响应补 CORS 头：Origin 在白名单里才带 ACAO，否则什么都不加（浏览器拒绝跨域读取）。
+   实测网关（tcbgw）会在函数未带 ACAO 时自作注入本环境静态托管域名——
+   与本白名单策略不冲突：函数带时响应恰一条，函数不带时注入值也只放行自家域名 */
+function withCors(event, res) {
+  const h = (event && event.headers) || {};
+  const raw = String(h.origin || h.Origin || '').replace(/\/+$/, '');
+  if (CORS_ALLOWLIST.indexOf(raw) !== -1) {
+    res.headers['Access-Control-Allow-Origin'] = raw;
+    res.headers['Vary'] = 'Origin';
+  }
+  return res;
+}
 
 function json(statusCode, payload) {
   return { statusCode, headers: CORS_HEADERS, body: JSON.stringify(payload) };
@@ -115,36 +138,36 @@ exports.main = async (event = {}) => {
   try {
     const method = String(event.httpMethod || 'GET').toUpperCase();
     if (method === 'OPTIONS') {
-      /* 浏览器跨域发 POST JSON 会先预检，必须应答 CORS 头 */
-      return {
+      /* 浏览器跨域发 POST JSON 会先预检，必须应答 CORS 头（白名单命中才带 ACAO） */
+      return withCors(event, {
         statusCode: 204,
         headers: Object.assign({}, CORS_HEADERS, {
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
         }),
         body: '',
-      };
+      });
     }
-    if (method === 'POST') return await handlePost(event);
-    if (method !== 'GET') return fail('BAD_REQUEST', '只支持 GET 或 POST 请求');
+    if (method === 'POST') return withCors(event, await handlePost(event));
+    if (method !== 'GET') return withCors(event, fail('BAD_REQUEST', '只支持 GET 或 POST 请求'));
 
     const qs = event.queryStringParameters || {};
     const playerId = qs.playerId;
     if (!playerId || !UUID_RE.test(playerId)) {
-      return fail('BAD_REQUEST', 'playerId 缺失或不是合法 UUID');
+      return withCors(event, fail('BAD_REQUEST', 'playerId 缺失或不是合法 UUID'));
     }
 
     let limit = 50; // 默认上限，契约 3.4 未定义时取 50
     if (qs.limit != null && qs.limit !== '') {
-      if (!/^\d+$/.test(String(qs.limit))) return fail('BAD_REQUEST', 'limit 必须是正整数');
+      if (!/^\d+$/.test(String(qs.limit))) return withCors(event, fail('BAD_REQUEST', 'limit 必须是正整数'));
       limit = Number(qs.limit);
-      if (limit < 1 || limit > 50) return fail('BAD_REQUEST', 'limit 取值范围 1-50');
+      if (limit < 1 || limit > 50) return withCors(event, fail('BAD_REQUEST', 'limit 取值范围 1-50'));
     }
 
     const data = await cluesRepository.listByPlayer(playerId, limit);
-    return ok(data);
+    return withCors(event, ok(data));
   } catch (err) {
-    return internalError('api-clues', err);
+    return withCors(event, internalError('api-clues', err));
   }
 };
 
@@ -154,4 +177,5 @@ exports.__testOnlySetApiKey = function (k) { restClient.__setApiKey(k); };
 exports.__testHelpers = {
   UUID_RE: UUID_RE, CLUE_KEY_RE: CLUE_KEY_RE, SOURCE_VALUES: SOURCE_VALUES,
   ok: ok, fail: fail, handlePost: handlePost,
+  CORS_ALLOWLIST: CORS_ALLOWLIST, withCors: withCors,
 };

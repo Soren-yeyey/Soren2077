@@ -124,6 +124,8 @@ body { "playerId": "...", "clueKey": "clue_washer_clock", "source": "interact" }
 
 实现：云函数 `api-clues` 同函数按 `httpMethod` 分流（GET/POST 同路径同 URL）；校验失败中文报错且所有问题一次报出——playerId 必须 UUID、clueKey 白名单 `[A-Za-z0-9_-]{3,64}`（比 DB 层 CHECK ≥3 字符更严）、source ∈ interact/npc/event；未知玩家 BAD_REQUEST 拒绝（防脏数据）；幂等靠查重 + UNIQUE(player_id, clue_key) 409 兜底双保险；OPTIONS 预检应答 CORS 头；`unlocked_at` 由数据库 default now() 生成；服务端打印 created / duplicated 日志。
 
+CORS（Day 20）：`Access-Control-Allow-Origin` 不用 `*`，按白名单回显——仅放行本项目两个静态托管域名（CloudBase `soren2077-d9gn6rr04d2c15165-1499948517.tcloudbaseapp.com`、GitHub Pages `soren-yeyey.github.io`）与本地开发地址（localhost/127.0.0.1 的 8000 端口）；非白名单来源不带该头，浏览器自行拦截；白名单命中时响应带 `Vary: Origin`。已知环境行为：CloudBase 网关会在函数未带 ACAO 时自行注入本环境静态托管域名的 ACAO 头（函数已带时让位，不会出现重复头）。
+
 ### 3.6 POST /api/endings ⏳
 
 ```

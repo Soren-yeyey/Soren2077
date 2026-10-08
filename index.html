@@ -293,7 +293,8 @@ body {
   pointer-events: none;
 }
 .home-panel .note,
-.home-panel .retry { pointer-events: auto; }
+.home-panel .retry,
+.home-panel .check-btn { pointer-events: auto; }   /* check-btn 是 Day 20 检查台的写入测试 */
 
 .panel-head {
   display: flex;
@@ -450,6 +451,54 @@ body {
   cursor: pointer;
   box-shadow: 0 0 20px rgba(87, 200, 255, .40);
 }
+
+/* 检查台（Day 20）：一行极薄的状态条 —— 健康灯 · 服务状态 · 最后更新 · 写入测试 */
+.panel-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;                        /* 8px 尺度 */
+  margin-top: 8px;
+  font-size: 12px;                 /* 注解级下限，不小于 12px */
+  letter-spacing: .12em;
+  color: #8fa2c4;
+}
+.check-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6f7fa8;             /* 检测中：灰 */
+}
+.check-dot.ok {
+  background: #7ff0dc;             /* 在线：青绿 */
+  box-shadow: 0 0 8px rgba(127, 240, 220, .8);
+}
+.check-dot.bad {
+  background: #ff7a7a;             /* 异常：红 */
+  box-shadow: 0 0 8px rgba(255, 122, 122, .8);
+}
+.panel-check em {
+  margin-left: auto;
+  font-style: normal;
+  color: #6f7fa8;
+  text-align: right;
+}
+.check-btn {
+  position: relative;
+  flex: none;
+  padding: 4px 12px;               /* 视觉矮条；触控面积靠 ::after 扩到 ≥44px */
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: .12em;
+  color: #7ff0dc;
+  background: rgba(127, 240, 220, .08);
+  border: 1px solid rgba(127, 240, 220, .35);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.check-btn::after { content: ""; position: absolute; inset: -8px; }   /* 扩热区，不改自身尺寸 */
+.check-btn:active { transform: translateY(1px); }
+.check-btn:disabled { opacity: .5; cursor: default; }
 
 .home-hint {
   /* 8px 尺度（原来是 clamp(7px, 1.1vh, 12px)，手机 844 高算出 9.28px 的碎值） */
@@ -2013,6 +2062,13 @@ body {
       <i></i>
       <em id="noteStamp"></em>
     </div>
+    <!-- 检查台（Day 20）：服务健康 · 最后更新时间 · 一次写入测试入口 -->
+    <div class="panel-check">
+      <span class="check-dot" id="healthDot" aria-hidden="true"></span>
+      <span id="healthText">服务检测中…</span>
+      <em id="lastFetch"></em>
+      <button class="check-btn" id="writeTestBtn" type="button">写入测试</button>
+    </div>
     <ul class="card-list" id="homeList"></ul>
     <div class="panel-state" id="homeState"></div>
     <p class="home-hint">点地面移动 · 点动静卡片看下一条 · 点店门进店</p>
@@ -2700,22 +2756,30 @@ body {
      首页：进店前的霓虹街景（Day 8）
      ====================================================================== */
 
-  /* 本地假数据（mock）。Day 8 清单明确：本期不接真实 API，数据先写死在这里。
-     等以后有了真实数据源，只要把 NOTES 换成请求结果 —— 下面的渲染逻辑一行都不用改 */
-  // Day 9 从 4 条扩到 10 条（1A）：夜里街上的一切，都在往同一件事上靠 ——
-  // 有人在等，有东西不再需要人。不点破，只铺氛围。
-  const NOTES = [
-    { t: '02:14', s: '对面便利店的灯还亮着，没人进去。' },
-    { t: '02:23', s: '自动门开了一下，又关上。没有人。' },
-    { t: '02:31', s: '保洁车停在路口，司机趴在方向盘上睡着了。' },
-    { t: '02:47', s: '楼上有人在阳台抽烟，烟头亮了三次。' },
-    { t: '02:55', s: '一辆车慢慢开过去，减了速，又开走了。像在找门牌号。' },
-    { t: '03:05', s: '一辆无人驾驶的出租车停在路口，等了很久，没人上车。' },
-    { t: '03:19', s: '隔壁的卷帘门拉下来，整条街响了一下。' },
-    { t: '03:31', s: '雨大了。街角那台自动贩卖机自己亮了一下。' },
-    { t: '03:47', s: '一台清洁机器人绕着我门口转了两圈，又直直走了。它不认得洗衣店。' },
-    { t: '04:02', s: '东边有一点白。这算不算天亮？' }
-  ];
+  /* ===== Day 20：数据源切换 —— 写死的 NOTES 移除，改调公网接口 =====
+     API_BASE：云函数 HTTP 访问服务的公网地址（api-contract.md）；
+     PLAYER_ID：seed.sql 里的演示玩家（公开仓库的种子 UUID，不是密钥）。
+     真正的密钥（CLOUDBASE_API_KEY）只住云函数环境变量，前端零硬编码。 */
+  const API_BASE = 'https://soren2077-d9gn6rr04d2c15165.service.tcloudbase.com';
+  const PLAYER_ID = '11111111-1111-4111-8111-111111111111';
+
+  /* clueKey → 街区文案：库里只存标识，叙述由前端字典补全（纯显示映射）。
+     未登记的 key 兜底显示标识本身，新线索入库不会白屏 */
+  const CLUE_TEXT = {
+    clue_washer_clock: '3 号洗衣机的定时器停在 02:47，和今晚第一声雷同一分钟。',
+    clue_owner_morse: '便利店的灯箱闪了三短三长三短。老板冲这边点了点头。',
+    clue_day18_selftest: '昨夜有人拉过一次线路自检：接口回话，数据成行。',
+    clue_day20_selftest: '检查台自检：你刚在云端写下这一行。线路畅通。',
+  };
+  const clueText = (key) => CLUE_TEXT[key] || ('（一段陌生的街区信号：' + key + '）');
+
+  /* '2026-10-01T20:04:00+08:00' → '20:04'（动静卡片只要时刻） */
+  const fmtClock = (iso) => (/\d{2}:\d{2}/.exec(String(iso)) || ['--:--'])[0];
+
+  const healthDot = document.getElementById('healthDot');
+  const healthText = document.getElementById('healthText');
+  const lastFetch = document.getElementById('lastFetch');
+  const writeTestBtn = document.getElementById('writeTestBtn');
 
   // 首页可站立范围：右边让给店门热区，下边让给动静列表
   const HOME_WALK = { minX: 10, maxX: 46, minY: 52, maxY: 76 };
@@ -2805,7 +2869,7 @@ body {
 
   // 交付用的验证开关（三个非正常态各有稳定入口，不必靠"手快"去抓瞬间）：
   //   ?mock=loading 停在加载态   ?mock=empty 看空态   ?mock=error 看错误态
-  //   不加参数 = 正常态：短暂加载后渲染假数据
+  //   不加参数 = 正常态：调用公网接口渲染真实数据（Day 20 起）
   const MOCK = new URLSearchParams(location.search).get('mock') || 'ok';
   let loadTimer = null;
 
@@ -2830,12 +2894,72 @@ body {
       }, 700);
       return;
     }
-    // 正常：短暂加载后把假数据渲染成卡片
-    loadTimer = setTimeout(() => {
-      renderNotes(NOTES);
-      setPanelState('ok');
-    }, 900);
+    // 正常态（Day 20 起）：不再写 setTimeout 假数据，直接拉公网接口的真实线索
+    loadNotesRemote();
   }
+
+  /* —— 检查台（Day 20）：服务健康状态 · 最后更新时间 · 一次写入测试入口 —— */
+
+  async function loadNotesRemote() {
+    checkHealth();
+    try {
+      const r = await fetch(API_BASE + '/api/clues?playerId=' + PLAYER_ID + '&limit=50', { cache: 'no-store' });
+      const p = await r.json();
+      if (!p || !p.ok) throw new Error('bad payload');
+      const list = (p.data || []).map((row) => ({ t: fmtClock(row.unlockedAt), s: clueText(row.clueKey) }));
+      if (list.length) {
+        renderNotes(list);
+        setPanelState('ok');
+      } else {
+        renderNotes([]);
+        setPanelState('empty', problemNode('今夜街上没什么动静。', false));
+      }
+      lastFetch.textContent = '更新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    } catch (e) {
+      setPanelState('error', problemNode('街区信号中断 —— 拿不到今夜的动静。', true));
+      noteStamp.textContent = '—';
+    }
+  }
+
+  async function checkHealth() {
+    try {
+      const r = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
+      const p = await r.json();
+      const good = !!(p && p.ok);
+      healthDot.className = good ? 'check-dot ok' : 'check-dot bad';
+      healthText.textContent = good ? '街区服务在线' : '街区服务异常';
+    } catch (e) {
+      healthDot.className = 'check-dot bad';
+      healthText.textContent = '街区服务失联';
+    }
+  }
+
+  /* 写入测试：POST 一条自检线索（幂等 —— 重复点只返回已存在，不刷库） */
+  async function writeTest() {
+    writeTestBtn.disabled = true;
+    const old = writeTestBtn.textContent;
+    writeTestBtn.textContent = '写入中…';
+    try {
+      const r = await fetch(API_BASE + '/api/clues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: PLAYER_ID, clueKey: 'clue_day20_selftest', source: 'interact' }),
+      });
+      const p = await r.json();
+      if (p && p.ok) {
+        showToast(p.data.duplicated ? '写入测试 · 线索已存在' : '写入测试 · 新线索已入库', '云端已确认，列表随之刷新');
+        await loadNotesRemote();
+      } else {
+        showToast('写入测试被拒', (p && p.error && p.error.message) || '服务端返回失败');
+      }
+    } catch (e) {
+      showToast('写入测试失败', '网络不通或跨域被拦 —— F12 控制台有详情');
+    } finally {
+      writeTestBtn.disabled = false;
+      writeTestBtn.textContent = old;
+    }
+  }
+  writeTestBtn.addEventListener('click', (e) => { e.stopPropagation(); writeTest(); });
 
   // 场景图挂掉时不能白屏 —— 得让玩家知道发生了什么，并留一个重新连接的入口
   homeBg.addEventListener('error', () => {
@@ -3190,7 +3314,7 @@ body {
   void playerHome.offsetWidth;   // 强制重排，让首帧尺寸立即生效
   setInstant(player, false);
   setInstant(playerHome, false);
-  loadNotes();            // 首页列表：先加载态，随后渲染假数据
+  loadNotes();            // 首页列表：先加载态，随后渲染云端真实数据（Day 20 起）
   applyRoute();           // Day 13：首次解析 hash，支持 #/outfit、#/status 刷新直达
 })();
 </script>
