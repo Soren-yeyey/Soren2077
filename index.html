@@ -2631,6 +2631,7 @@ body {
   let gunObtained = false;       // 开过箱 = 枪已到手（显示徽标）
   let shootMode   = false;       // 试射开关：只影响店内；街上按不下去
   let toastTimer  = null;
+  let toastSeq    = 0;           // Day 24：toast 归属序号 —— 每条 toast 领一个，旧 timer 醒来核对序号再动手
   const HOLES_MAX = 8;           // 场上弹孔上限：最旧的让位，连射不糊画面
 
   const viewGun    = document.getElementById('viewGun');
@@ -2665,15 +2666,23 @@ body {
   }
 
   // 提示条：先插 DOM 再下一帧加 .show —— 同一帧加类不走 transition（与卡片首句 60ms 同一个坑）
+  // Day 24 修复：toastSeq 归属守卫。旧实现只保存外层 timer 句柄，内层"藏 DOM"的 350ms timer
+  // 是孤儿 —— 上一条 toast 淡出窗口内弹新 toast，旧内层 timer 到点无条件 hidden=true 把新的吞掉。
+  // 现在每条 toast 领序号，所有回调醒来先核对序号，不是当前这条就退回。
   function showToast(main, sub) {
+    const seq = ++toastSeq;
     document.getElementById('toastMain').textContent = main;
     document.getElementById('toastSub').textContent  = sub;
     toast.hidden = false;
-    requestAnimationFrame(() => toast.classList.add('show'));
+    requestAnimationFrame(() => { if (seq === toastSeq) toast.classList.add('show'); });
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
+      if (seq !== toastSeq) return;
       toast.classList.remove('show');
-      setTimeout(() => { toast.hidden = true; }, 350);
+      setTimeout(() => {
+        if (seq !== toastSeq) return;
+        toast.hidden = true;
+      }, 350);
     }, 2600);
   }
 
@@ -2966,7 +2975,8 @@ body {
       writeTestBtn.textContent = old;
     }
   }
-  writeTestBtn.addEventListener('click', (e) => { e.stopPropagation(); writeTest(); });
+  // Day 24 余力加练：互斥锁 —— 删除请求飞行中不允许写入（反之亦然），防止「写入中又删刚写的」时序打架
+  writeTestBtn.addEventListener('click', (e) => { e.stopPropagation(); if (deleteTestBtn.disabled) return; writeTest(); });
 
   /* 删除测试（Day 22）：DELETE 一条自检线索。
      两段式二次确认 —— 删除出事是数据直接没了，所以多一道门槛：
@@ -3005,6 +3015,7 @@ body {
   deleteTestBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (deleteTestBtn.disabled) return;
+    if (writeTestBtn.disabled) return;   // Day 24 互斥锁：写入飞行中不受理删除
     if (confirmTimer) {            // 第二次点：确认，执行删除
       disarmDelete();
       deleteTest();
