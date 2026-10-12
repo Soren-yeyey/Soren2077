@@ -1,0 +1,8 @@
+{
+  "version":1,"seed":2077,"chunkSize":96,"name":"雨幕之城",
+  "zones":[
+    {"id":"market","name":"雨巷商业街","center":96,"theme":"market","accent":"#ffb86a"},
+    {"id":"tower","name":"中央塔区","center":0,"theme":"tower","accent":"#74e5ff"},
+    {"id":"homes","name":"雾港居住区","center":-96,"theme":"homes","accent":"#d59aff"}
+  ]
+}

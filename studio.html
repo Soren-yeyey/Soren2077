@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>雨幕之城 · 城市工坊</title><link rel="stylesheet" href="studio/studio.css"></head>
+<body>
+<main id="viewport" tabindex="0" aria-label="城市搭建三维视图"></main>
+<header><a class="brand" href="index.html"><span>雨</span><div>雨幕之城<small>城市工坊 / 模块化街区</small></div></a><div class="modes"><button id="mode-walk" class="active">街区漫游</button><button id="mode-edit">自由搭建</button><button id="mode-film">镜头预览</button></div><button id="capture">保存画面</button></header>
+<section class="title"><p>一座城市，从一条街开始</p><h1 id="zone-title">雨巷商业街</h1><div><span class="live"></span><span id="stream-state">正在点亮街区…</span></div></section>
+<nav id="zones" aria-label="切换分区"></nav>
+<aside id="editor" hidden>
+ <div class="panel-title"><span>搭建工作台</span><small>按地块吸附 · 米</small></div>
+ <label>选择建筑<select id="building"></select></label>
+ <label>替换模型<select id="asset"></select></label>
+ <div class="fields"><label>左右位置<input id="pos-x" type="number" step="1"></label><label>前后位置<input id="pos-z" type="number" step="1"></label><label>旋转角度<input id="rotation" type="number" step="15"></label><label>比例<input id="scale" type="number" min="0.5" max="1.4" step="0.05"></label></div>
+ <button id="apply" class="primary">应用修改</button><div class="row"><button id="rotate">旋转 90°</button><button id="focus">查看选中</button><button id="undo">撤销</button></div><div class="row"><button id="add-building">添加建筑</button><button id="remove-building">移除选中</button></div>
+ <div class="divider"></div><label>街区种子<input id="seed" type="number" value="2077" step="1"></label><button id="generate">按种子重组街区</button>
+ <div class="row"><button id="save">保存到本机</button><button id="export">导出布局</button></div><label class="file">导入布局文件<input id="import" type="file" accept="application/json,.json"></label>
+ <p class="hint">点击建筑可选择；坐标按 1 米吸附。道路和地块边界受保护。导入、重组和替换均可撤销。</p>
+</aside>
+<aside id="motion-panel"><label>行人动作<select id="motion"><option value="walk">行走</option><option value="idle">站立</option><option value="run">奔跑</option></select></label><label>光照氛围<select id="lighting"><option value="night">雨夜霓虹</option><option value="blue">蓝调清晨</option></select></label><label>画质<select id="quality"><option value="high">高</option><option value="balanced">均衡</option></select></label></aside>
+<footer><span id="help">W A S D 行走 · 按住鼠标环顾 · Shift 快走</span><span id="stats">三分区 / 七种模型</span><a href="index.html">原版街景 ↗</a></footer>
+<div id="message" role="status" aria-live="polite"></div>
+<section id="loading"><span class="loader"></span><h2>正在搭建你的街区</h2><p id="load-status">读取独立模型与场景配置</p></section>
+<section id="error" hidden role="alert"><h2>街区暂时无法打开</h2><p id="error-text"></p><button onclick="location.reload()">重新载入</button></section>
+<script src="libs/three.min.js"></script><script src="libs/three/GLTFLoader.js"></script><script src="libs/three/CopyShader.js"></script><script src="libs/three/LuminosityHighPassShader.js"></script><script src="libs/three/EffectComposer.js"></script><script src="libs/three/RenderPass.js"></script><script src="libs/three/ShaderPass.js"></script><script src="libs/three/UnrealBloomPass.js"></script>
+<script src="studio/core.js"></script><script src="studio/materials.js"></script><script src="studio/motions.js"></script><script src="studio/world.js"></script><script src="studio/editor.js"></script><script src="studio/app.js"></script>
+</body></html>

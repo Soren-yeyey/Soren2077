@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "seed": 2077,
+  "placements": [
+    {
+      "id": "market-0--1",
+      "zone": "market",
+      "asset": "workshop",
+      "x": -20,
+      "z": 65,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "market-0-1",
+      "zone": "market",
+      "asset": "advert",
+      "x": 20,
+      "z": 65,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "market-1--1",
+      "zone": "market",
+      "asset": "advert",
+      "x": -20,
+      "z": 96,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "market-1-1",
+      "zone": "market",
+      "asset": "commercial",
+      "x": 20,
+      "z": 96,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "market-2--1",
+      "zone": "market",
+      "asset": "commercial",
+      "x": -20,
+      "z": 127,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "market-2-1",
+      "zone": "market",
+      "asset": "commercial",
+      "x": 20,
+      "z": 127,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-0--1",
+      "zone": "tower",
+      "asset": "orion",
+      "x": -20,
+      "z": -31,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-0-1",
+      "zone": "tower",
+      "asset": "kael",
+      "x": 20,
+      "z": -31,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-1--1",
+      "zone": "tower",
+      "asset": "central",
+      "x": -20,
+      "z": 0,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-1-1",
+      "zone": "tower",
+      "asset": "orion",
+      "x": 20,
+      "z": 0,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-2--1",
+      "zone": "tower",
+      "asset": "kael",
+      "x": -20,
+      "z": 31,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "tower-2-1",
+      "zone": "tower",
+      "asset": "orion",
+      "x": 20,
+      "z": 31,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-0--1",
+      "zone": "homes",
+      "asset": "commercial",
+      "x": -20,
+      "z": -127,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-0-1",
+      "zone": "homes",
+      "asset": "nc77",
+      "x": 20,
+      "z": -127,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-1--1",
+      "zone": "homes",
+      "asset": "commercial",
+      "x": -20,
+      "z": -96,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-1-1",
+      "zone": "homes",
+      "asset": "workshop",
+      "x": 20,
+      "z": -96,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-2--1",
+      "zone": "homes",
+      "asset": "nc77",
+      "x": -20,
+      "z": -65,
+      "rotation": 1.5707963267948966,
+      "scale": 1
+    },
+    {
+      "id": "homes-2-1",
+      "zone": "homes",
+      "asset": "workshop",
+      "x": 20,
+      "z": -65,
+      "rotation": -1.5707963267948966,
+      "scale": 1
+    }
+  ]
+}

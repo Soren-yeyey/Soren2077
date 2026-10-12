@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "units": "metres",
+  "assets": [
+    {"id":"commercial","name":"商业街楼","source":"models/city-kit.gltf","node":"07","scale":0.65,"footprint":[15,12],"triangles":2416},
+    {"id":"orion","name":"弧幕高楼","source":"models/city-kit.gltf","node":"08","scale":0.7,"footprint":[19,14],"triangles":1332},
+    {"id":"nc77","name":"层叠住宅","source":"models/city-kit.gltf","node":"09","scale":0.65,"footprint":[18,15],"triangles":2304},
+    {"id":"advert","name":"圆柱广告塔","source":"models/city-kit.gltf","node":"10","scale":0.6,"footprint":[11.6,11.6],"triangles":1872},
+    {"id":"central","name":"中央环形塔","source":"models/city-kit.gltf","node":"11","scale":0.55,"footprint":[29,29],"triangles":2392},
+    {"id":"kael","name":"全息大楼","source":"models/city-kit.gltf","node":"12","scale":0.65,"footprint":[21,14],"triangles":1668},
+    {"id":"workshop","name":"雨巷修理所 · 精细样板","source":"models/workshop.glb","node":"13","scale":1,"footprint":[12.6,11.5]}
+  ]
+}
