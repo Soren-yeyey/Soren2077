@@ -21,9 +21,16 @@ function validate(layout,config,registry){
   if(boxes.some(x=>overlap(x,b)))throw Error('建筑之间需要留出间距');boxes.push(b);
  }return true;
 }
-function blocked(x,z,boxes,r=.36){return x< -8.9+r||x>8.9-r||z< -143+r||z>143-r||boxes.some(b=>x>b.minX-r&&x<b.maxX+r&&z>b.minZ-r&&z<b.maxZ+r);}
+function toLocal(x,z,p,s=1){const dx=x-p.x,dz=z-p.z,c=Math.cos(p.rotation),n=Math.sin(p.rotation);return{x:(c*dx-n*dz)/s,z:(n*dx+c*dz)/s};}
+function toWorld(x,z,p,s=1){const c=Math.cos(p.rotation),n=Math.sin(p.rotation);return{x:p.x+(c*x+n*z)*s,z:p.z+(-n*x+c*z)*s};}
+function hits(x,z,b,r=.36){
+ if(b.halfX!==undefined){const p=toLocal(x,z,{x:b.x,z:b.z,rotation:b.rotation||0});const dx=Math.max(Math.abs(p.x)-b.halfX,0),dz=Math.max(Math.abs(p.z)-b.halfZ,0);return dx*dx+dz*dz<r*r;}
+ return x>b.minX-r&&x<b.maxX+r&&z>b.minZ-r&&z<b.maxZ+r;
+}
+function workshopBoxes(p,definition,s){return definition.boxes.map(b=>({...toWorld(b.x,b.z,p,s),halfX:b.halfX*s,halfZ:b.halfZ*s,rotation:p.rotation}));}
+function blocked(x,z,boxes,r=.36){return x< -44.4+r||x>44.4-r||z< -143+r||z>143-r||boxes.some(b=>hits(x,z,b,r));}
 function move(p,dx,dz,boxes){let{x,z}=p;const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.15));for(let i=0;i<steps;i++){if(!blocked(x+dx/steps,z,boxes))x+=dx/steps;if(!blocked(x,z+dz/steps,boxes))z+=dz/steps;}return{x,z};}
 function zoneAt(z,config){return config.zones.reduce((a,b)=>Math.abs(a.center-z)<Math.abs(b.center-z)?a:b);}
-const api={random,generate,footprint,validate,overlap,blocked,move,zoneAt};root.CityCore=api;if(typeof module!=='undefined')module.exports=api;
+const api={random,generate,footprint,validate,overlap,blocked,move,zoneAt,toLocal,toWorld,hits,workshopBoxes};root.CityCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 

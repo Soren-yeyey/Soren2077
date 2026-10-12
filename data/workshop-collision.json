@@ -1,0 +1,369 @@
+{
+  "version": 1,
+  "asset": "workshop",
+  "units": "metres",
+  "boxes": [
+    {
+      "name": "back wall",
+      "x": 0.0,
+      "z": -4.85,
+      "halfX": 6.0,
+      "halfZ": 0.15
+    },
+    {
+      "name": "side wall",
+      "x": -5.85,
+      "z": -0.0,
+      "halfX": 0.15,
+      "halfZ": 4.7
+    },
+    {
+      "name": "side wall.001",
+      "x": 5.85,
+      "z": -0.0,
+      "halfX": 0.15,
+      "halfZ": 4.7
+    },
+    {
+      "name": "storefront pier",
+      "x": -5.6,
+      "z": 4.85,
+      "halfX": 0.11,
+      "halfZ": 0.15
+    },
+    {
+      "name": "storefront pier.001",
+      "x": -1.45,
+      "z": 4.85,
+      "halfX": 0.11,
+      "halfZ": 0.15
+    },
+    {
+      "name": "storefront pier.002",
+      "x": 1.45,
+      "z": 4.85,
+      "halfX": 0.11,
+      "halfZ": 0.15
+    },
+    {
+      "name": "storefront pier.003",
+      "x": 5.6,
+      "z": 4.85,
+      "halfX": 0.11,
+      "halfZ": 0.15
+    },
+    {
+      "name": "window sill",
+      "x": -3.5,
+      "z": 4.83,
+      "halfX": 1.95,
+      "halfZ": 0.2
+    },
+    {
+      "name": "window glass",
+      "x": -3.5,
+      "z": 4.87,
+      "halfX": 1.925,
+      "halfZ": 0.0225
+    },
+    {
+      "name": "window trim",
+      "x": -3.5,
+      "z": 4.92,
+      "halfX": 1.99,
+      "halfZ": 0.06
+    },
+    {
+      "name": "window mullion",
+      "x": -3.5,
+      "z": 4.96,
+      "halfX": 0.0375,
+      "halfZ": 0.045
+    },
+    {
+      "name": "window sill.001",
+      "x": 3.5,
+      "z": 4.83,
+      "halfX": 1.95,
+      "halfZ": 0.2
+    },
+    {
+      "name": "window glass.001",
+      "x": 3.5,
+      "z": 4.87,
+      "halfX": 1.925,
+      "halfZ": 0.0225
+    },
+    {
+      "name": "window trim.002",
+      "x": 3.5,
+      "z": 4.92,
+      "halfX": 1.99,
+      "halfZ": 0.06
+    },
+    {
+      "name": "window mullion.001",
+      "x": 3.5,
+      "z": 4.96,
+      "halfX": 0.0375,
+      "halfZ": 0.045
+    },
+    {
+      "name": "counter",
+      "x": 2.0,
+      "z": -1.9,
+      "halfX": 2.7,
+      "halfZ": 0.65
+    },
+    {
+      "name": "countertop",
+      "x": 2.0,
+      "z": -1.9,
+      "halfX": 2.825,
+      "halfZ": 0.75
+    },
+    {
+      "name": "rear shelf",
+      "x": 0.0,
+      "z": -4.45,
+      "halfX": 5.3,
+      "halfZ": 0.25
+    },
+    {
+      "name": "spare part",
+      "x": -4.7,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.15
+    },
+    {
+      "name": "spare part.001",
+      "x": -3.85,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.21
+    },
+    {
+      "name": "spare part.002",
+      "x": -3.0,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.27
+    },
+    {
+      "name": "spare part.003",
+      "x": -2.15,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.15
+    },
+    {
+      "name": "spare part.004",
+      "x": -1.3,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.21
+    },
+    {
+      "name": "spare part.005",
+      "x": -0.45,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.27
+    },
+    {
+      "name": "spare part.006",
+      "x": 0.4,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.15
+    },
+    {
+      "name": "spare part.007",
+      "x": 1.25,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.21
+    },
+    {
+      "name": "spare part.008",
+      "x": 2.1,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.27
+    },
+    {
+      "name": "spare part.009",
+      "x": 2.95,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.15
+    },
+    {
+      "name": "spare part.010",
+      "x": 3.8,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.21
+    },
+    {
+      "name": "spare part.011",
+      "x": 4.65,
+      "z": -4.43,
+      "halfX": 0.17,
+      "halfZ": 0.27
+    },
+    {
+      "name": "table support",
+      "x": -3.7,
+      "z": 1.8,
+      "halfX": 0.055,
+      "halfZ": 0.055
+    },
+    {
+      "name": "table",
+      "x": -3.7,
+      "z": 1.8,
+      "halfX": 0.8,
+      "halfZ": 0.8
+    },
+    {
+      "name": "stool",
+      "x": -3.7,
+      "z": 2.85,
+      "halfX": 0.32,
+      "halfZ": 0.32
+    },
+    {
+      "name": "stool leg",
+      "x": -3.7,
+      "z": 2.85,
+      "halfX": 0.065,
+      "halfZ": 0.065
+    },
+    {
+      "name": "stool.001",
+      "x": -3.7,
+      "z": 0.8,
+      "halfX": 0.32,
+      "halfZ": 0.32
+    },
+    {
+      "name": "stool leg.001",
+      "x": -3.7,
+      "z": 0.8,
+      "halfX": 0.065,
+      "halfZ": 0.065
+    },
+    {
+      "name": "cup",
+      "x": -3.7,
+      "z": 1.8,
+      "halfX": 0.075,
+      "halfZ": 0.075
+    },
+    {
+      "name": "table support.001",
+      "x": 3.7,
+      "z": 1.8,
+      "halfX": 0.055,
+      "halfZ": 0.055
+    },
+    {
+      "name": "table.001",
+      "x": 3.7,
+      "z": 1.8,
+      "halfX": 0.8,
+      "halfZ": 0.8
+    },
+    {
+      "name": "stool.002",
+      "x": 3.7,
+      "z": 2.85,
+      "halfX": 0.32,
+      "halfZ": 0.32
+    },
+    {
+      "name": "stool leg.002",
+      "x": 3.7,
+      "z": 2.85,
+      "halfX": 0.065,
+      "halfZ": 0.065
+    },
+    {
+      "name": "stool.003",
+      "x": 3.7,
+      "z": 0.8,
+      "halfX": 0.32,
+      "halfZ": 0.32
+    },
+    {
+      "name": "stool leg.003",
+      "x": 3.7,
+      "z": 0.8,
+      "halfX": 0.065,
+      "halfZ": 0.065
+    },
+    {
+      "name": "cup.001",
+      "x": 3.7,
+      "z": 1.8,
+      "halfX": 0.075,
+      "halfZ": 0.075
+    },
+    {
+      "name": "interior display",
+      "x": -4.6,
+      "z": -3.8,
+      "halfX": 0.6,
+      "halfZ": 0.1
+    },
+    {
+      "name": "interior display.001",
+      "x": 4.6,
+      "z": -3.8,
+      "halfX": 0.6,
+      "halfZ": 0.1
+    },
+    {
+      "name": "external pipe",
+      "x": 6.09,
+      "z": 2.0,
+      "halfX": 0.075,
+      "halfZ": 0.075
+    },
+    {
+      "name": "pipe bracket",
+      "x": 6.03,
+      "z": 2.0,
+      "halfX": 0.14,
+      "halfZ": 0.15
+    },
+    {
+      "name": "external pipe.001",
+      "x": 6.09,
+      "z": -2.0,
+      "halfX": 0.075,
+      "halfZ": 0.075
+    },
+    {
+      "name": "pipe bracket.003",
+      "x": 6.03,
+      "z": -2.0,
+      "halfX": 0.14,
+      "halfZ": 0.15
+    }
+  ],
+  "floor": {
+    "minX": -5.7,
+    "maxX": 5.7,
+    "minZ": -4.7,
+    "maxZ": 5,
+    "height": 0.32
+  },
+  "roofHeight": 5.85,
+  "entry": {
+    "x": 0,
+    "z": 6.5
+  }
+}

@@ -1,5 +1,5 @@
 window.CityWorld=class {
- constructor(T,scene,registry,config,prefabs){this.T=T;this.scene=scene;this.registry=registry;this.config=config;this.prefabs=prefabs;this.materials=CityMaterials(T);this.chunks=new Map();this.objects=new Map();this.proxies=new Map();this.furniture=[];this.layout=null;this.makeInfrastructure();}
+ constructor(T,scene,registry,config,prefabs,interior){this.T=T;this.scene=scene;this.registry=registry;this.config=config;this.prefabs=prefabs;this.interior=interior;this.materials=CityMaterials(T);this.chunks=new Map();this.objects=new Map();this.proxies=new Map();this.furniture=[];this.buildingColliders=[];this.shops=[];this.layout=null;this.makeInfrastructure();}
  mesh(w,h,d,x,y,z,m,parent=this.scene){const o=new this.T.Mesh(new this.T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o;}
  makeInfrastructure(){
   const T=this.T,m=this.materials;this.infrastructure=new T.Group();this.scene.add(this.infrastructure);
@@ -21,6 +21,7 @@ window.CityWorld=class {
      this.mesh(1.2,.75,2.8,side*11,.375,z,m.steel,g);this.mesh(1,.05,2.5,side*11,.77,z,m.dark,g);
      const leaves=new T.Mesh(new T.IcosahedronGeometry(.7,1),new T.MeshStandardMaterial({color:0x24493d,roughness:.8}));leaves.position.set(side*11,1,z);leaves.scale.set(.8,.55,1.7);g.add(leaves);
      this.mesh(.07,.06,2.1,side*10.37,.60,z,m.amber,g);
+     this.furniture.push({minX:side*11-.7,maxX:side*11+.7,minZ:zone.center+z-1.5,maxZ:zone.center+z+1.5});
     }
    }
   }
@@ -32,6 +33,9 @@ window.CityWorld=class {
  }
  setLayout(layout){
   CityCore.validate(layout,this.config,this.registry);this.layout=JSON.parse(JSON.stringify(layout));
+  this.buildingColliders=[];this.shops=[];
+  for(const p of this.layout.placements){const a=this.registry.find(a=>a.id===p.asset),s=a.scale*p.scale;if(p.asset==='workshop'){this.buildingColliders.push(...CityCore.workshopBoxes(p,this.interior,s));this.shops.push({placement:p,scale:s});}else this.buildingColliders.push(CityCore.footprint(p,this.registry));}
+  this.colliders=this.furniture.concat(this.buildingColliders);
   for(const g of this.chunks.values())this.scene.remove(g);this.chunks.clear();this.objects.clear();
   for(const o of this.proxies.values()){this.scene.remove(o);o.geometry.dispose();}this.proxies.clear();
   for(const p of layout.placements){const b=CityCore.footprint(p,this.registry),a=this.registry.find(a=>a.id===p.asset),src=this.prefabs.get(a.id);src.updateMatrixWorld(true);const height=new this.T.Box3().setFromObject(src).getSize(new this.T.Vector3()).y*a.scale*p.scale;const o=this.mesh(b.maxX-b.minX,height,b.maxZ-b.minZ,p.x,height/2,p.z,this.materials.steel);this.proxies.set(p.id,o);}
@@ -49,5 +53,8 @@ window.CityWorld=class {
    }
   }return zone;
  }
- getColliders(){return this.furniture;}
+ getColliders(){return this.colliders||this.furniture;}
+ roomAt(x,z){const f=this.interior.floor;for(const shop of this.shops){const p=CityCore.toLocal(x,z,shop.placement,shop.scale);if(p.x>f.minX&&p.x<f.maxX&&p.z>f.minZ&&p.z<f.maxZ)return shop;}return null;}
+ groundAt(x,z){const shop=this.roomAt(x,z);if(shop)return this.interior.floor.height*shop.scale;return Math.abs(x)>5.6&&Math.abs(x)<9.5?.18:.05;}
+ underRoof(x,y,z){const shop=this.roomAt(x,z);return shop&&y<this.interior.roofHeight*shop.scale;}
 };

@@ -4,7 +4,7 @@ const app={mode:'walk',layout:null,clip:'walk',keys:new Set(),yaw:0,pitch:0,drag
 app.notify=text=>{$('message').textContent=text;$('message').classList.add('show');clearTimeout(app.timer);app.timer=setTimeout(()=>$('message').classList.remove('show'),3600);};
 app.download=(blob,name)=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 try{
- const responses=await Promise.all(['data/assets.json','data/world.json','data/default-layout.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
+ const responses=await Promise.all(['data/assets.json','data/world.json','data/default-layout.json','data/workshop-collision.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
  app.registry=responses[0].assets;app.config=responses[1];let layout=responses[2];
  try{const saved=localStorage.getItem('rain-city-layout-v1');if(saved){const l=JSON.parse(saved);CityCore.validate(l,app.config,app.registry);layout=l;}}catch(e){app.notify('已忽略不兼容的本地布局，载入默认街区');}
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1;host.append(renderer.domElement);app.renderer=renderer;
@@ -14,7 +14,7 @@ try{
  const loader=new T.GLTFLoader(),sources=new Map(),prefabs=new Map();
  for(const source of [...new Set(app.registry.map(a=>a.source))]){sources.set(source,await loader.loadAsync(source));$('load-status').textContent='模型已载入 '+sources.size+' / 2';}
  for(const a of app.registry){let node; sources.get(a.source).scene.traverse(o=>{if(!node&&o.name.startsWith(a.node))node=o;});if(!node)throw Error('模型缺失：'+a.name);node=node.clone(true);node.position.set(0,0,0);node.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());m.map.magFilter=T.LinearFilter;}if(m.transparent)m.depthWrite=false;if(m.emissiveIntensity>1.5)m.emissiveIntensity=1.5;}}});prefabs.set(a.id,node);}
- const world=new CityWorld(T,scene,app.registry,app.config,prefabs);app.world=world;
+ const world=new CityWorld(T,scene,app.registry,app.config,prefabs,responses[3]);app.world=world;
  const floor=new T.Mesh(new T.PlaneGeometry(1800,1800),world.materials.dark);floor.rotation.x=-Math.PI/2;floor.position.y=-.65;scene.add(floor);
  const composer=new T.EffectComposer(renderer);composer.addPass(new T.RenderPass(scene,camera));const bloom=new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.38,.5,1.1);composer.addPass(bloom);
  const grade=new T.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(1./2.2)),1.);}'});grade.material.toneMapped=false;composer.addPass(grade);
@@ -34,6 +34,13 @@ try{
  function setMode(mode){app.mode=mode;app.keys.clear();app.drag=null;document.body.classList.toggle('editing',mode==='edit');document.body.classList.toggle('filming',mode==='film');$('editor').hidden=mode!=='edit';for(const m of ['walk','edit','film'])$('mode-'+m).classList.toggle('active',mode===m);$('help').textContent=mode==='edit'?'点击建筑选择 · 右侧修改并保存 · 按住鼠标环顾':mode==='film'?'自动镜头预览 · 可切回漫游继续搭建':'W A S D 行走 · 按住鼠标环顾 · Shift 快走';if(mode==='walk')app.zone(CityCore.zoneAt(camera.position.z,app.config));if(mode==='film')app.filmTime=0;if(mode==='edit')app.focus(app.layout.placements.find(p=>p.id===app.editor.selected)||app.layout.placements[0]);app.editor.outline();host.dataset.mode=mode;}
  for(const mode of ['walk','edit','film'])$('mode-'+mode).onclick=()=>setMode(mode);
  for(const z of app.config.zones){const b=document.createElement('button');b.textContent=z.name;b.dataset.zone=z.id;b.onclick=()=>{if(app.mode==='film')setMode('walk');app.zone(z);};$('zones').append(b);}
+ $('visit-workshop').onclick=()=>{
+  const zone=CityCore.zoneAt(camera.position.z,app.config),shop=world.shops.find(s=>s.placement.zone===zone.id)||world.shops[0];
+  if(!shop){app.notify('当前布局没有样板店，请先添加一间');return;}
+  let entry;for(const distance of [6.5,7,8,9]){const p=CityCore.toWorld(0,distance,shop.placement,shop.scale);if(!CityCore.blocked(p.x,p.z,world.getColliders())){entry=p;break;}}
+  if(!entry){app.notify('店门前没有安全落脚点，请调整建筑位置');return;}
+  setMode('walk');camera.position.set(entry.x,1.86+world.groundAt(entry.x,entry.z),entry.z);app.lookAt(new T.Vector3(shop.placement.x,camera.position.y,shop.placement.z));world.update(entry.z);host.focus();app.notify('已到店门前，按 W 进入，按住鼠标环顾');
+ };
  $('motion').onchange=e=>app.clip=e.target.value;
  $('lighting').onchange=e=>{const blue=e.target.value==='blue';ambient.intensity=blue?2:1.45;sun.intensity=blue?3:2.2;scene.background.set(blue?0x46637a:0x122332);scene.fog.color.copy(scene.background);};
  let high=true;$('quality').onchange=e=>{high=e.target.value==='high';renderer.setPixelRatio(Math.min(devicePixelRatio,high?1.5:1));composer.setPixelRatio(Math.min(devicePixelRatio,high?1.5:1));reflection.setSize(high?768:512,high?512:320);};
@@ -53,14 +60,14 @@ try{
    const k=app.keys,s=(k.has('KeyD')?1:0)-(k.has('KeyA')?1:0),f=(k.has('KeyW')||k.has('ArrowUp')?1:0)-(k.has('KeyS')||k.has('ArrowDown')?1:0);if(k.has('ArrowLeft'))app.yaw+=dt;if(k.has('ArrowRight'))app.yaw-=dt;const pace=(k.has('ShiftLeft')?7:3.5)*dt/Math.max(1,Math.hypot(s,f));
    const dx=(s*Math.cos(app.yaw)-f*Math.sin(app.yaw))*pace,dz=(-s*Math.sin(app.yaw)-f*Math.cos(app.yaw))*pace;
    const obstacles=world.getColliders().concat([{minX:actor.root.position.x-.3,maxX:actor.root.position.x+.3,minZ:actor.root.position.z-.3,maxZ:actor.root.position.z+.3},{minX:vehicle.position.x-1,maxX:vehicle.position.x+1,minZ:vehicle.position.z-2.1,maxZ:vehicle.position.z+2.1}]);
-   const p=CityCore.move(camera.position,dx,dz,obstacles);camera.position.x=p.x;camera.position.z=p.z;camera.position.y=Math.abs(p.x)>5.6?2.05:1.9;
+   const p=CityCore.move(camera.position,dx,dz,obstacles);camera.position.x=p.x;camera.position.z=p.z;camera.position.y=T.MathUtils.damp(camera.position.y,1.86+world.groundAt(p.x,p.z),12,dt);
   }else if(app.mode==='film'){
    app.filmTime+=dt;const t=app.filmTime%24;camera.position.set(6+Math.sin(t/24*Math.PI*2)*2,3+t*.28,125-t*6);app.lookAt(new T.Vector3(-24,5,65-t*2));
   }
   camera.rotation.set(app.pitch,app.yaw,0,'YXZ');const zone=world.update(camera.position.z);
   const actorStep=(CityMotions.clips[app.clip]?.speed||0)*dt*actor.direction;const actorBlocked=app.mode==="walk"&&Math.abs(camera.position.x-actor.root.position.x)<.75&&Math.abs(camera.position.z-(actor.root.position.z+actorStep))<.85;CityMotions.update(actor,dt,actorBlocked?"idle":app.clip,app.route);const nextZ=vehicleZ-dt*5;const nearPlayer=Math.abs(camera.position.x+2)<1.6&&Math.abs(camera.position.z-nextZ)<4;const nearActor=Math.abs(actor.root.position.x+2)<1.6&&Math.abs(actor.root.position.z-nextZ)<4;if(!nearPlayer&&!nearActor)vehicleZ=nextZ;if(vehicleZ< -160)vehicleZ=160;vehicle.position.set(-2,.06,vehicleZ);vehicle.visible=vehicleZ>=-142&&vehicleZ<=142;
-  for(let i=0;i<rainCount;i++){const s=seeds[i],j=i*6,y=((s[1]-time*13)%32+32)%32;positions[j]=s[0]+camera.position.x;positions[j+1]=y;positions[j+2]=s[2]+camera.position.z;positions[j+3]=positions[j]-.06;positions[j+4]=y+.6;positions[j+5]=positions[j+2];}rg.attributes.position.needsUpdate=true;wet.uniforms.time.value=time;if(high||frame%2===0)renderReflection();composer.render();
-  measureTime+=real;measureFrames++;if(frame%20===0){$('zone-title').textContent=zone.name;$('stream-state').textContent=world.chunks.size+' 个分区已展开 · 远景保持可见';document.querySelectorAll('[data-zone]').forEach(b=>b.classList.toggle('active',b.dataset.zone===zone.id));host.dataset.zone=zone.id;host.dataset.loadedZones=[...world.chunks.keys()].join(',');host.dataset.position=camera.position.x.toFixed(2)+','+camera.position.z.toFixed(2);host.dataset.clip=app.clip;host.dataset.actorZ=actor.root.position.z.toFixed(2);$('stats').textContent=app.layout.placements.length+' 栋建筑 / '+world.objects.size+' 栋近景';}
+  for(let i=0;i<rainCount;i++){const s=seeds[i],j=i*6,y=((s[1]-time*13)%32+32)%32;positions[j]=s[0]+camera.position.x;positions[j+1]=y;positions[j+2]=s[2]+camera.position.z;const sheltered=world.underRoof(positions[j],y,positions[j+2]);positions[j+3]=positions[j]-(sheltered?0:.06);positions[j+4]=y+(sheltered?0:.6);positions[j+5]=positions[j+2];}rg.attributes.position.needsUpdate=true;wet.uniforms.time.value=time;if(high||frame%2===0)renderReflection();composer.render();
+  measureTime+=real;measureFrames++;if(frame%20===0){const inside=world.roomAt(camera.position.x,camera.position.z);host.dataset.interior=inside?'workshop':'';$('zone-title').textContent=inside?'样板店 · 室内':zone.name;$('stream-state').textContent=world.chunks.size+' 个分区已展开 · 远景保持可见';document.querySelectorAll('[data-zone]').forEach(b=>b.classList.toggle('active',b.dataset.zone===zone.id));host.dataset.zone=zone.id;host.dataset.loadedZones=[...world.chunks.keys()].join(',');host.dataset.position=camera.position.x.toFixed(2)+','+camera.position.z.toFixed(2);host.dataset.clip=app.clip;host.dataset.actorZ=actor.root.position.z.toFixed(2);$('stats').textContent=app.layout.placements.length+' 栋建筑 / '+world.objects.size+' 栋近景';}
   if(measureTime>3){host.dataset.fps=(measureFrames/measureTime).toFixed(1);measureTime=0;measureFrames=0;}
  }
  $('loading').hidden=true;host.dataset.ready='true';host.dataset.mode='walk';animate();
