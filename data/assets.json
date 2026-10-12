@@ -1,13 +1,603 @@
 {
-  "version": 1,
+  "version": 2,
   "units": "metres",
+  "runtimeUpAxis": "Y",
+  "files": {
+    "models/city-kit.gltf": {
+      "bytes": 57945,
+      "sha256": "05a3ebbe720b4dc391818a89e6f3a43ab6ea67c60805e0018d0fe21e0d68969a"
+    },
+    "models/city-kit.bin": {
+      "bytes": 798432,
+      "sha256": "59019d9786ff7ad80d837303aaabb917b2e734497152206741ba2e1896ce99ad"
+    },
+    "images/city-ddfbf0f800.webp": {
+      "bytes": 2154,
+      "sha256": "a9d31a7c6e6ba45e93c1aa70a5064ac3253d0bdff8e5b8e47206301bdcc646fc"
+    },
+    "images/city-b6cc1335ff.webp": {
+      "bytes": 88416,
+      "sha256": "e87e6efdfbf6c99d8aca8fcb589253aebfe22ac9df06d38545289125081c7d64"
+    },
+    "images/city-4187d93a9b.webp": {
+      "bytes": 550,
+      "sha256": "068063af818a6488ec83cda0c66681e8abd05fae08b919b30179ea98a55e145a"
+    },
+    "images/city-b67b3fbd7f.webp": {
+      "bytes": 7732,
+      "sha256": "03006683d8bda44776164fff7450b9ffc6ebf06ed85125766e5a706773e60c60"
+    },
+    "images/city-2e3abddd43.webp": {
+      "bytes": 2282,
+      "sha256": "d2fdae44ac929853dc8865c9e3e1a783fe39759ce9aad3dc8ec4eecc0ff5e37e"
+    },
+    "images/city-612643df1b.webp": {
+      "bytes": 4214,
+      "sha256": "c9f055887be1f7ab55203dfec1afb27ea0d2198605c22c086c966727263211ad"
+    },
+    "images/city-f8f5887f90.webp": {
+      "bytes": 5438,
+      "sha256": "baf4e2c37db59c6a4b4823ef393721ea4df734b0676afb75537fe65ba2e5c0f5"
+    },
+    "images/city-6663583507.webp": {
+      "bytes": 3766,
+      "sha256": "26d894184b99aaa61f514fa283f80888a1c2a35cb37b387480808f9ec009c992"
+    },
+    "images/city-704d6547aa.webp": {
+      "bytes": 13400,
+      "sha256": "818cf5f61b30deffc1ec7f0c169022f8f67b4fc9397d29ccfc3ce1b75f64c377"
+    },
+    "images/city-40aefc723a.webp": {
+      "bytes": 216666,
+      "sha256": "484135bf6637f523a555f9ee51bb8a3f84c7dd7e63c37ff3da2d0f2321bf9bdd"
+    },
+    "images/city-bf33257975.webp": {
+      "bytes": 8330,
+      "sha256": "d0155b734d92b1bbaa173d91421c63b0d608c392c5ac15fdc110c8902011a5eb"
+    },
+    "images/city-28048496ea.webp": {
+      "bytes": 272872,
+      "sha256": "fa795551ef9d7a8924a1aee883a6beaed2bc1190d7c70a21829e3d957033dc10"
+    },
+    "images/city-eb624b0821.webp": {
+      "bytes": 5406,
+      "sha256": "3375deac42464e62c91e0cbafb5973e075fffcd9b944b355155f886a37f31370"
+    },
+    "images/city-34f20a9e69.webp": {
+      "bytes": 3146,
+      "sha256": "e459dc32746f5c00d1c0562495335724728b876f1e21076f2d1318e2da169aad"
+    },
+    "images/city-385533a4bb.webp": {
+      "bytes": 98278,
+      "sha256": "9a1f4c8c3944a8379da2b0f46c68249cd7eeabcda543c4ad3063daca5bb723d6"
+    },
+    "images/city-ecc2955422.webp": {
+      "bytes": 13450,
+      "sha256": "988950771cd9e61763bf44ab7a7d5750d09a38fffda9afde711522008dab71c6"
+    },
+    "models/workshop.glb": {
+      "bytes": 681572,
+      "sha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    "data/workshop-collision.json": {
+      "bytes": 6556,
+      "sha256": "a03d918339ea6d2e5aa76a52eb148551c43489c8b7fab126a74c0c310582d1f5"
+    }
+  },
   "assets": [
-    {"id":"commercial","name":"商业街楼","source":"models/city-kit.gltf","node":"07","scale":0.65,"footprint":[15,12],"triangles":2416},
-    {"id":"orion","name":"弧幕高楼","source":"models/city-kit.gltf","node":"08","scale":0.7,"footprint":[19,14],"triangles":1332},
-    {"id":"nc77","name":"层叠住宅","source":"models/city-kit.gltf","node":"09","scale":0.65,"footprint":[18,15],"triangles":2304},
-    {"id":"advert","name":"圆柱广告塔","source":"models/city-kit.gltf","node":"10","scale":0.6,"footprint":[11.6,11.6],"triangles":1872},
-    {"id":"central","name":"中央环形塔","source":"models/city-kit.gltf","node":"11","scale":0.55,"footprint":[29,29],"triangles":2392},
-    {"id":"kael","name":"全息大楼","source":"models/city-kit.gltf","node":"12","scale":0.65,"footprint":[21,14],"triangles":1668},
-    {"id":"workshop","name":"雨巷修理所 · 精细样板","source":"models/workshop.glb","node":"13","scale":1,"footprint":[12.6,11.5]}
+    {
+      "id": "commercial",
+      "name": "商业街楼",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "07",
+      "scale": 0.65,
+      "footprint": [
+        15,
+        12
+      ],
+      "triangles": 2416,
+      "geometry": {
+        "triangles": 2416,
+        "dimensionsM": [
+          15,
+          23.292999,
+          12
+        ],
+        "boundsM": {
+          "min": [
+            -7.5,
+            0,
+            -6
+          ],
+          "max": [
+            7.5,
+            23.292999267578125,
+            6
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 15,
+        "names": [
+          "Apartment",
+          "Bar",
+          "Black",
+          "Cafe",
+          "Concrete",
+          "Drink",
+          "Fan",
+          "Future",
+          "Glass",
+          "Interior",
+          "Metal",
+          "Red",
+          "Trim",
+          "Warm",
+          "Wood"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "orion",
+      "name": "弧幕高楼",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "08",
+      "scale": 0.7,
+      "footprint": [
+        19,
+        14
+      ],
+      "triangles": 1332,
+      "geometry": {
+        "triangles": 1332,
+        "dimensionsM": [
+          19,
+          66.110001,
+          14
+        ],
+        "boundsM": {
+          "min": [
+            -9.5,
+            0,
+            -7
+          ],
+          "max": [
+            9.5,
+            66.11000061035156,
+            7
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 15,
+        "names": [
+          "AD",
+          "Black",
+          "Concrete",
+          "Cyan",
+          "Fan",
+          "Future",
+          "Metal",
+          "ORION",
+          "OrionSign",
+          "Pink",
+          "Red",
+          "Trim",
+          "Warm",
+          "White",
+          "Windows"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "nc77",
+      "name": "层叠住宅",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "09",
+      "scale": 0.65,
+      "footprint": [
+        18,
+        15
+      ],
+      "triangles": 2304,
+      "geometry": {
+        "triangles": 2304,
+        "dimensionsM": [
+          18,
+          66.910004,
+          15
+        ],
+        "boundsM": {
+          "min": [
+            -9,
+            0,
+            -7.5
+          ],
+          "max": [
+            9,
+            66.91000366210938,
+            7.5
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 13,
+        "names": [
+          "Access",
+          "Black",
+          "Concrete",
+          "Cyan",
+          "Fan",
+          "Glass",
+          "Interior",
+          "Metal",
+          "NC77",
+          "Red",
+          "Trim",
+          "White",
+          "Windows"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "advert",
+      "name": "圆柱广告塔",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "10",
+      "scale": 0.6,
+      "footprint": [
+        11.6,
+        11.6
+      ],
+      "triangles": 1872,
+      "geometry": {
+        "triangles": 1872,
+        "dimensionsM": [
+          11.56,
+          36.549999,
+          11.56
+        ],
+        "boundsM": {
+          "min": [
+            -5.78000020980835,
+            0,
+            -5.78000020980835
+          ],
+          "max": [
+            5.78000020980835,
+            36.54999923706055,
+            5.78000020980835
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 8,
+        "names": [
+          "AD",
+          "Black",
+          "Concrete",
+          "Cyan",
+          "Metal",
+          "Pink",
+          "Trim",
+          "White"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "central",
+      "name": "中央环形塔",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "11",
+      "scale": 0.55,
+      "footprint": [
+        29,
+        29
+      ],
+      "triangles": 2392,
+      "geometry": {
+        "triangles": 2392,
+        "dimensionsM": [
+          28.708536,
+          97,
+          28.708536
+        ],
+        "boundsM": {
+          "min": [
+            -14.354268074035645,
+            0,
+            -14.354268074035645
+          ],
+          "max": [
+            14.354268074035645,
+            97,
+            14.354268074035645
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 3,
+        "names": [
+          "Cyan",
+          "Metal",
+          "Trim"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "kael",
+      "name": "全息大楼",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/city-kit.gltf",
+      "node": "12",
+      "scale": 0.65,
+      "footprint": [
+        21,
+        14
+      ],
+      "triangles": 1668,
+      "geometry": {
+        "triangles": 1668,
+        "dimensionsM": [
+          21,
+          67.910004,
+          14
+        ],
+        "boundsM": {
+          "min": [
+            -10.5,
+            0,
+            -7
+          ],
+          "max": [
+            10.5,
+            67.91000366210938,
+            7
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 14,
+        "names": [
+          "AD",
+          "Access",
+          "Black",
+          "Concrete",
+          "Cyan",
+          "Fan",
+          "Future",
+          "HOLO",
+          "KAEL",
+          "Metal",
+          "ORION",
+          "Red",
+          "Trim",
+          "Windows"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "footprint-aabb",
+        "source": null
+      },
+      "interior": {
+        "enterable": false
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": []
+      },
+      "sockets": [],
+      "lods": []
+    },
+    {
+      "id": "workshop",
+      "name": "雨巷修理所 · 精细样板",
+      "revision": 1,
+      "category": "building",
+      "status": "legacy-review",
+      "source": "models/workshop.glb",
+      "node": "13",
+      "scale": 1,
+      "footprint": [
+        12.6,
+        11.5
+      ],
+      "triangles": 11428,
+      "geometry": {
+        "triangles": 11428,
+        "dimensionsM": [
+          12.674999,
+          12.1775,
+          11.525
+        ],
+        "boundsM": {
+          "min": [
+            -6.474999904632568,
+            0,
+            -5.099999904632568
+          ],
+          "max": [
+            6.199999809265137,
+            12.177499771118164,
+            6.424999713897705
+          ]
+        },
+        "pivotM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "materials": {
+        "slots": 9,
+        "names": [
+          "amber",
+          "brass",
+          "ceramic",
+          "cyan",
+          "enamel",
+          "frame",
+          "glass",
+          "stone",
+          "wood"
+        ],
+        "texelDensityPxPerM": null
+      },
+      "collision": {
+        "kind": "compound-boxes",
+        "source": "data/workshop-collision.json"
+      },
+      "interior": {
+        "enterable": true
+      },
+      "quality": {
+        "status": "pending-review",
+        "report": null,
+        "issues": [
+          {
+            "code": "missing-triangle-metadata",
+            "severity": "metadata"
+          },
+          {
+            "code": "footprint-smaller-than-geometry",
+            "severity": "review",
+            "excessMetres": [
+              0.074999,
+              0.025
+            ]
+          },
+          {
+            "code": "constant-materials-no-texture-set",
+            "severity": "info"
+          }
+        ]
+      },
+      "sockets": [],
+      "lods": []
+    }
   ]
 }

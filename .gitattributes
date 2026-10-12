@@ -1,0 +1,3 @@
+# Registry hashes cover exact bytes. Keep these text assets byte-stable on checkout.
+models/city-kit.gltf -text
+data/workshop-collision.json -text whitespace=cr-at-eol

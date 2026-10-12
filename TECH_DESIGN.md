@@ -1,5 +1,7 @@
 # 技术设计文档｜夜班 SOLITUDE
 
+> 历史说明：下文保留早期技术方案。当前三维城市工坊的运行结构、v2 资产登记和验证方式以 [STUDIO.md](STUDIO.md) 为准。
+
 > 项目：夜班 SOLITUDE（仓库：Soren2077）
 > 阶段：Day 5 技术方案 · 日期：2026-09-20
 > 上游依据：`PRD.md`（Day 4 产品需求）、`research.md`（Day 3 需求研究）

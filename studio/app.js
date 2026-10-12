@@ -4,8 +4,8 @@ const app={mode:'walk',layout:null,clip:'walk',keys:new Set(),yaw:0,pitch:0,drag
 app.notify=text=>{$('message').textContent=text;$('message').classList.add('show');clearTimeout(app.timer);app.timer=setTimeout(()=>$('message').classList.remove('show'),3600);};
 app.download=(blob,name)=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 try{
- const responses=await Promise.all(['data/assets.json','data/world.json','data/default-layout.json','data/workshop-collision.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
- app.registry=responses[0].assets;app.config=responses[1];let layout=responses[2];
+ const responses=await Promise.all(['data/assets.json?v=registry-2','data/world.json','data/default-layout.json','data/workshop-collision.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
+ app.registry=CityAssets.normalize(responses[0]);host.dataset.assetVersion=String(responses[0].version);host.dataset.assetsPendingReview=String(app.registry.filter(a=>a.quality?.status==='pending-review').length);app.config=responses[1];let layout=responses[2];
  try{const saved=localStorage.getItem('rain-city-layout-v1');if(saved){const l=JSON.parse(saved);CityCore.validate(l,app.config,app.registry);layout=l;}}catch(e){app.notify('已忽略不兼容的本地布局，载入默认街区');}
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1;host.append(renderer.domElement);app.renderer=renderer;
  const scene=new T.Scene();scene.background=new T.Color(0x122332);scene.fog=new T.FogExp2(0x122332,.006);app.scene=scene;

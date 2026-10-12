@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const c=require('./core.js'),base=path.join(__dirname,'..'),w=JSON.parse(fs.readFileSync(path.join(base,'data/world.json'))),a=JSON.parse(fs.readFileSync(path.join(base,'data/assets.json'))).assets;
+const c=require('./core.js'),base=path.join(__dirname,'..'),w=JSON.parse(fs.readFileSync(path.join(base,'data/world.json'))),manifest=JSON.parse(fs.readFileSync(path.join(base,'data/assets.json'))),assetApi=require('./assets.js'),a=assetApi.normalize(manifest);
 test('1000 seeds produce repeatable, spaced layouts with a landmark',()=>{for(let seed=0;seed<1000;seed++){const config={...w,seed},l=c.generate(config);assert.deepEqual(l,c.generate(config));assert.equal(c.validate(l,w,a),true);assert(l.placements.some(p=>p.asset==='central'));}});
 test('reject malformed, road-occupying, overlapping and oversized placements',()=>{const l=c.generate(w);for(const change of [p=>p.x=0,p=>p.x=100,p=>p.scale=9,p=>p.x=NaN,p=>p.zone='missing',p=>p.asset='missing']){const copy=structuredClone(l);change(copy.placements[0]);assert.throws(()=>c.validate(copy,w,a));}const copy=structuredClone(l);copy.placements[1]={...copy.placements[0],id:'duplicate'};assert.throws(()=>c.validate(copy,w,a));});
 test('high speed movement cannot cross solid furniture or street ends',()=>{const b=[{minX:-1,maxX:1,minZ:4,maxZ:6}];const p=c.move({x:0,z:0},0,100,b);assert(p.z<3.65);let pos={x:6,z:0},r=c.random(4);for(let i=0;i<10000;i++){pos=c.move(pos,(r()-.5)*40,(r()-.5)*40,b);assert(!c.blocked(pos.x,pos.z,b));}});
@@ -65,4 +65,30 @@ test('jump respects low ceilings and lands on raised interior floor',()=>{
  state=c.jumpStep(null,1/60,.05,Infinity,true);
  for(let i=0;i<120;i++)state=c.jumpStep(state,1/60,.32,Infinity,false);
  assert(state.grounded);assert.equal(state.feet,.32);
+});
+test('v2 keeps v1 placement footprints for saved layouts and 1000 generated seeds',()=>{
+ const old=[['commercial',.65,[15,12]],['orion',.7,[19,14]],['nc77',.65,[18,15]],['advert',.6,[11.6,11.6]],['central',.55,[29,29]],['kael',.65,[21,14]],['workshop',1,[12.6,11.5]]].map(([id,scale,footprint])=>({id,name:id,source:id==='workshop'?'models/workshop.glb':'models/city-kit.gltf',node:id,scale,footprint}));
+ const legacy=assetApi.normalize({version:1,units:'metres',assets:old});
+ const layouts=[JSON.parse(fs.readFileSync(path.join(base,'data/default-layout.json')))];for(let seed=0;seed<1000;seed++)layouts.push(c.generate({...w,seed}));
+ for(const layout of layouts){assert(c.validate(layout,w,a));for(const p of layout.placements)assert.deepEqual(c.footprint(p,a),c.footprint(p,legacy));}
+});
+test('registry rejects corrupted fields, unsafe paths and unjustified approval',()=>{
+ for(const change of [m=>m.version=99,m=>m.units='centimetres',m=>m.assets[1].id=m.assets[0].id,m=>m.assets[0].source='../escape.glb',m=>m.assets[0].scale=0,m=>m.assets[0].geometry.dimensionsM[0]=NaN,m=>m.assets[0].geometry.dimensionsM[0]=2,m=>m.assets[0].triangles=42,m=>m.assets[0].status='approved',m=>m.assets[0].status='draft',m=>m.files['models/city-kit.gltf'].sha256='invalid']){
+  const copy=structuredClone(manifest);change(copy);assert.throws(()=>assetApi.normalize(copy));
+ }
+ assert.equal(assetApi.normalize(manifest).length,7);
+});
+test('file validator detects changed payload and missing dependency',()=>{
+ const os=require('node:os'),{check}=require('../scripts/validate-assets.cjs');
+ assert.equal(check(base).valid,true);
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'city-assets-test-'));
+ try{
+  fs.mkdirSync(path.join(tmp,'data'),{recursive:true});fs.writeFileSync(path.join(tmp,'data/assets.json'),JSON.stringify(manifest));
+  for(const file of Object.keys(manifest.files)){fs.mkdirSync(path.dirname(path.join(tmp,file)),{recursive:true});fs.copyFileSync(path.join(base,file),path.join(tmp,file));}
+  assert.equal(check(tmp).valid,true);
+  fs.appendFileSync(path.join(tmp,'models/city-kit.bin'),Buffer.from([0]));
+  assert(check(tmp).errors.some(e=>e.includes('Hash/size mismatch')));
+  fs.unlinkSync(path.join(tmp,'models/workshop.glb'));
+  assert(check(tmp).errors.some(e=>e.includes('Missing file: models/workshop.glb')));
+ }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });

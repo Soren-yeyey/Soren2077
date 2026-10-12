@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "City asset registry v2",
+  "type": "object",
+  "required": [
+    "version",
+    "units",
+    "runtimeUpAxis",
+    "files",
+    "assets"
+  ],
+  "properties": {
+    "version": {
+      "const": 2
+    },
+    "units": {
+      "const": "metres"
+    },
+    "runtimeUpAxis": {
+      "const": "Y"
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "category",
+          "status",
+          "source",
+          "node",
+          "scale",
+          "footprint",
+          "triangles",
+          "geometry",
+          "materials",
+          "collision",
+          "quality"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "category": {
+            "const": "building"
+          },
+          "status": {
+            "enum": [
+              "legacy-review",
+              "approved",
+              "draft"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_./-]+$"
+          },
+          "node": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scale": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "footprint": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "triangles": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "geometry": {
+            "type": "object",
+            "required": [
+              "triangles",
+              "dimensionsM",
+              "boundsM",
+              "pivotM"
+            ],
+            "properties": {
+              "triangles": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "dimensionsM": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "boundsM": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "max": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "pivotM": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "materials": {
+            "type": "object",
+            "required": [
+              "slots",
+              "names",
+              "texelDensityPxPerM"
+            ],
+            "properties": {
+              "slots": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "names": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "texelDensityPxPerM": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "collision": {
+            "type": "object",
+            "required": [
+              "kind",
+              "source"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "footprint-aabb",
+                  "compound-boxes"
+                ]
+              },
+              "source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_./-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "quality": {
+            "type": "object",
+            "required": [
+              "status",
+              "report",
+              "issues"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "pending-review",
+                  "passed",
+                  "failed"
+                ]
+              },
+              "report": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_./-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "severity"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "severity": {
+                      "enum": [
+                        "metadata",
+                        "error",
+                        "review",
+                        "info"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Structural schema only. Runtime and scripts/validate-assets.cjs additionally enforce safe relative paths, unique IDs, positive consistent bounds, measured triangle counts, dependencies, hashes and approval rules. Draft assets cannot load. Approved assets require a hashed review report and no unresolved issues."
+}
