@@ -3,11 +3,15 @@ window.CityWorld=class {
  mesh(w,h,d,x,y,z,m,parent=this.scene){const o=new this.T.Mesh(new this.T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o;}
  makeInfrastructure(){
   const T=this.T,m=this.materials;this.infrastructure=new T.Group();this.scene.add(this.infrastructure);
+  // One continuous deck: no coplanar apron/deck tops or duplicate zone seams.
+  this.mesh(90,.6,288,0,-.42,0,m.steel,this.infrastructure);
+  for(const side of [-1,1])this.mesh(39.5,.12,288,side*25.25,-.06,0,m.walk,this.infrastructure);
+  this.roadSurface=new T.Mesh(new T.PlaneGeometry(11,288),m.road);
+  this.roadSurface.name='continuous-road';this.roadSurface.rotation.x=-Math.PI/2;this.roadSurface.position.y=.04;this.infrastructure.add(this.roadSurface);
+  for(const x of [-7.5,7.5])this.mesh(4,.18,288,x,.09,0,m.walk,this.infrastructure);
+  for(const x of [-5.6,5.6])this.mesh(.14,.22,288,x,.11,0,m.edge,this.infrastructure);
   for(const zone of this.config.zones){
    const g=new T.Group();g.position.z=zone.center;this.infrastructure.add(g);
-   this.mesh(90,.6,96,0,-.3,0,m.steel,g);this.mesh(40,.08,96,0,-.04,0,m.walk,g);this.mesh(11,.04,96,0,.02,0,m.road,g);
-   for(const x of [-7.5,7.5])this.mesh(4,.18,96,x,.09,0,m.walk,g);
-   for(const x of [-5.6,5.6])this.mesh(.14,.22,96,x,.11,0,m.edge,g);
    for(let z=-46;z<48;z+=8)this.mesh(.12,.025,3,0,.052,z,m.amber,g);
    for(const x of [-8.7,8.7])for(const z of [-36,-12,12,36]){
     this.mesh(.13,6,.13,x,3,z,m.steel,g);this.mesh(.55,.1,.55,x,6,z,m.cyan,g);

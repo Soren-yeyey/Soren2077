@@ -21,3 +21,25 @@ test('shop furniture and walls block high speed movement',()=>{
  const p={x:-20,z:65,rotation:0},boxes=c.workshopBoxes(p,interior,1);
  for(const x of [-2,0,2]){const start=c.toWorld(x,0,p),stop=c.move(start,0,-20,boxes);assert(stop.z>60,'cannot escape through rear wall');}
 });
+test('ground surfaces have one visible top across zone seams and survive streaming',()=>{
+ const vm=require('node:vm'),T=require('../libs/three.min.js');
+ const context={window:{},CityCore:c};vm.createContext(context);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'materials.js'),'utf8'),context);
+ context.CityMaterials=context.window.CityMaterials;
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'world.js'),'utf8'),context);
+ const scene=new T.Scene(),prefabs=new Map(a.map(asset=>[asset.id,new T.Mesh(new T.BoxGeometry(1,1,1))]));
+ const world=new context.window.CityWorld(T,scene,a,w,prefabs,interior);
+ scene.updateMatrixWorld(true);
+ const ray=new T.Raycaster(),down=new T.Vector3(0,-1,0);
+ for(const z of [-48.001,-47.999,47.999,48.001,23.17])for(const [x,height] of [[2,.04],[13,0],[30,0],[6.3,.18]]){
+  ray.set(new T.Vector3(x,2,z),down);
+  const tops=ray.intersectObject(world.infrastructure,true).filter(hit=>hit.face.normal.z>.9&&hit.object===world.roadSurface||hit.face.normal.y>.9);
+  assert(tops.length>0,'ground must be continuous');
+  assert(Math.abs(tops[0].point.y-height)<1e-6,'ground elevation must match');
+  assert.equal(tops.filter(hit=>Math.abs(hit.point.y-height)<.001).length,1,'no coincident ground tops');
+ }
+ const road=world.roadSurface,count=world.infrastructure.children.length;
+ world.setLayout(c.generate(w));for(const z of [96,0,-96,0,96])world.update(z);
+ assert.equal(world.roadSurface,road);assert.equal(world.infrastructure.children.length,count);
+ assert.equal(road.parent,world.infrastructure,'streaming must preserve the road');
+});
