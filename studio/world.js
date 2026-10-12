@@ -60,5 +60,14 @@ window.CityWorld=class {
  getColliders(){return this.colliders||this.furniture;}
  roomAt(x,z){const f=this.interior.floor;for(const shop of this.shops){const p=CityCore.toLocal(x,z,shop.placement,shop.scale);if(p.x>f.minX&&p.x<f.maxX&&p.z>f.minZ&&p.z<f.maxZ)return shop;}return null;}
  groundAt(x,z){const shop=this.roomAt(x,z);if(shop)return this.interior.floor.height*shop.scale;return Math.abs(x)>5.6&&Math.abs(x)<9.5?.18:.05;}
+ ceilingAt(x,z){
+  let ceiling=Infinity;
+  for(const shop of this.shops){const p=CityCore.toLocal(x,z,shop.placement,shop.scale);
+   // Include player radius before crossing the shop header or awning edge.
+   const r=.36/shop.scale;
+   if(Math.abs(p.x)<6+r&&p.z>-5-r&&p.z<5+r)ceiling=Math.min(ceiling,this.interior.roofHeight*shop.scale);
+   if(Math.abs(p.x)<6.2+r&&p.z>4.55-r&&p.z<6.45+r)ceiling=Math.min(ceiling,4.16*shop.scale);
+  }return ceiling;
+ }
  underRoof(x,y,z){const shop=this.roomAt(x,z);return shop&&y<this.interior.roofHeight*shop.scale;}
 };

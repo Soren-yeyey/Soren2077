@@ -30,7 +30,20 @@ function hits(x,z,b,r=.36){
 function workshopBoxes(p,definition,s){return definition.boxes.map(b=>({...toWorld(b.x,b.z,p,s),halfX:b.halfX*s,halfZ:b.halfZ*s,rotation:p.rotation}));}
 function blocked(x,z,boxes,r=.36){return x< -44.4+r||x>44.4-r||z< -143+r||z>143-r||boxes.some(b=>hits(x,z,b,r));}
 function move(p,dx,dz,boxes){let{x,z}=p;const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.15));for(let i=0;i<steps;i++){if(!blocked(x+dx/steps,z,boxes))x+=dx/steps;if(!blocked(x,z+dz/steps,boxes))z+=dz/steps;}return{x,z};}
+// Feet use world height, so stepping onto a raised shop floor cannot sink the player.
+function jumpStep(state,dt,ground,ceiling=Infinity,request=false){
+ let {feet=ground,velocity=0,grounded=true}=state||{};
+ if(grounded){feet=ground;velocity=0;if(request){velocity=5;grounded=false;}}
+ const steps=Math.max(1,Math.ceil(Math.min(dt,.1)/(1/120))),h=Math.min(dt,.1)/steps;
+ for(let i=0;i<steps&&!grounded;i++){
+  feet+=velocity*h-8*h*h;velocity-=16*h;
+  const limit=Math.max(ground,ceiling-1.9);
+  if(feet>limit){feet=limit;velocity=Math.min(velocity,0);}
+  if(feet<=ground&&velocity<=0){feet=ground;velocity=0;grounded=true;}
+ }
+ return{feet,velocity,grounded};
+}
 function zoneAt(z,config){return config.zones.reduce((a,b)=>Math.abs(a.center-z)<Math.abs(b.center-z)?a:b);}
-const api={random,generate,footprint,validate,overlap,blocked,move,zoneAt,toLocal,toWorld,hits,workshopBoxes};root.CityCore=api;if(typeof module!=='undefined')module.exports=api;
+const api={random,generate,footprint,validate,overlap,blocked,move,zoneAt,toLocal,toWorld,hits,workshopBoxes,jumpStep};root.CityCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 

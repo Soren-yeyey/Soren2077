@@ -42,4 +42,27 @@ test('ground surfaces have one visible top across zone seams and survive streami
  world.setLayout(c.generate(w));for(const z of [96,0,-96,0,96])world.update(z);
  assert.equal(world.roadSurface,road);assert.equal(world.infrastructure.children.length,count);
  assert.equal(road.parent,world.infrastructure,'streaming must preserve the road');
+ for(const rotation of [0,Math.PI/2,Math.PI/4])for(const scale of [.5,1,1.4]){
+  const p={x:-20,z:65,rotation};world.shops=[{placement:p,scale}];
+  const front=c.toWorld(0,5.7,p,scale),room=c.toWorld(0,0,p,scale);
+  assert(Math.abs(world.ceilingAt(front.x,front.z)-4.16*scale)<1e-9);
+  assert(Math.abs(world.ceilingAt(room.x,room.z)-interior.roofHeight*scale)<1e-9);
+ }
+ assert.equal(world.ceilingAt(0,0),Infinity,'street allows unobstructed jumping');
+});
+test('jump arc lands consistently at different frame rates without a double jump',()=>{
+ for(const fps of [20,30,60,120]){
+  let state=null,peak=0;
+  for(let i=0;i<fps*2;i++){state=c.jumpStep(state,1/fps,.18,Infinity,i===0||i===Math.floor(fps*.2));peak=Math.max(peak,state.feet-.18);}
+  assert(peak>.75&&peak<.79,'consistent jump height');assert(state.grounded);assert.equal(state.feet,.18);assert.equal(state.velocity,0);
+  const second=c.jumpStep(state,1/fps,.18,Infinity,true);assert(!second.grounded,'can jump after landing');
+ }
+});
+test('jump respects low ceilings and lands on raised interior floor',()=>{
+ let state=null;
+ for(let i=0;i<120;i++){state=c.jumpStep(state,1/60,.16,2.08,i===0);assert(state.feet+1.9<=2.08+1e-9);}
+ assert(state.grounded);assert.equal(state.feet,.16);
+ state=c.jumpStep(null,1/60,.05,Infinity,true);
+ for(let i=0;i<120;i++)state=c.jumpStep(state,1/60,.32,Infinity,false);
+ assert(state.grounded);assert.equal(state.feet,.32);
 });

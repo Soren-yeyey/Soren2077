@@ -1,6 +1,6 @@
 (async()=>{
 'use strict';const T=THREE,$=id=>document.getElementById(id),host=$('viewport');T.ColorManagement.legacyMode=false;
-const app={mode:'walk',layout:null,clip:'walk',keys:new Set(),yaw:0,pitch:0,drag:null,filmTime:0};
+const app={mode:'walk',layout:null,clip:'walk',keys:new Set(),yaw:0,pitch:0,drag:null,filmTime:0,jump:null,jumpRequested:false};
 app.notify=text=>{$('message').textContent=text;$('message').classList.add('show');clearTimeout(app.timer);app.timer=setTimeout(()=>$('message').classList.remove('show'),3600);};
 app.download=(blob,name)=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 try{
@@ -28,10 +28,10 @@ try{
  for(const p of [[-20,5,65,0xffb467],[-20,5,0,0x6adeff],[20,5,-96,0xe58cf1]]){const l=new T.PointLight(p[3],2,30,2);l.position.set(...p.slice(0,3));scene.add(l);}
  app.lookAt=(target)=>{camera.lookAt(target);const e=new T.Euler().setFromQuaternion(camera.quaternion,'YXZ');app.yaw=e.y;app.pitch=e.x;};
  app.applyLayout=l=>{app.layout=JSON.parse(JSON.stringify(l));world.setLayout(app.layout);world.update(camera.position.z,true);host.dataset.layoutSeed=l.seed;host.dataset.placements=l.placements.length;};
- app.zone=zone=>{camera.position.set(6.8,2.05,zone.center-6);app.lookAt(new T.Vector3(-20,4,zone.center-31));actor.root.position.z=zone.center-12;app.route={min:zone.center-27,max:zone.center+25};app.keys.clear();app.world.update(camera.position.z);app.editor?.outline();};
+ app.zone=zone=>{app.jump=null;app.jumpRequested=false;camera.position.set(6.8,2.05,zone.center-6);app.lookAt(new T.Vector3(-20,4,zone.center-31));actor.root.position.z=zone.center-12;app.route={min:zone.center-27,max:zone.center+25};app.keys.clear();app.world.update(camera.position.z);app.editor?.outline();};
  app.focus=p=>{camera.position.set(p.x<0?2:-2,9,p.z+22);app.lookAt(new T.Vector3(p.x,5,p.z));world.update(p.z);app.editor.outline();};
  app.applyLayout(layout);app.zone(app.config.zones[0]);app.editor=new CityEditor(app);
- function setMode(mode){app.mode=mode;app.keys.clear();app.drag=null;document.body.classList.toggle('editing',mode==='edit');document.body.classList.toggle('filming',mode==='film');$('editor').hidden=mode!=='edit';for(const m of ['walk','edit','film'])$('mode-'+m).classList.toggle('active',mode===m);$('help').textContent=mode==='edit'?'点击建筑选择 · 右侧修改并保存 · 按住鼠标环顾':mode==='film'?'自动镜头预览 · 可切回漫游继续搭建':'W A S D 行走 · 按住鼠标环顾 · Shift 快走';if(mode==='walk')app.zone(CityCore.zoneAt(camera.position.z,app.config));if(mode==='film')app.filmTime=0;if(mode==='edit')app.focus(app.layout.placements.find(p=>p.id===app.editor.selected)||app.layout.placements[0]);app.editor.outline();host.dataset.mode=mode;}
+ function setMode(mode){app.mode=mode;app.jump=null;app.jumpRequested=false;app.keys.clear();app.drag=null;document.body.classList.toggle('editing',mode==='edit');document.body.classList.toggle('filming',mode==='film');$('editor').hidden=mode!=='edit';for(const m of ['walk','edit','film'])$('mode-'+m).classList.toggle('active',mode===m);$('help').textContent=mode==='edit'?'点击建筑选择 · 右侧修改并保存 · 按住鼠标环顾':mode==='film'?'自动镜头预览 · 可切回漫游继续搭建':'W A S D 行走 · 空格跳跃 · 按住鼠标环顾 · Shift 快走';if(mode==='walk')app.zone(CityCore.zoneAt(camera.position.z,app.config));if(mode==='film')app.filmTime=0;if(mode==='edit')app.focus(app.layout.placements.find(p=>p.id===app.editor.selected)||app.layout.placements[0]);app.editor.outline();host.dataset.mode=mode;}
  for(const mode of ['walk','edit','film'])$('mode-'+mode).onclick=()=>setMode(mode);
  for(const z of app.config.zones){const b=document.createElement('button');b.textContent=z.name;b.dataset.zone=z.id;b.onclick=()=>{if(app.mode==='film')setMode('walk');app.zone(z);};$('zones').append(b);}
  $('visit-workshop').onclick=()=>{
@@ -49,7 +49,7 @@ try{
  renderer.domElement.addEventListener('pointermove',e=>{if(!app.drag||app.mode==='film')return;app.yaw-=(e.clientX-app.drag.x)*.0025;app.pitch=T.MathUtils.clamp(app.pitch-(e.clientY-app.drag.y)*.0025,-1.2,1.2);app.drag.x=e.clientX;app.drag.y=e.clientY;});
  renderer.domElement.addEventListener('pointerup',e=>{if(app.mode==='edit'&&app.drag&&Math.hypot(e.clientX-app.drag.originX,e.clientY-app.drag.originY)<5){raycaster.setFromCamera(new T.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);const hit=raycaster.intersectObjects([...world.objects.values()],true)[0];if(hit)app.editor.select(hit.object.userData.placementId);}app.drag=null;});
  renderer.domElement.addEventListener('pointercancel',()=>app.drag=null);
- addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();app.keys.add(e.code);});addEventListener('keyup',e=>app.keys.delete(e.code));addEventListener('blur',()=>{app.keys.clear();app.drag=null;});document.addEventListener('visibilitychange',()=>app.keys.clear());
+ addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){if(app.mode==='walk'&&!/^(BUTTON|A)$/.test(e.target.tagName)){e.preventDefault();if(!e.repeat)app.jumpRequested=true;}return;}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();app.keys.add(e.code);});addEventListener('keyup',e=>app.keys.delete(e.code));addEventListener('blur',()=>{app.keys.clear();app.jumpRequested=false;app.drag=null;});document.addEventListener('visibilitychange',()=>{app.keys.clear();app.jumpRequested=false;});
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('error').hidden=false;$('error-text').textContent='图形设备已断开，请重新载入。';});
  const dir=new T.Vector3(),target=new T.Vector3(),clip=new T.Plane(new T.Vector3(0,1,0),-.06);
@@ -60,7 +60,14 @@ try{
    const k=app.keys,s=(k.has('KeyD')?1:0)-(k.has('KeyA')?1:0),f=(k.has('KeyW')||k.has('ArrowUp')?1:0)-(k.has('KeyS')||k.has('ArrowDown')?1:0);if(k.has('ArrowLeft'))app.yaw+=dt;if(k.has('ArrowRight'))app.yaw-=dt;const pace=(k.has('ShiftLeft')?7:3.5)*dt/Math.max(1,Math.hypot(s,f));
    const dx=(s*Math.cos(app.yaw)-f*Math.sin(app.yaw))*pace,dz=(-s*Math.sin(app.yaw)-f*Math.cos(app.yaw))*pace;
    const obstacles=world.getColliders().concat([{minX:actor.root.position.x-.3,maxX:actor.root.position.x+.3,minZ:actor.root.position.z-.3,maxZ:actor.root.position.z+.3},{minX:vehicle.position.x-1,maxX:vehicle.position.x+1,minZ:vehicle.position.z-2.1,maxZ:vehicle.position.z+2.1}]);
-   const p=CityCore.move(camera.position,dx,dz,obstacles);camera.position.x=p.x;camera.position.z=p.z;camera.position.y=T.MathUtils.damp(camera.position.y,1.86+world.groundAt(p.x,p.z),12,dt);
+   let p=CityCore.move(camera.position,dx,dz,obstacles);
+   if(app.jump&&!app.jump.grounded&&app.jump.feet+1.9>world.ceilingAt(p.x,p.z))p={x:camera.position.x,z:camera.position.z};
+   camera.position.x=p.x;camera.position.z=p.z;
+   const wasAirborne=app.jump&&!app.jump.grounded;
+   if(app.jumpRequested&&!wasAirborne){host.dataset.jumpCount=String(Number(host.dataset.jumpCount||0)+1);host.dataset.jumpPeak='0';}
+   app.jump=CityCore.jumpStep(app.jump,dt,world.groundAt(p.x,p.z),world.ceilingAt(p.x,p.z),app.jumpRequested);app.jumpRequested=false;
+   const eye=app.jump.feet+1.86;camera.position.y=wasAirborne||!app.jump.grounded?eye:T.MathUtils.damp(camera.position.y,eye,12,dt);
+   host.dataset.grounded=String(app.jump.grounded);host.dataset.jumpHeight=(app.jump.feet-world.groundAt(p.x,p.z)).toFixed(3);host.dataset.jumpPeak=String(Math.max(Number(host.dataset.jumpPeak||0),Number(host.dataset.jumpHeight)));
   }else if(app.mode==='film'){
    app.filmTime+=dt;const t=app.filmTime%24;camera.position.set(6+Math.sin(t/24*Math.PI*2)*2,3+t*.28,125-t*6);app.lookAt(new T.Vector3(-24,5,65-t*2));
   }
