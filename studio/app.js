@@ -4,7 +4,7 @@ const app={mode:'walk',layout:null,clip:'walk',keys:new Set(),yaw:0,pitch:0,drag
 app.notify=text=>{$('message').textContent=text;$('message').classList.add('show');clearTimeout(app.timer);app.timer=setTimeout(()=>$('message').classList.remove('show'),3600);};
 app.download=(blob,name)=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 try{
- const responses=await Promise.all(['data/assets.json?v=registry-2','data/world.json','data/default-layout.json','data/workshop-collision.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
+ const responses=await Promise.all(['data/assets.json?v=workshop-2','data/world.json','data/default-layout.json','data/workshop-collision.json?v=workshop-2'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('配置载入失败：'+url);return r.json();}));
  app.registry=CityAssets.normalize(responses[0]);host.dataset.assetVersion=String(responses[0].version);host.dataset.assetsPendingReview=String(app.registry.filter(a=>a.quality?.status==='pending-review').length);app.config=responses[1];let layout=responses[2];
  try{const saved=localStorage.getItem('rain-city-layout-v1');if(saved){const l=JSON.parse(saved);CityCore.validate(l,app.config,app.registry);layout=l;}}catch(e){app.notify('已忽略不兼容的本地布局，载入默认街区');}
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1;host.append(renderer.domElement);app.renderer=renderer;
@@ -12,7 +12,7 @@ try{
  const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.15,850);camera.rotation.order='YXZ';app.camera=camera;
  const ambient=new T.HemisphereLight(0x9abada,0x25313a,1.45);scene.add(ambient);const sun=new T.DirectionalLight(0x9ac8ee,2.2);sun.position.set(30,70,40);scene.add(sun);
  const loader=new T.GLTFLoader(),sources=new Map(),prefabs=new Map();
- for(const source of [...new Set(app.registry.map(a=>a.source))]){sources.set(source,await loader.loadAsync(source));$('load-status').textContent='模型已载入 '+sources.size+' / 2';}
+ for(const source of [...new Set(app.registry.map(a=>a.source))]){const fingerprint=responses[0].files?.[source]?.sha256;const url=fingerprint?source+'?v='+fingerprint.slice(0,12):source;sources.set(source,await loader.loadAsync(url));$('load-status').textContent='模型已载入 '+sources.size+' / 2';}
  for(const a of app.registry){let node; sources.get(a.source).scene.traverse(o=>{if(!node&&o.name.startsWith(a.node))node=o;});if(!node)throw Error('模型缺失：'+a.name);node=node.clone(true);node.position.set(0,0,0);node.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());m.map.magFilter=T.LinearFilter;}if(m.transparent)m.depthWrite=false;if(m.emissiveIntensity>1.5)m.emissiveIntensity=1.5;}}});prefabs.set(a.id,node);}
  const world=new CityWorld(T,scene,app.registry,app.config,prefabs,responses[3]);app.world=world;
  const floor=new T.Mesh(new T.PlaneGeometry(1800,1800),world.materials.dark);floor.rotation.x=-Math.PI/2;floor.position.y=-.8;scene.add(floor);

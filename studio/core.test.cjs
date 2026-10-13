@@ -45,7 +45,12 @@ test('ground surfaces have one visible top across zone seams and survive streami
  for(const rotation of [0,Math.PI/2,Math.PI/4])for(const scale of [.5,1,1.4]){
   const p={x:-20,z:65,rotation};world.shops=[{placement:p,scale}];
   const front=c.toWorld(0,5.7,p,scale),room=c.toWorld(0,0,p,scale);
-  assert(Math.abs(world.ceilingAt(front.x,front.z)-4.16*scale)<1e-9);
+  assert(Math.abs(world.ceilingAt(front.x,front.z)-4.08*scale)<1e-9);
+  let jump=null;
+  for(let i=0;i<90;i++){
+   jump=c.jumpStep(jump,1/60,world.groundAt(front.x,front.z),world.ceilingAt(front.x,front.z),i===0);
+   assert(jump.feet+1.9<=4.08*scale+1e-8,'head cannot penetrate adapted canopy');
+  }
   assert(Math.abs(world.ceilingAt(room.x,room.z)-interior.roofHeight*scale)<1e-9);
  }
  assert.equal(world.ceilingAt(0,0),Infinity,'street allows unobstructed jumping');

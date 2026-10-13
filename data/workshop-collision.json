@@ -365,5 +365,6 @@
   "entry": {
     "x": 0,
     "z": 6.5
-  }
+  },
+  "entranceCeilingHeight": 4.08
 }

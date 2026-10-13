@@ -66,7 +66,7 @@ window.CityWorld=class {
    // Include player radius before crossing the shop header or awning edge.
    const r=.36/shop.scale;
    if(Math.abs(p.x)<6+r&&p.z>-5-r&&p.z<5+r)ceiling=Math.min(ceiling,this.interior.roofHeight*shop.scale);
-   if(Math.abs(p.x)<6.2+r&&p.z>4.55-r&&p.z<6.45+r)ceiling=Math.min(ceiling,4.16*shop.scale);
+   if(Math.abs(p.x)<6.2+r&&p.z>4.55-r&&p.z<6.45+r)ceiling=Math.min(ceiling,(this.interior.entranceCeilingHeight??4.16)*shop.scale);
   }return ceiling;
  }
  underRoof(x,y,z){const shop=this.roomAt(x,z);return shop&&y<this.interior.roofHeight*shop.scale;}

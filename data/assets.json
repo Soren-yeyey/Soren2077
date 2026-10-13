@@ -76,12 +76,12 @@
       "sha256": "988950771cd9e61763bf44ab7a7d5750d09a38fffda9afde711522008dab71c6"
     },
     "models/workshop.glb": {
-      "bytes": 681572,
-      "sha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+      "bytes": 1293836,
+      "sha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c"
     },
     "data/workshop-collision.json": {
-      "bytes": 6556,
-      "sha256": "a03d918339ea6d2e5aa76a52eb148551c43489c8b7fab126a74c0c310582d1f5"
+      "bytes": 6592,
+      "sha256": "f281372ed7418ad2b66a6ff54ea893f0baad7a66ce9e211a603aa5f220eb39d8"
     }
   },
   "assets": [
@@ -516,7 +516,7 @@
     {
       "id": "workshop",
       "name": "雨巷修理所 · 精细样板",
-      "revision": 1,
+      "revision": 2,
       "category": "building",
       "status": "legacy-review",
       "source": "models/workshop.glb",
@@ -526,9 +526,9 @@
         12.6,
         11.5
       ],
-      "triangles": 11428,
+      "triangles": 11448,
       "geometry": {
-        "triangles": 11428,
+        "triangles": 11448,
         "dimensionsM": [
           12.674999,
           12.1775,
@@ -553,19 +553,35 @@
         ]
       },
       "materials": {
-        "slots": 9,
+        "slots": 11,
         "names": [
           "amber",
+          "blue-enamel",
           "brass",
           "ceramic",
           "cyan",
+          "cyan-strip",
           "enamel",
           "frame",
           "glass",
           "stone",
           "wood"
         ],
-        "texelDensityPxPerM": null
+        "texelDensityPxPerM": null,
+        "entrancePbr": {
+          "colorResolution": 2048,
+          "normalResolution": 512,
+          "metallicRoughnessResolution": 512,
+          "colorDensityPxPerM": [
+            132.87,
+            164.43
+          ],
+          "normalDensityPxPerM": [
+            33.22,
+            41.11
+          ],
+          "extension": "EXT_texture_webp"
+        }
       },
       "collision": {
         "kind": "compound-boxes",
@@ -579,20 +595,12 @@
         "report": null,
         "issues": [
           {
-            "code": "missing-triangle-metadata",
-            "severity": "metadata"
-          },
-          {
             "code": "footprint-smaller-than-geometry",
             "severity": "review",
             "excessMetres": [
               0.074999,
               0.025
             ]
-          },
-          {
-            "code": "constant-materials-no-texture-set",
-            "severity": "info"
           }
         ]
       },
