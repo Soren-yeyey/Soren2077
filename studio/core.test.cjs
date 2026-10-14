@@ -5,6 +5,19 @@ test('reject malformed, road-occupying, overlapping and oversized placements',()
 test('high speed movement cannot cross solid furniture or street ends',()=>{const b=[{minX:-1,maxX:1,minZ:4,maxZ:6}];const p=c.move({x:0,z:0},0,100,b);assert(p.z<3.65);let pos={x:6,z:0},r=c.random(4);for(let i=0;i<10000;i++){pos=c.move(pos,(r()-.5)*40,(r()-.5)*40,b);assert(!c.blocked(pos.x,pos.z,b));}});
 test('zone seam assignment and JSON roundtrip remain stable',()=>{assert.equal(c.zoneAt(80,w).id,'market');assert.equal(c.zoneAt(0,w).id,'tower');assert.equal(c.zoneAt(-80,w).id,'homes');const l=c.generate(w);assert.deepEqual(JSON.parse(JSON.stringify(l)),l);});
 const interior=JSON.parse(fs.readFileSync(path.join(base,'data/workshop-collision.json')));
+test('wall detail covers block approaches across rotations and scales',()=>{
+ const details=interior.boxes.filter(b=>b.name.startsWith('rear-')||b.name.startsWith('side-'));
+ const covers=details.filter(b=>b.name.includes('service-cover'));
+ assert.equal(details.length,26);assert.equal(covers.length,4);
+ for(const rotation of [0,Math.PI/2,Math.PI/4,-Math.PI/2])for(const scale of [.5,1,1.4])for(const b of covers){
+  const rear=b.name.startsWith('rear-'),nx=rear?0:Math.sign(b.x),nz=rear?-1:0;
+  const p={x:0,z:0,rotation},boxes=c.workshopBoxes(p,interior,scale);
+  const start=c.toWorld(b.x+nx*2,b.z+nz*2,p,scale),end=c.toWorld(b.x-nx,b.z-nz,p,scale);
+  const stopped=c.move(start,end.x-start.x,end.z-start.z,boxes),local=c.toLocal(stopped.x,stopped.z,p,scale);
+  assert((local.x-b.x)*nx+(local.z-b.z)*nz>=(rear?b.halfZ:b.halfX)+.36/scale-1e-6,'capsule must stay outside cover');
+  assert(!c.blocked(stopped.x,stopped.z,boxes));
+ }
+});
 test('shop door admits entry and exit across rotation and scale while windows block',()=>{
  for(const rotation of [0,Math.PI/2,-Math.PI/2,Math.PI/4])for(const scale of [.5,1,1.4]){
   const placement={x:-20,z:65,rotation},boxes=c.workshopBoxes(placement,interior,scale);
