@@ -76,12 +76,12 @@
       "sha256": "988950771cd9e61763bf44ab7a7d5750d09a38fffda9afde711522008dab71c6"
     },
     "models/workshop.glb": {
-      "bytes": 1405188,
-      "sha256": "5889ade576f3d21c29f49cc5cf394a58d62f36824a4ddaa3b26602d77f4372f4"
+      "bytes": 1416960,
+      "sha256": "407ca83cee524f97cbf9147ad2803174f6d51d05bd30064bba2152cc865a68f2"
     },
     "data/workshop-collision.json": {
-      "bytes": 13233,
-      "sha256": "4e065cb91a87a1663993a16205adf262d340d84934bb5db5544e8a3aa771030b"
+      "bytes": 13232,
+      "sha256": "85b5bbfc510b2432af159ee6935522c086352a082af7e954ded5e074d7439116"
     }
   },
   "assets": [
@@ -516,19 +516,19 @@
     {
       "id": "workshop",
       "name": "雨巷修理所 · 精细样板",
-      "revision": 3,
+      "revision": 4,
       "category": "building",
       "status": "legacy-review",
       "source": "models/workshop.glb",
-      "node": "13",
+      "node": "13_RainWorkshop_InteriorCandidate",
       "scale": 1,
       "footprint": [
         12.6,
         11.5
       ],
-      "triangles": 11888,
+      "triangles": 11984,
       "geometry": {
-        "triangles": 11888,
+        "triangles": 11984,
         "dimensionsM": [
           12.674999,
           12.1775,
@@ -553,7 +553,7 @@
         ]
       },
       "materials": {
-        "slots": 11,
+        "slots": 12,
         "names": [
           "amber",
           "blue-enamel",
@@ -564,6 +564,7 @@
           "enamel",
           "frame",
           "glass",
+          "interior-ceiling",
           "stone",
           "wood"
         ],
