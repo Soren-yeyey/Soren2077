@@ -76,8 +76,8 @@
       "sha256": "988950771cd9e61763bf44ab7a7d5750d09a38fffda9afde711522008dab71c6"
     },
     "models/workshop.glb": {
-      "bytes": 1327960,
-      "sha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba"
+      "bytes": 1405188,
+      "sha256": "5889ade576f3d21c29f49cc5cf394a58d62f36824a4ddaa3b26602d77f4372f4"
     },
     "data/workshop-collision.json": {
       "bytes": 13233,
@@ -580,6 +580,17 @@
             33.22,
             41.11
           ],
+          "extension": "EXT_texture_webp"
+        },
+        "surfacePbr": {
+          "materials": [
+            "stone",
+            "wood",
+            "enamel"
+          ],
+          "resolution": 256,
+          "detailDensityPxPerM": 64,
+          "periodM": 4,
           "extension": "EXT_texture_webp"
         }
       },
