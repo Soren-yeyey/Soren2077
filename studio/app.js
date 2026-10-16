@@ -14,6 +14,57 @@ try{
  const loader=new T.GLTFLoader(),sources=new Map(),prefabs=new Map();
  for(const source of [...new Set(app.registry.map(a=>a.source))]){const fingerprint=responses[0].files?.[source]?.sha256;const url=fingerprint?source+'?v='+fingerprint.slice(0,12):source;sources.set(source,await loader.loadAsync(url));$('load-status').textContent='模型已载入 '+sources.size+' / 2';}
  for(const a of app.registry){let node; sources.get(a.source).scene.traverse(o=>{if(!node&&o.name.startsWith(a.node))node=o;});if(!node)throw Error('模型缺失：'+a.name);node=node.clone(true);node.position.set(0,0,0);node.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());m.map.magFilter=T.LinearFilter;}if(m.transparent)m.depthWrite=false;if(m.emissiveIntensity>1.5)m.emissiveIntensity=1.5;}}});prefabs.set(a.id,node);}
+
+ // Optional counter-only reflection; incompatible assets/devices keep their original material.
+ host.dataset.shopReflection='fallback';
+ if(renderer.capabilities.isWebGL2&&renderer.extensions.has('EXT_color_buffer_float')&&responses[0].files['models/workshop.glb']?.sha256==='407ca83cee524f97cbf9147ad2803174f6d51d05bd30064bba2152cc865a68f2'){
+ let reflectionSource,reflectionGenerator,shopEnvironment;const changedMeshes=[];
+ try{
+
+ // Rotationally symmetric soft environment: no moving or fabricated scene reflections.
+ const envWidth=128,envHeight=64,envPixels=new Float32Array(envWidth*envHeight*4);
+ for(let y=0;y<envHeight;y++){
+  const elevation=Math.cos(Math.PI*(y+.5)/envHeight);
+  const ceiling=Math.exp(-Math.pow((elevation-.72)/.28,2));
+  const horizon=Math.exp(-Math.pow(elevation/.34,2));
+  const floor=Math.max(0,-elevation);
+  for(let x=0;x<envWidth;x++){const i=(y*envWidth+x)*4;
+   envPixels[i]=.035+.80*ceiling+.12*horizon+.025*floor;
+   envPixels[i+1]=.045+.66*ceiling+.17*horizon+.03*floor;
+   envPixels[i+2]=.06+.48*ceiling+.24*horizon+.04*floor;envPixels[i+3]=1;
+  }
+ }
+ reflectionSource=new T.DataTexture(envPixels,envWidth,envHeight,T.RGBAFormat,T.FloatType);
+ reflectionSource.mapping=T.EquirectangularReflectionMapping;reflectionSource.needsUpdate=true;
+ reflectionGenerator=new T.PMREMGenerator(renderer);
+ shopEnvironment=reflectionGenerator.fromEquirectangular(reflectionSource);
+ reflectionSource.dispose();reflectionGenerator.dispose();
+ const reflectiveMaterials=new Set();let counterTriangles=0,counterMeshes=0;
+ prefabs.get('workshop').traverse(o=>{
+  if(!o.isMesh||Array.isArray(o.material)||o.material.name!=='enamel')return;
+  const g=o.geometry.clone(),p=g.attributes.position,idx=g.index,count=idx?idx.count:p.count;
+  const inside=i=>p.getX(i)>=-.701&&p.getX(i)<=4.701&&p.getY(i)>=.299&&p.getY(i)<=1.701&&p.getZ(i)>=-2.551&&p.getZ(i)<=-1.249;
+  const runs=[];let start=0,last=-1,selected=0;
+  for(let i=0;i<count;i+=3){const chosen=[0,1,2].every(k=>inside(idx?idx.getX(i+k):i+k))?1:0;
+   if(chosen)selected++;
+   if(chosen!==last){if(last!==-1)runs.push([start,i-start,last]);start=i;last=chosen;}
+  }
+  runs.push([start,count-start,last]);
+  if(selected!==44){g.dispose();return;}
+  const counterMaterial=o.material.clone();counterMaterial.name='counter-enamel-reflection';counterMaterial.envMap=shopEnvironment.texture;counterMaterial.envMapIntensity=.65;
+  g.clearGroups();for(const run of runs)g.addGroup(...run);
+  changedMeshes.push({object:o,geometry:o.geometry,material:o.material,replacement:g,reflection:counterMaterial});
+  o.geometry=g;o.material=[o.material,counterMaterial];reflectiveMaterials.add(counterMaterial);counterTriangles+=selected;counterMeshes++;
+ });
+ if(counterMeshes!==1||counterTriangles!==44)throw Error('柜体反射范围检查失败');
+ host.dataset.counterReflectionTriangles=String(counterTriangles);
+ host.dataset.shopReflection='enabled';host.dataset.shopReflectionMaterials=String(reflectiveMaterials.size);
+
+ }catch(error){
+  for(const change of changedMeshes){change.object.geometry=change.geometry;change.object.material=change.material;change.replacement.dispose();change.reflection.dispose();}
+  shopEnvironment?.dispose();host.dataset.shopReflection='fallback';console.warn('柜体反射不可用，已保留原材质。');
+ }finally{reflectionSource?.dispose();reflectionGenerator?.dispose();}
+ }
  const world=new CityWorld(T,scene,app.registry,app.config,prefabs,responses[3]);app.world=world;
  const floor=new T.Mesh(new T.PlaneGeometry(1800,1800),world.materials.dark);floor.rotation.x=-Math.PI/2;floor.position.y=-.8;scene.add(floor);
  // Keep dark gradients precise before bloom and the final display transform.
