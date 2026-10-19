@@ -81,3 +81,17 @@
 ```text
 在现有商业街选一段精品街区作为纵切，利用已入库建筑和 Blender 构件组装；Tripo 仅补重点建筑或独特装饰，全部生成结果经过尺寸、拓扑、UV、材质、碰撞、面数、360° 和室内透视检查再入库。做完整任务循环：接委托、探索/潜入或战斗、选择、Token 奖励、两项义体升级、AI 一级升二级、剧情分支、存读档。世界设定为公共法律失效、Token 代表算力与准入；借鉴作品只取抽象主题，不复制角色、剧情、音乐或标志。加入统一的国风建筑语汇与雨夜灯光，成熟向受伤反馈支持降低血腥程度。保留现有布局工坊、跨区回访、跳跃、地面与室内碰撞。以可玩流程、性能数据、截图与失败记录验收，再考虑扩城和视频。
 ```
+
+## 发布前检查 Skill（Day 25）
+
+仓库内的 `$release-preflight` Skill 用于发布前检查公网页面、本地资源引用、疑似密钥和素材体积。手动运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .codex/skills/release-preflight/scripts/check-release.ps1 `
+  -ProjectRoot . `
+  -PublicUrl "https://soren-yeyey.github.io/Soren2077/" `
+  -RequiredPath "/", "/studio.html", "/booze.html" `
+  -OutputPath "reports/day25-preflight-result.md"
+```
+
+退出码 `0` 表示全部通过，`1` 表示存在失败，`2` 表示存在无法验证的阻断项。命令运行结束不代表发布检查通过；必须查看报告中的总体结果与证据。检查器只报告问题，不自动修改、提交或发布项目。

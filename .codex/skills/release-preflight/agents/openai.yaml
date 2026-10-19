@@ -1,0 +1,4 @@
+interface:
+  display_name: "发布前检查"
+  short_description: "检查公网、资源引用、密钥泄露与素材预算"
+  default_prompt: "使用 $release-preflight 对当前项目执行发布前检查并输出可审计报告。"
