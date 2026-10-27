@@ -161,6 +161,72 @@ function car(x,y,z,color=0x0c1b2a,scale=1){
 }
 // Parked road traffic is tangible, the aerial lanes stay outside buildings.
 const parked=car(-21.0,22.05,36,0x12243a,1.05);obstacles.push({minX:-22.5,maxX:-19.5,minZ:33,maxZ:39});
+// Owned Tripo vehicle: lazy-loaded after entry, with the original car as fallback.
+const yuhengCollider=obstacles[obstacles.length-1];
+let yuhengState='idle';
+function loadYuheng(){
+  if(yuhengState==='loading'||yuhengState==='ready')return;
+  yuhengState='loading';canvasHost.dataset.yuheng='loading';
+  new T.GLTFLoader().load('models/yuheng-preview.glb',gltf=>{
+    const vehicle=gltf.scene;vehicle.name='玉衡展示车';
+    vehicle.position.copy(parked.position);vehicle.rotation.y=0;
+    vehicle.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+    vehicle.updateMatrixWorld(true);
+    const bounds=new T.Box3().setFromObject(vehicle);
+    const dims=bounds.getSize(new T.Vector3());
+    if(!Number.isFinite(dims.length())||dims.z<4||dims.z>7){
+      yuhengState='failed';canvasHost.dataset.yuheng='failed';
+      toast('玉衡尺寸检查失败，保留原车辆');return;
+    }
+    // Keep the tires above the wet road and use the true vehicle footprint.
+    vehicle.position.y+=22.07-bounds.min.y;vehicle.updateMatrixWorld(true);
+    bounds.setFromObject(vehicle);
+    Object.assign(yuhengCollider,{minX:bounds.min.x-.15,maxX:bounds.max.x+.15,
+      minZ:bounds.min.z-.15,maxZ:bounds.max.z+.15});
+    scene.add(vehicle);parked.visible=false;yuhengState='ready';
+    light(-18.5,25.5,38,0xb4e3ff,24,11);
+    canvasHost.dataset.yuheng='ready';canvasHost.dataset.yuhengDimensions=
+      `${dims.x.toFixed(2)},${dims.y.toFixed(2)},${dims.z.toFixed(2)}`;
+    console.info('YUHENG_READY',{dimensions:dims.toArray(),staticPreview:true});
+    toast('玉衡已停靠街口，可从观景位置近看');
+  },undefined,error=>{
+    yuhengState='failed';canvasHost.dataset.yuheng='failed';
+    console.error('YUHENG_LOAD_FAILED',error);toast('玉衡暂未载入，保留原车辆');
+  });
+}
+views.yuheng={x:-15.5,z:43.5,yaw:.63,pitch:-.12,name:'玉衡停靠位'};
+const yuhengView=document.createElement('button');yuhengView.dataset.view='yuheng';
+yuhengView.textContent='玉衡';document.querySelector('.views').appendChild(yuhengView);
+// A real 3D portal links the existing district to the separate racing scene.
+const racingPortal=new T.Group();racingPortal.position.set(-5.5,24.2,54);
+const portalFrame=new T.Mesh(new T.TorusGeometry(2.05,.17,8,48),mat.edge);
+const portalEnergy=new T.Mesh(new T.TorusGeometry(1.83,.045,5,48),mat.cyan);
+racingPortal.add(portalFrame,portalEnergy);scene.add(racingPortal);
+let portalMembrane=null;
+new T.GLTFLoader().load('models/racing-portal.glb',gltf=>{
+  const model=gltf.scene;model.position.y=-2.15;racingPortal.add(model);
+  portalFrame.visible=false;portalEnergy.visible=false;
+  model.traverse(o=>{
+    if(o.name==='portal-membrane'){
+      portalMembrane=o;
+      o.material=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,
+        uniforms:{time:{value:0}},
+        vertexShader:'varying vec2 pUv;void main(){pUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader:`precision highp float;varying vec2 pUv;uniform float time;
+          void main(){vec2 p=pUv-.5;float r=length(p)*2.;float a=atan(p.y,p.x);
+          float rings=pow(.5+.5*sin(r*33.-time*2.5+a*2.),5.);
+          float rim=smoothstep(.35,1.,r);float alpha=(.14+rings*.25+rim*.28)*(1.-smoothstep(.86,1.03,r));
+          gl_FragColor=vec4(mix(vec3(.055,.45,.8),vec3(.55,.08,.6),rings*.5),alpha);}`});
+    }
+  });
+  canvasHost.dataset.racingPortal='blender';
+},undefined,error=>{console.warn('RACING_PORTAL_MODEL_FAILED',error);canvasHost.dataset.racingPortal='fallback';});
+const portalSign=canvasTexture(512,128,(c,w,h)=>{c.fillStyle='#071522';c.fillRect(0,0,w,h);c.fillStyle='#a5f5ff';c.font='bold 30px Microsoft YaHei';c.textAlign='center';c.textBaseline='middle';c.fillText('Booze 赛车城 · E 传送',w/2,h/2);});
+const portalLabel=new T.Mesh(new T.PlaneGeometry(3.8,.95),new T.MeshBasicMaterial({map:portalSign}));
+portalLabel.position.y=2.65;racingPortal.add(portalLabel);
+const racingLink=document.createElement('a');racingLink.href='booze.html';racingLink.textContent='传送赛车城 ↗';
+racingLink.style.cssText='color:#baffee;text-decoration:none;font-size:12px';
+document.querySelector('.top-actions').prepend(racingLink);
 car(-27.1,22.05,67,0x171b26,.95);obstacles.push({minX:-28.6,maxX:-25.6,minZ:64,maxZ:70});
 car(-21.0,22.05,-66,0x142b31);obstacles.push({minX:-22.5,maxX:-19.5,minZ:-69,maxZ:-63});
 for(let i=0;i<4;i++){
@@ -196,9 +262,9 @@ setView('street');
 function setQuality(value){quality=value;const ratio=Math.min(devicePixelRatio,value==='high'?1.6:1);renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);reflection.setSize(value==='high'?1024:640,value==='high'?768:480);bloom.strength=value==='high'?.48:.36;rain.geometry.setDrawRange(0,value==='high'?rainCount*2:rainCount);resize();}
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
-$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast('按住鼠标拖动环顾；W A S D 沿步道行走');});
+$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast('按住鼠标拖动环顾；W A S D 沿步道行走');loadYuheng();});
 $('reset').addEventListener('click',()=>{setView('street');toast('已返回南侧街口');});
-document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{setView(b.dataset.view);canvasHost.focus();}));
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{setView(b.dataset.view);if(b.dataset.view==='yuheng')loadYuheng();canvasHost.focus();}));
 $('quality').addEventListener('change',e=>setQuality(e.target.value));
 $('photo').addEventListener('click',()=>{if(!ready)return;renderReflection();composer.render();renderer.domElement.toBlob(blob=>{if(!blob){toast('画面保存失败，请重试');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='rain-district.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);toast('已保存无界面场景图');},'image/png');});
 $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){toast('浏览器未允许全屏，可使用浏览器的全屏功能');}});
@@ -222,6 +288,9 @@ let perfFrames=0,perfTime=0,adapted=false;
 function animate(){
   requestAnimationFrame(animate);const realDelta=clock.getDelta(),dt=Math.min(realDelta,.04);if(document.hidden)return;elapsed+=dt;frame++;
   if(active){
+    if(keys.has('KeyE')&&Math.hypot(camera.position.x+5.5,camera.position.z-54)<3){location.href='booze.html';return;}
+    portalEnergy.rotation.z=elapsed*.25;
+    if(portalMembrane)portalMembrane.material.uniforms.time.value=elapsed;
     const side=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
     if(keys.has('ArrowLeft'))yaw+=dt;if(keys.has('ArrowRight'))yaw-=dt;
     const length=Math.max(1,Math.hypot(side,forward)),pace=keys.has('ShiftLeft')||keys.has('ShiftRight')?7:3.6;
