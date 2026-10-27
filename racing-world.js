@@ -4,7 +4,7 @@ window.RacingWorld={create(T,scene,renderer,roadMaterial){
   const host=document.getElementById('race-world');
   const groups=[],lodGroups=[];let root=null,lastUpdate=-1;
   function load(){return new Promise((resolve,reject)=>{
-    new T.GLTFLoader().load('models/racing-world.glb?v=reference-v3',gltf=>{
+    new T.GLTFLoader().load('models/racing-world.glb?v=tripo-replacement',gltf=>{
       root=gltf.scene;root.name='blender-complete-racing-world';
       root.updateMatrixWorld(true);
       const batches=new Map(),lods=new Map();let sourceMeshes=0;

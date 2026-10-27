@@ -120,14 +120,14 @@ function attachVehicle(gltf){
   for(let i=0;i<8;i++){
     const o=visual.clone(true),aiWheels=[];scene.add(o);
     o.traverse(part=>{if(/-wheel$/.test(part.name))aiWheels.push(part);
-      if(part.isMesh&&part.name.includes('racing-body')){part.material=part.material.clone();part.material.color.setHex([0x093f78,0x6b082b,0x32102f,0x093f78][i]);}
+      if(part.isMesh&&part.name.includes('racing-body')){part.material=part.material.clone();part.material.color.setHex([0x093f78,0x6b082b,0x32102f,0x093f78][i%4]);}
     });
     ai.push({object:o,wheels:aiWheels,s:35+i*i*24,speed:24+(i%4)*2,lane:i%2?4:-4});
   }
   positionCar(car,8);camera.position.copy(car.position).add(new T.Vector3(0,5,11));
   host.dataset.vehicle='ready';host.dataset.rotors=String(rotors.length);host.dataset.wheels=String(wheels.length);
 }
-Promise.all([getModel('models/racing-vehicle.glb?v=reference-v3'),environment.load(),importedWorld.load()]).then(([vehicle])=>{
+Promise.all([getModel('models/racing-vehicle.glb?v=tripo-replacement'),environment.load(),importedWorld.load()]).then(([vehicle])=>{
   attachVehicle(vehicle);ready=true;
   $('start').disabled=false;$('start').textContent='进入驾驶 ↗';$('load-status').textContent='W 前进 · A D 转向 · 空格刹车';
   $('track-length').textContent=(track.length/1000).toFixed(2)+' 公里';
@@ -196,7 +196,9 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
     const reference=importedWorld.getReferenceView();
     host.dataset.camera=String(camMode);
     if(camMode===3&&reference){
-      camera.position.fromArray(reference.position);camera.lookAt(new T.Vector3().fromArray(reference.target));camera.fov=reference.fov;camera.updateProjectionMatrix();
+      camera.position.fromArray(reference.position);camera.lookAt(new T.Vector3().fromArray(reference.target));
+      camera.fov=T.MathUtils.radToDeg(2*Math.atan(Math.tan(T.MathUtils.degToRad(reference.fov)/2)*Math.max(1,(reference.aspect||16/9)/camera.aspect)));
+      camera.updateProjectionMatrix();
     }else{
     const yaw=driver.yaw,dist=(camMode===1?7:camMode===2?20:11)*orbitZoom,height=(camMode===1?3:camMode===2?15:5)*orbitZoom;
     const viewYaw=yaw+orbitYaw,flatDistance=dist*Math.cos(orbitPitch);
