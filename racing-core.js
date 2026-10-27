@@ -9,9 +9,7 @@ function frameTiming(delta,active,paused){
   return {delta:suspend?0:Math.min(delta,.5),suspend};
 }
 function makeTrack(count=1600){
-  const controls=[[0,180,0],[0,202,-180],[120,228,-360],[350,260,-440],
-    [555,272,-250],[650,250,10],[545,218,270],[300,190,430],
-    [35,180,370],[-225,213,270],[-380,258,0],[-250,230,-220],[-85,198,-165]];
+  const controls=[[284.464742,202,280.79833],[139.011635,207,388.818661],[-27.871553,220,388.830886],[-188.771854,235,261.508103],[-360.163601,250,64.976005],[-555.523571,270,-122.865626],[-759.404571,283,-66.673675],[-815.11266,278,199.684364],[-584.253655,259,321.459224],[-434.908615,239,172.391934],[-285.720787,200,-77.793972],[-120.348602,170,-254.57643],[89.986924,179,-134.747536],[220.633913,194,93.246676]];
   const raw=[];let length=0;
   for(let i=0;i<=count;i++){
     const u=(i/count)*controls.length,k=Math.floor(u),t=u-k;
@@ -40,7 +38,7 @@ function makeTrack(count=1600){
         result={...v,distance:Math.sqrt(d),lateral:(x-px)*v.nx+(z-pz)*v.nz};}
     }return result;
   }
-  return {raw,length,sample,nearest,width:24};
+  return {raw,length,sample,nearest,width:40};
 }
 class Driver{
   constructor(track){this.track=track;this.best=null;this.reset();}

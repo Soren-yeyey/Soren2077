@@ -85,7 +85,7 @@ window.RacingEnvironment={create(T,scene,renderer){
       const batches=batchStaticMeshes(root);
       const host=document.getElementById('race-world');
       host.dataset.environment='ready';host.dataset.environmentSource='blender';
-      host.dataset.lowerCities='19';host.dataset.cloudBanks='62';host.dataset.environmentBatches=String(batches+2);
+      host.dataset.lowerCities='0';host.dataset.cloudBanks='62';host.dataset.environmentBatches=String(batches+2);
       return root;
     },
     update(time,camera){uniforms.time.value=time;if(sky)sky.position.copy(camera.position);}

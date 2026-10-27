@@ -2,19 +2,19 @@
 (()=>{'use strict';
 const T=THREE,$=id=>document.getElementById(id),host=$('race-world');
 const track=BoozeRacing.makeTrack(),driver=new BoozeRacing.Driver(track);
-const scene=new T.Scene();scene.background=new T.Color(0x0c1830);scene.fog=new T.FogExp2(0x6c91b8,.00035);
+const scene=new T.Scene();scene.background=new T.Color(0x091b35);scene.fog=new T.FogExp2(0x4b78a2,.00028);
 T.ColorManagement.legacyMode=false;
 const renderer=new T.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.18;renderer.setPixelRatio(Math.min(devicePixelRatio,1));
+renderer.toneMappingExposure=1.05;renderer.setPixelRatio(Math.min(devicePixelRatio,1));
 renderer.setSize(innerWidth,innerHeight);host.appendChild(renderer.domElement);
 // Count the whole frame, including every post-processing pass in high quality.
 renderer.info.autoReset=false;
 const camera=new T.PerspectiveCamera(63,innerWidth/innerHeight,.25,5500);
-scene.add(new T.HemisphereLight(0xb5d8fb,0x243352,1.25));
-const moon=new T.DirectionalLight(0xa6d5fc,1.3);moon.position.set(-300,700,150);scene.add(moon);
-const magenta=new T.DirectionalLight(0xdf83ca,.8);magenta.position.set(600,200,-300);scene.add(magenta);
-const clock=new T.Clock(),keys=new Set();let ready=false,active=false,paused=false,time=0,camMode=0;
+scene.add(new T.HemisphereLight(0xa6d5fb,0x101c31,.85));
+const moon=new T.DirectionalLight(0xa6d5fc,1.65);moon.position.set(-300,700,150);scene.add(moon);
+const magenta=new T.DirectionalLight(0xdf83ca,.20);magenta.position.set(600,200,-300);scene.add(magenta);
+const clock=new T.Clock(),keys=new Set();let ready=false,active=false,paused=false,time=0,camMode=3;
 let perfSeconds=0,perfFrames=0,perfCpuMs=0,hudDirty=true;
 // Explicit diagnostic URL only: compare an empty framebuffer against the full scene.
 const diagnosticMode=new URLSearchParams(location.search).get('diagnostics');
@@ -22,7 +22,7 @@ host.dataset.renderMode=diagnosticMode==='empty'?'empty':'scene';
 if(diagnosticMode){let lastTick=performance.now();setInterval(()=>{
   const now=performance.now();host.dataset.timerMs=(now-lastTick).toFixed(2);lastTick=now;
 },250);}
-let car,kit,quality=false,lastLap=0,previousInput={},frame=0,cruise=false;
+let car,quality=true,lastLap=0,previousInput={},frame=0,cruise=false;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const materials={};
 function material(name,color,metal=.4,rough=.4,glow=0){
@@ -42,69 +42,41 @@ const roadTexture=canvasMap(512,512,(c,w,h)=>{
   for(const x of [12,498]){c.fillStyle='#324755';c.fillRect(x,0,3,h);}
 });
 roadTexture.wrapS=roadTexture.wrapT=T.RepeatWrapping;roadTexture.anisotropy=4;
-const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0x8596a9,metalness:.62,roughness:.29});
-const batches=new Map(),boxGeometry=new T.BoxGeometry(1,1,1),dummy=new T.Object3D();
-function box(x,y,z,w,h,d,mat=steel,yaw=0){
-  if(!batches.has(mat))batches.set(mat,[]);batches.get(mat).push({x,y,z,w,h,d,yaw});
-}
-function flush(){for(const [mat,list]of batches){const inst=new T.InstancedMesh(boxGeometry,mat,list.length);
-  list.forEach((v,i)=>{dummy.position.set(v.x,v.y,v.z);dummy.scale.set(v.w,v.h,v.d);dummy.rotation.set(0,v.yaw,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);});
-  inst.instanceMatrix.needsUpdate=true;scene.add(inst);}batches.clear();}
-function ribbon(offset,width,material,height=0){
-  const n=1100,positions=[],uvs=[],indices=[];
-  for(let i=0;i<=n;i++){
-    const p=track.sample(i===n?0:track.length*i/n);
-    for(const sign of [-1,1]){const d=offset+sign*width/2;positions.push(p.x+p.nx*d,p.y+height,p.z+p.nz*d);uvs.push((sign+1)/2,i/n*track.length/12);}
-    if(i<n){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0x63758e,metalness:.82,roughness:.22});
+// Road-local light streaks follow every bend. Broken longitudinal ripples keep
+// the wet surface legible without reflecting an unrelated static sky picture.
+roadMat.onBeforeCompile=shader=>{
+  shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+    float wetHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+    float fine=wetHash(floor(vec2(vUv.x*420.,vUv.y*20.)));
+    float ripple=.55+.45*sin(vUv.y*39.+sin(vUv.x*91.)*2.);
+    float blue=exp(-pow((vUv.x-.075)/.115,2.));
+    float rose=exp(-pow((vUv.x-.92)/.13,2.));
+    float interior=pow(max(0.,sin(vUv.x*39.+sin(vUv.y*.63)*2.)),12.)*.14;
+    vec3 reflected=vec3(.015,.45,.90)*(blue+interior)+vec3(.90,.008,.22)*rose;
+    totalEmissiveRadiance+=reflected*(.18+fine*.8)*ripple*.7;`);
+};
+roadMat.customProgramCacheKey=()=> 'wet-neon-road-v3';
+// Broad blue and magenta light sources give the assembled metallic car readable reflections.
+const reflectionSource=canvasMap(1024,512,(c,w,h)=>{
+  const gradient=c.createLinearGradient(0,0,0,h);gradient.addColorStop(0,'#213952');
+  gradient.addColorStop(.47,'#8daec9');gradient.addColorStop(.53,'#17243d');gradient.addColorStop(1,'#080f20');
+  c.fillStyle=gradient;c.fillRect(0,0,w,h);
+  for(const [x,color]of [[50,'#7eeaff'],[380,'#f670bc'],[720,'#c4e7ff']]){
+    c.fillStyle=color;c.fillRect(x,160,125,75);c.fillStyle='#e2eeff';c.fillRect(x+20,105,80,18);
   }
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));
-  g.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeVertexNormals();
-  const mesh=new T.Mesh(g,material);scene.add(mesh);return mesh;
-}
-ribbon(0,24,roadMat);ribbon(-12.2,.22,cyan,.12);ribbon(12.2,.22,pink,.12);
-// Watertight deck side walls and underside; each strip occupies a separate surface.
-for(const side of [-1,1]){
-  const positions=[],indices=[],n=1100;
-  for(let i=0;i<=n;i++){const p=track.sample(i===n?0:track.length*i/n);
-    for(const y of [-1.9,-.03])positions.push(p.x+p.nx*side*12.6,p.y+y,p.z+p.nz*side*12.6);
-    if(i<n){const a=i*2;if(side===1)indices.push(a,a+1,a+2,a+1,a+3,a+2);else indices.push(a,a+2,a+1,a+1,a+2,a+3);}}
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();scene.add(new T.Mesh(g,edge));
-}
-const undersideMat=steel.clone();undersideMat.side=T.DoubleSide;ribbon(0,25.2,undersideMat,-1.9);
-for(let s=0;s<track.length;s+=4){const p=track.sample(s),yaw=Math.atan2(p.tx,p.tz);
-  for(const side of [-1,1]){
-    const x=p.x+p.nx*side*12.4,z=p.z+p.nz*side*12.4;
-    box(x,p.y+.68,z,.38,1.36,4.12,edge,yaw);
-    box(x,p.y+1.37,z,.42,.13,4.16,side<0?cyan:pink,yaw);
-    if(s%16<4)box(x,p.y-3,z,1,3,2,steel,yaw);
-  }
-  if(s%20<4)box(p.x,p.y-1.45,p.z,25.2,.6,.65,steel,yaw);
-}
-// The pit is an extension of the starting road, never a floating colliding slab.
-const start=track.sample(0),pit=new T.Group();pit.position.set(start.x,start.y,start.z);
-pit.rotation.y=Math.atan2(-start.tx,-start.tz);scene.add(pit);
-function localBox(parent,x,y,z,w,h,d,mat){const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;}
-localBox(pit,-24,-.95,0,25,1.8,85,steel);
-localBox(pit,-24,.04,0,24,.08,84,edge);
-for(const z of [-34,0,34]){localBox(pit,-33,7,z,.5,14,.5,edge);localBox(pit,-24,14,z,19,.5,.6,steel);localBox(pit,-24,13.7,z,18,.12,.3,cyan);}
-
-function textSprite(text,color='#b8f8ff',width=12,height=2){
-  const tex=canvasMap(1024,128,(c,w,h)=>{c.fillStyle='#091521';c.fillRect(0,0,w,h);c.strokeStyle=color;c.lineWidth=3;c.strokeRect(3,3,w-6,h-6);c.fillStyle=color;c.font='bold 65px Microsoft YaHei';c.textAlign='center';c.textBaseline='middle';c.fillText(text,w/2,h/2);});
-  const m=new T.MeshBasicMaterial({map:tex,side:T.DoubleSide});return new T.Mesh(new T.PlaneGeometry(width,height),m);
-}
-const title=textSprite('BOOZE 赛车城','#c9fbff',22,2.75);title.position.set(-24,11,-34);pit.add(title);
-// Segmented magnetic gates identify check points without obstructing the road.
-function gate(s,color,finish=false){const p=track.sample(s),g=new T.Group();g.position.set(p.x,p.y,p.z);g.rotation.y=Math.atan2(-p.tx,-p.tz);scene.add(g);
-  const arch=new T.Mesh(new T.TorusGeometry(18,.7,5,64,Math.PI),edge);arch.position.y=.5;g.add(arch);
-  const inside=new T.Mesh(new T.TorusGeometry(17.3,.14,4,64,Math.PI),color);inside.position.y=.5;g.add(inside);
-  for(const x of [-18,18])localBox(g,x,.4,0,3,2,5,steel);
-  if(finish){const label=textSprite('天穹环线 · 出发','#aceefa',14,1.7);label.position.set(0,14,-.85);g.add(label);}
-  return g;
-}
-gate(0,cyan,true);for(let i=1;i<=3;i++)gate(track.length*i/4,i%2?pink:cyan);
-
+});
+reflectionSource.mapping=T.EquirectangularReflectionMapping;
+const reflectionGenerator=new T.PMREMGenerator(renderer);
+const reflectionTarget=reflectionGenerator.fromEquirectangular(reflectionSource);
+reflectionGenerator.dispose();reflectionSource.dispose();
+roadMat.envMap=reflectionTarget.texture;roadMat.envMapIntensity=1.0;
+scene.environment=reflectionTarget.texture;
+// Checkpoint rings and the road infrastructure are part of the Blender scene.
 // Geometry and layout are authored and checked in Blender before importing.
 const environment=RacingEnvironment.create(T,scene,renderer);
+const importedWorld=RacingWorld.create(T,scene,renderer,roadMat);
 // Inspect the complete sky and lower environment without changing vehicle controls.
 let orbitYaw=0,orbitPitch=0,orbitZoom=1,orbitDrag=null;
 renderer.domElement.addEventListener('pointerdown',e=>{
@@ -127,90 +99,50 @@ let composer=null;
 function ensureComposer(){
 if(composer)return composer;
 composer=new T.EffectComposer(renderer);composer.addPass(new T.RenderPass(scene,camera));
-const bloom=new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.33,.45,1.15);composer.addPass(bloom);
+const bloom=new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.55,.55,1.05);composer.addPass(bloom);
 const grade=new T.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 uv0;void main(){uv0=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
 fragmentShader:'uniform sampler2D tDiffuse;varying vec2 uv0;void main(){vec3 c=texture2D(tDiffuse,uv0).rgb*1.08;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(1./2.2)),1.);}'});grade.material.toneMapped=false;composer.addPass(grade);
 return composer;
 }
 function toast(t){$('race-toast').textContent=t;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('race-toast').textContent='',2600);}
 function getModel(url){return new Promise((resolve,reject)=>new T.GLTFLoader().load(url,resolve,undefined,reject));}
-const ai=[],crew=[],rotors=[],steering=[],sparkles=[],buildings=[];
-const portrait=new T.TextureLoader().load('images/booze-portrait.png');portrait.encoding=T.sRGBEncoding;
-const portraitMat=new T.MeshStandardMaterial({map:portrait,emissiveMap:portrait,
-  emissive:0xffffff,emissiveIntensity:.6,roughness:.4,metalness:.1});
-// Distant city is instanced; only the nearby modular landmarks use individual prefabs.
-const facade=canvasMap(128,256,(c,w,h)=>{
-  c.fillStyle='#091526';c.fillRect(0,0,w,h);let state=901;
-  for(let y=3;y<h;y+=7)for(let x=3;x<w;x+=8){state=(Math.imul(state,1664525)+1013904223)>>>0;
-    const k=state/4294967296;c.fillStyle=k<.44?'#11283b':k<.8?'#486a7c':k<.96?'#d0b089':'#47d7f5';c.fillRect(x,y,4,3);}
-});
-const farMat=new T.MeshStandardMaterial({map:facade,emissiveMap:facade,
-  emissive:0x89b7de,emissiveIntensity:.7,color:0x70899a,roughness:.65,metalness:.35});
-for(let i=0;i<160;i++){
-  const angle=i*2.399963,radius=870+(i%7)*60;
-  const x=120+Math.cos(angle)*radius,z=Math.sin(angle)*radius,h=110+(i*37)%260;
-  box(x,65+h/2,z,22+(i%4)*7,h,22+(i%5)*5,farMat);
-  if(i%3===0)box(x,65+h+8,z,.5,16,.5,cyan);
-}
+const ai=[],rotors=[],wheels=[],steering=[];
 const exhaustMaterial=new T.MeshBasicMaterial({color:0x52edff,transparent:true,opacity:.65,depthWrite:false,side:T.DoubleSide});
 let exhaust=[];
-function fitScene(gltf){kit=gltf.scene;
-  const prefabs=Object.fromEntries(kit.children.map(c=>[c.name,c]));
-  const displays={
-    'b03-portrait-tower':[[0,50,9.5,12,58]],
-    'b01-commercial-island':[[14,24,20.8,18,29]],
-    'b05-bridge-tower':[[-27,55,11.8,12,35],[27,55,11.8,12,35]],
-    'b06-track-hub':[[-12,41,22.8,12,27],[9,45,22.8,13,24]]
-  };
-  for(const [name,panels]of Object.entries(displays))if(prefabs[name])for(const [x,y,z,w,h]of panels){
-    const panel=new T.Mesh(new T.PlaneGeometry(w,h),portraitMat);panel.position.set(x,y,z);prefabs[name].add(panel);
-  }
-  const names=['b01-commercial-island','b03-portrait-tower','b05-bridge-tower','b06-track-hub','b14-far-cluster'];
-  // Each block is placed by its actual footprint beyond the track clearance envelope.
-  for(let i=0;i<48;i++){
-    const p=track.sample(i/48*track.length+35),side=i%2?-1:1,name=names[i%names.length],source=prefabs[name];
-    if(!source)throw new Error('缺少建筑组件 '+name);
-    const o=source.clone(true),scale=name==='b14-far-cluster'?2.2:1.2+(i%4)*.15;
-    const bounds=new T.Box3().setFromObject(o),size=bounds.getSize(new T.Vector3());
-    const radius=Math.hypot(size.x,size.z)*scale/2;
-    const offset=radius+34+(i%3)*12;
-    o.scale.setScalar(scale);o.position.set(p.x+p.nx*side*offset,p.y-32-(i%4)*7,p.z+p.nz*side*offset);
-    o.rotation.y=Math.atan2(-p.nx*side,-p.nz*side);
-    // Reject a candidate whose footprint approaches any other portion of the track.
-    if(track.nearest(o.position.x,o.position.z).distance<radius+25)continue;
-    scene.add(o);buildings.push(o);
-    if(i%5===0){const inv=source.clone(true);inv.scale.setScalar(scale*.9);inv.rotation.x=Math.PI;
-      inv.position.set(o.position.x,p.y+200,o.position.z);scene.add(inv);buildings.push(inv);}
-  }
-  const npc=prefabs['pit-crew-proxy'];
-  if(npc)for(let i=0;i<7;i++){const o=npc.clone(true);o.position.set(-25+(i%2)*4,.10,-27+i*8);o.rotation.y=.8;pit.add(o);crew.push(o);}
-  host.dataset.buildings=String(buildings.length);host.dataset.crew=String(crew.length);
-  host.dataset.farTowers='160';
-}
 function positionCar(o,s,offset=0){const p=track.sample(s);o.position.set(p.x+p.nx*offset,p.y+.08,p.z+p.nz*offset);o.rotation.y=Math.atan2(-p.tx,-p.tz);return p;}
 function attachVehicle(gltf){
   car=new T.Group();car.name='yuheng-player';scene.add(car);const visual=gltf.scene;car.add(visual);
-  visual.traverse(o=>{if(/-rotor$/.test(o.name))rotors.push(o);if(/front-.*-steer/.test(o.name))steering.push(o);});
-  for(const side of [-1,1]){const flame=new T.Mesh(new T.ConeGeometry(.15,1,8,1,true),exhaustMaterial);flame.rotation.x=-Math.PI/2;flame.position.set(side*.35,.8,2.3);car.add(flame);exhaust.push(flame);}
-  for(let i=0;i<3;i++){const o=visual.clone(true);scene.add(o);ai.push({object:o,s:100+i*55,speed:24+i*2,lane:(i-1)*4});}
+  visual.traverse(o=>{
+    if(/-rotor$/.test(o.name))rotors.push(o);if(/-wheel$/.test(o.name))wheels.push(o);if(/front-.*-steer/.test(o.name))steering.push(o);
+    if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){m.envMap=reflectionTarget.texture;m.envMapIntensity=1.25;}
+  });
+  for(const side of [-1,1]){const flame=new T.Mesh(new T.ConeGeometry(.15,1,8,1,true),exhaustMaterial);flame.rotation.x=-Math.PI/2;flame.position.set(side*.6,.56,3.02);car.add(flame);exhaust.push(flame);}
+  for(let i=0;i<8;i++){
+    const o=visual.clone(true),aiWheels=[];scene.add(o);
+    o.traverse(part=>{if(/-wheel$/.test(part.name))aiWheels.push(part);
+      if(part.isMesh&&part.name.includes('racing-body')){part.material=part.material.clone();part.material.color.setHex([0x093f78,0x6b082b,0x32102f,0x093f78][i]);}
+    });
+    ai.push({object:o,wheels:aiWheels,s:35+i*i*24,speed:24+(i%4)*2,lane:i%2?4:-4});
+  }
   positionCar(car,8);camera.position.copy(car.position).add(new T.Vector3(0,5,11));
-  host.dataset.vehicle='ready';host.dataset.rotors=String(rotors.length);
+  host.dataset.vehicle='ready';host.dataset.rotors=String(rotors.length);host.dataset.wheels=String(wheels.length);
 }
-Promise.all([getModel('models/booze-city-kit.glb'),getModel('models/yuheng-drive.glb'),environment.load()]).then(([city,vehicle])=>{
-  fitScene(city);attachVehicle(vehicle);flush();ready=true;
+Promise.all([getModel('models/racing-vehicle.glb?v=reference-v3'),environment.load(),importedWorld.load()]).then(([vehicle])=>{
+  attachVehicle(vehicle);ready=true;
   $('start').disabled=false;$('start').textContent='进入驾驶 ↗';$('load-status').textContent='W 前进 · A D 转向 · 空格刹车';
   $('track-length').textContent=(track.length/1000).toFixed(2)+' 公里';
   host.dataset.ready='true';host.dataset.trackLength=track.length.toFixed(1);
-  console.info('BOOZE_READY',{trackMeters:track.length,buildings:buildings.length,pitCrew:crew.length,rotors:rotors.length});
+  ensureComposer();$('quality').textContent='画质 · 高';
+  console.info('BOOZE_READY',{trackMeters:track.length,buildings:Number(host.dataset.buildings||0),wheels:wheels.length});
 }).catch(error=>{console.error('BOOZE_LOAD_FAILED',error);$('race-error').hidden=false;});
 
 function setCruise(v){cruise=v;$('cruise').setAttribute('aria-pressed',String(v));$('cruise').textContent=v?'巡航油门 · 开':'巡航油门';}
 function setPaused(v,reason='manual'){paused=v;keys.clear();if(v)setCruise(false);hudDirty=true;host.dataset.pauseReason=v?reason:'none';$('paused').hidden=!v;$('pause').textContent=v?'继续':'暂停';clock.getDelta();}
-function startRace(){if(!ready)return;active=true;setPaused(false);$('race-start').hidden=true;$('race-hud').hidden=false;host.focus();toast('磁驱上线 · 拖动鼠标环顾天空与云海');}
+function startRace(){if(!ready)return;active=true;camMode=0;setPaused(false);$('race-start').hidden=true;$('race-hud').hidden=false;host.focus();toast('磁驱上线 · 按 C 切换参考构图与驾驶视角');}
 $('start').onclick=startRace;$('pause').onclick=()=>{if(active)setPaused(!paused);};$('resume').onclick=()=>setPaused(false);
 $('restart').onclick=()=>{driver.reset();setCruise(false);setPaused(false);toast('已返回发车位');};
 $('cruise').onclick=()=>{if(active&&!paused){setCruise(!cruise);host.focus();}};
-$('camera').onclick=()=>{camMode=(camMode+1)%3;orbitYaw=0;orbitPitch=0;orbitZoom=1;toast(['追逐视角','近车视角','俯瞰视角'][camMode]);};
+$('camera').onclick=()=>{camMode=(camMode+1)%4;orbitYaw=0;orbitPitch=0;orbitZoom=1;toast(['追逐视角','近车视角','俯瞰视角','参考构图'][camMode]);};
 $('quality').onclick=()=>{quality=!quality;renderer.setPixelRatio(Math.min(devicePixelRatio,quality?1.6:1));if(quality)ensureComposer();if(composer)composer.setPixelRatio(renderer.getPixelRatio());$('quality').textContent=quality?'画质 · 高':'画质 · 均衡';resize();};
 addEventListener('keydown',e=>{
   if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
@@ -254,11 +186,18 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
     car.position.set(driver.x,driver.y+.08,driver.z);car.rotation.order='YXZ';car.rotation.y=driver.yaw;
     car.rotation.x=Math.atan(p.slope);car.rotation.z=-driver.steer*Math.min(Math.abs(driver.speed)*.002,.055);
     steering.forEach(o=>o.rotation.y=driver.steer*.18);
-    if(!paused){rotors.forEach(o=>o.rotateY(driver.speed*dt*.7));}
+    if(!paused){rotors.forEach(o=>o.rotateY(driver.speed*dt*.7));wheels.forEach(o=>o.rotateX(-driver.speed*dt/.51));}
     const boosting=input.boost&&driver.boost>.02&&driver.speed>8&&!paused;
     exhaust.forEach(o=>{o.visible=Math.abs(driver.speed)>1;o.scale.set(1,boosting?3:Math.max(.1,Math.abs(driver.speed)*.02),1);});
     document.body.classList.toggle('boosting',boosting&&!reduced);document.body.classList.toggle('hit',driver.wall>.3&&!reduced);
-    ai.forEach(a=>{const p=positionCar(a.object,a.s,a.lane);a.object.rotation.x=Math.atan(p.slope);});
+    ai.forEach(a=>{const p=positionCar(a.object,a.s,a.lane);a.object.rotation.x=Math.atan(p.slope);
+      if(!paused&&active)a.wheels.forEach(w=>w.rotateX(-a.speed*dt/.49));
+    });
+    const reference=importedWorld.getReferenceView();
+    host.dataset.camera=String(camMode);
+    if(camMode===3&&reference){
+      camera.position.fromArray(reference.position);camera.lookAt(new T.Vector3().fromArray(reference.target));camera.fov=reference.fov;camera.updateProjectionMatrix();
+    }else{
     const yaw=driver.yaw,dist=(camMode===1?7:camMode===2?20:11)*orbitZoom,height=(camMode===1?3:camMode===2?15:5)*orbitZoom;
     const viewYaw=yaw+orbitYaw,flatDistance=dist*Math.cos(orbitPitch);
     const camTarget=new T.Vector3(driver.x+Math.sin(viewYaw)*flatDistance,driver.y+height+Math.sin(orbitPitch)*dist,driver.z+Math.cos(viewYaw)*flatDistance);
@@ -266,6 +205,7 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
     const look=new T.Vector3(driver.x-(orbiting?0:Math.sin(yaw)*9),driver.y+1.4,driver.z-(orbiting?0:Math.cos(yaw)*9));
     camera.position.lerp(camTarget,1-Math.exp(-dt*5));camera.lookAt(look);
     camera.fov=T.MathUtils.damp(camera.fov,reduced?63:63+Math.max(driver.speed,0)*.16,4,dt);camera.updateProjectionMatrix();
+    }
     if(hudDirty||frame%4===0){hudDirty=false;$('speed').textContent=String(Math.round(Math.abs(driver.speed)*3.6)).padStart(3,'0');
       $('timer').textContent=fmt(driver.lapTime);$('lap').textContent=String(driver.lap).padStart(2,'0');
       $('checkpoint').textContent='检查点 '+driver.checkpoint+' / 3';$('boost').style.transform=`scaleX(${driver.boost})`;
@@ -274,8 +214,8 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
       host.dataset.paused=String(paused);host.dataset.checkpoint=String(driver.checkpoint);miniMap();}
     if(driver.completed>lastLap){lastLap=driver.completed;$('best').textContent='最佳 '+fmt(driver.best);toast('完成一圈 · '+fmt(driver.best));}
   }else{const p=track.sample(8);camera.position.set(p.x+12,p.y+6,p.z+19);camera.lookAt(p.x,p.y+2,p.z-10);}
-  environment.update(time,camera);renderer.info.reset();
-  if(diagnosticMode==='empty')renderer.clear();else if(quality)composer.render();else renderer.render(scene,camera);
+  environment.update(time,camera);importedWorld.update(time,camera);renderer.info.reset();
+  if(diagnosticMode==='empty')renderer.clear();else if(quality)ensureComposer().render();else renderer.render(scene,camera);
   perfSeconds+=realDelta;perfFrames++;perfCpuMs+=performance.now()-cpuStart;
   if(perfSeconds>=2){host.dataset.fps=(perfFrames/perfSeconds).toFixed(1);
     host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);
