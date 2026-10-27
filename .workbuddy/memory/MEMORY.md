@@ -54,3 +54,15 @@
 ## 待议（不影响玩）
 
 - 「点卡片立即全显」要不要极淡提示（倾向不加）；PRD 第 8 节未决问题其实全已决；横屏面板偏高已拍板接受现状
+
+## 主线切换（2026-10-19 拍板）
+- 项目主线 = 「雨幕之城 · 第七区」（index.html 4KB 壳 + scene.js / navigation.js / scene.css），洗衣店互动剧线退役
+- 洗衣店线已于 2026-10-19 彻底清空（用户拍板含文档）：仓库删除 32 个文件、本地备份分支已删，代码仅存于主线历史 `4c1f65a`
+- CloudBase 静态托管已重部署为「雨幕之城」（公网 md5 2c068c6a = 本地，51 个文件），与仓库主线一致
+- 云函数 api-clues/api-progress 与 PostgreSQL 数据库仍在云上运行（仓库代码已删），下线不可逆、未动，待定
+- Git：并行会话会大幅改写 index.html；提交前必 `git fetch` + 看 `HEAD..origin/main`，绝不强推
+
+## 部署与回滚硬事实（2026-10-19 实测）
+- tcb CLI 临时凭据约 10 天过期：回滚/部署前先 `tcb env list -e soren2077-d9gn6rr04d2c15165` 探登录态；过期用 `tcb login --flow device -e <env>`（后台运行会打印设备码，用户在浏览器确认）
+- 公网校验**禁止**带 `?t=` 随机查询串（CDN 返回空内容，md5 d41d8cd9）；用无查询 URL + `Cache-Control: no-cache`
+- 静态托管回滚实测：revert 1.8s + 部署 7s + 校验 4s ≈ 13s；恢复 ≈ 11s（详见仓库 ROLLBACK.md）

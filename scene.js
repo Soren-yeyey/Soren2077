@@ -262,7 +262,9 @@ setView('street');
 function setQuality(value){quality=value;const ratio=Math.min(devicePixelRatio,value==='high'?1.6:1);renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);reflection.setSize(value==='high'?1024:640,value==='high'?768:480);bloom.strength=value==='high'?.48:.36;rain.geometry.setDrawRange(0,value==='high'?rainCount*2:rainCount);resize();}
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
-$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast('按住鼠标拖动环顾；W A S D 沿步道行走');loadYuheng();});
+const touchOnly=matchMedia('(hover: none) and (pointer: coarse)').matches;
+if(touchOnly){const note=document.querySelector('.desktop-note');if(note)note.textContent='手机暂不支持行走 · 请用电脑体验完整街区';}
+$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast(touchOnly?'手机暂不支持行走 · 可拖动环顾，请用电脑体验完整街区':'按住鼠标拖动环顾；W A S D 沿步道行走');loadYuheng();});
 $('reset').addEventListener('click',()=>{setView('street');toast('已返回南侧街口');});
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{setView(b.dataset.view);if(b.dataset.view==='yuheng')loadYuheng();canvasHost.focus();}));
 $('quality').addEventListener('change',e=>setQuality(e.target.value));
