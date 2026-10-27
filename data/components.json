@@ -1,0 +1,802 @@
+{
+  "version": 1,
+  "status": "design-only",
+  "units": "metres",
+  "coordinateSystem": {
+    "space": "Blender source local",
+    "up": "+Z",
+    "front": "-Y",
+    "dimensionsOrder": [
+      "X",
+      "Y",
+      "Z"
+    ],
+    "runtimeConversion": "(x,y,z) -> (x,z,-y); glTF exporter performs this once"
+  },
+  "gridM": 0.5,
+  "detailSnapM": 0.1,
+  "matingToleranceM": 0.001,
+  "minimumWalkableClearWidthM": 0.9,
+  "components": [
+    {
+      "id": "wall-solid",
+      "name": "实墙",
+      "category": "shell",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        0.3,
+        3.6
+      ],
+      "maxTriangles": 300,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": [
+        {
+          "id": "left",
+          "type": "wall-edge",
+          "positionM": [
+            -1.5,
+            0,
+            0
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        },
+        {
+          "id": "right",
+          "type": "wall-edge",
+          "positionM": [
+            1.5,
+            0,
+            0
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wall-door",
+      "name": "门洞墙",
+      "category": "shell",
+      "status": "draft",
+      "source": null,
+      "dimensionsM": [
+        3,
+        0.3,
+        3.6
+      ],
+      "maxTriangles": 300,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": [
+        {
+          "id": "left",
+          "type": "wall-edge",
+          "positionM": [
+            -1.5,
+            0,
+            0
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        },
+        {
+          "id": "right",
+          "type": "wall-edge",
+          "positionM": [
+            1.5,
+            0,
+            0
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        },
+        {
+          "id": "frame",
+          "type": "door-receiver",
+          "positionM": [
+            0,
+            -0.15,
+            0
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "door-mount"
+          ]
+        },
+        {
+          "id": "canopy",
+          "type": "canopy-receiver",
+          "positionM": [
+            0,
+            -0.15,
+            2.65
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "canopy-mount"
+          ]
+        }
+      ],
+      "opening": {
+        "widthM": 1.2,
+        "heightM": 2.4,
+        "sillM": 0
+      },
+      "localDeliveryId": "entry-pilot/wall-door",
+      "measuredTriangles": 124,
+      "runtimeReady": false
+    },
+    {
+      "id": "wall-window",
+      "name": "窗洞墙",
+      "category": "shell",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        0.3,
+        3.6
+      ],
+      "maxTriangles": 300,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": [
+        {
+          "id": "left",
+          "type": "wall-edge",
+          "positionM": [
+            -1.5,
+            0,
+            0
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        },
+        {
+          "id": "right",
+          "type": "wall-edge",
+          "positionM": [
+            1.5,
+            0,
+            0
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "wall-edge"
+          ]
+        }
+      ],
+      "opening": {
+        "widthM": 1.8,
+        "heightM": 1.8,
+        "sillM": 1
+      }
+    },
+    {
+      "id": "corner-column",
+      "name": "转角柱",
+      "category": "shell",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.3,
+        0.3,
+        3.6
+      ],
+      "maxTriangles": 120,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": []
+    },
+    {
+      "id": "floor-slab",
+      "name": "楼板",
+      "category": "shell",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        3,
+        0.2
+      ],
+      "maxTriangles": 100,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": []
+    },
+    {
+      "id": "roof-panel",
+      "name": "屋顶板",
+      "category": "shell",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        3,
+        0.2
+      ],
+      "maxTriangles": 100,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "compound-solids",
+      "sockets": []
+    },
+    {
+      "id": "door-frame",
+      "name": "门框",
+      "category": "opening",
+      "status": "draft",
+      "source": null,
+      "dimensionsM": [
+        1.2,
+        0.16,
+        2.4
+      ],
+      "maxTriangles": 600,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": [
+        {
+          "id": "rear",
+          "type": "door-mount",
+          "positionM": [
+            0,
+            0.08,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "door-receiver"
+          ]
+        }
+      ],
+      "clearOpeningM": [
+        1.04,
+        2.32
+      ],
+      "localDeliveryId": "entry-pilot/door-frame",
+      "measuredTriangles": 124,
+      "runtimeReady": false
+    },
+    {
+      "id": "door-leaf",
+      "name": "门扇",
+      "category": "opening",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.99,
+        0.045,
+        2.28
+      ],
+      "maxTriangles": 600,
+      "maxMaterialSlots": 2,
+      "origin": "hinge-axis-bottom",
+      "collision": "hinged-box",
+      "sockets": [],
+      "dimensionsMeaning": "bounding-box dimensions; origin is not box centre"
+    },
+    {
+      "id": "window-frame",
+      "name": "窗框",
+      "category": "opening",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        1.8,
+        0.16,
+        1.8
+      ],
+      "maxTriangles": 800,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "window-glass",
+      "name": "玻璃",
+      "category": "opening",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        1.64,
+        0.02,
+        1.64
+      ],
+      "maxTriangles": 12,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "solid-pane",
+      "sockets": []
+    },
+    {
+      "id": "awning",
+      "name": "雨棚",
+      "category": "facade",
+      "status": "draft",
+      "source": null,
+      "dimensionsM": [
+        3,
+        1.2,
+        0.12
+      ],
+      "maxTriangles": 800,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": [
+        {
+          "id": "rear",
+          "type": "canopy-mount",
+          "positionM": [
+            0,
+            0.6,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "canopy-receiver"
+          ]
+        }
+      ],
+      "localDeliveryId": "entry-pilot/awning",
+      "measuredTriangles": 100,
+      "runtimeReady": false
+    },
+    {
+      "id": "pipe-straight",
+      "name": "直管",
+      "category": "facade",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.1,
+        0.1,
+        1
+      ],
+      "maxTriangles": 120,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "pipe-elbow",
+      "name": "弯管",
+      "category": "facade",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.25,
+        0.25,
+        0.1
+      ],
+      "maxTriangles": 240,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "air-conditioner",
+      "name": "空调外机",
+      "category": "facade",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.9,
+        0.4,
+        0.6
+      ],
+      "maxTriangles": 1600,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "sign-panel",
+      "name": "招牌",
+      "category": "facade",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        2.4,
+        0.12,
+        0.6
+      ],
+      "maxTriangles": 300,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "light-box",
+      "name": "灯箱",
+      "category": "facade",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.6,
+        0.15,
+        1.2
+      ],
+      "maxTriangles": 300,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "road-surface",
+      "name": "路面段",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        12,
+        6,
+        0.2
+      ],
+      "maxTriangles": 100,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": [
+        {
+          "id": "start",
+          "type": "road-surface-edge",
+          "positionM": [
+            0,
+            -3,
+            0
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "road-surface-edge"
+          ]
+        },
+        {
+          "id": "end",
+          "type": "road-surface-edge",
+          "positionM": [
+            0,
+            3,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "road-surface-edge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidewalk",
+      "name": "人行道段",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        6,
+        0.2
+      ],
+      "maxTriangles": 100,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": [
+        {
+          "id": "start",
+          "type": "sidewalk-edge",
+          "positionM": [
+            0,
+            -3,
+            0
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "sidewalk-edge"
+          ]
+        },
+        {
+          "id": "end",
+          "type": "sidewalk-edge",
+          "positionM": [
+            0,
+            3,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "compatibleTypes": [
+            "sidewalk-edge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "curb",
+      "name": "路缘",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.2,
+        3,
+        0.15
+      ],
+      "maxTriangles": 100,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "street-lamp",
+      "name": "路灯",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        0.6,
+        0.6,
+        5
+      ],
+      "maxTriangles": 1600,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "railing",
+      "name": "护栏",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        3,
+        0.15,
+        1.1
+      ],
+      "maxTriangles": 600,
+      "maxMaterialSlots": 1,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    },
+    {
+      "id": "planter",
+      "name": "花箱",
+      "category": "street",
+      "status": "planned",
+      "source": null,
+      "dimensionsM": [
+        1.2,
+        0.6,
+        0.6
+      ],
+      "maxTriangles": 800,
+      "maxMaterialSlots": 2,
+      "origin": "bottom-centre",
+      "collision": "to-design",
+      "sockets": []
+    }
+  ],
+  "recipes": [
+    {
+      "id": "entry-pilot",
+      "status": "planned",
+      "runtimeEnabled": false,
+      "instances": [
+        {
+          "id": "wall",
+          "componentId": "wall-door",
+          "positionM": [
+            0,
+            0,
+            0
+          ],
+          "rotationDeg": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "frame",
+          "componentId": "door-frame",
+          "positionM": [
+            0,
+            -0.23,
+            0
+          ],
+          "rotationDeg": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "canopy",
+          "componentId": "awning",
+          "positionM": [
+            0,
+            -0.75,
+            2.65
+          ],
+          "rotationDeg": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "connections": [
+        [
+          "wall",
+          "frame",
+          "frame",
+          "rear"
+        ],
+        [
+          "wall",
+          "canopy",
+          "canopy",
+          "rear"
+        ]
+      ],
+      "maxTriangles": 1700,
+      "verificationStatus": "not-built"
+    }
+  ]
+}

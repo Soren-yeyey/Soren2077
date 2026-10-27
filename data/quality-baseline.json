@@ -1,0 +1,664 @@
+{
+  "version": 1,
+  "status": "partial-baseline",
+  "assetId": "workshop",
+  "source": {
+    "path": "models/workshop.glb",
+    "sha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+    "revision": 3
+  },
+  "referenceIds": [
+    "city-style-primary",
+    "workshop-neutral-audit"
+  ],
+  "evidenceRoot": "city-studio delivery directory (local only)",
+  "referenceFiles": {
+    "city-style-primary": "user-supplied city reference; local mapping in component-library-spec.md",
+    "workshop-neutral-audit": "reports/asset-audit.json"
+  },
+  "budgets": {
+    "existingSixBuildingsMaxTriangles": 11984,
+    "workshopTargetMaxTriangles": 12000,
+    "workshopMeasuredTriangles": 11888,
+    "allWebModelAndImageBytesMax": 5000000,
+    "measuredWebModelAndImageBytes": 4904247,
+    "singleImageBytesMax": 1000000,
+    "newWebTextureBytesAllocated": 0,
+    "texelDensityTargetPxPerM": [
+      128,
+      256
+    ],
+    "texelDensityMeasuredPxPerM": null,
+    "remainingWebModelAndImageBytes": 95753,
+    "entranceTextureMeasurements": {
+      "scope": "adapted entrance only; not whole building",
+      "colorPxPerM": [
+        132.86612642439255,
+        164.42972197026015
+      ],
+      "normalAndMetallicRoughnessPxPerM": [
+        33.21653160609814,
+        41.10743049256504
+      ],
+      "embeddedTextureBytes": 626448
+    }
+  },
+  "neutralViews": [
+    {
+      "id": "overview",
+      "positionM": [
+        26.870819091796875,
+        -27.670820236206055,
+        23.64415740966797
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/overview.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "front",
+      "positionM": [
+        -0.13750004768371582,
+        -42.69927978515625,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/front.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "back",
+      "positionM": [
+        -0.13750004768371582,
+        41.37428283691406,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/back.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "left",
+      "positionM": [
+        -42.17428207397461,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/left.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "right",
+      "positionM": [
+        41.8992805480957,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/right.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "top",
+      "positionM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        48.12553024291992
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "evidence": "renders/workshop-wall-detail/top.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    }
+  ],
+  "pendingViews": [
+    {
+      "id": "rear-close",
+      "positionM": [
+        5,
+        16,
+        5
+      ],
+      "targetM": [
+        0,
+        4.8,
+        3.2
+      ],
+      "orthoScaleM": 14,
+      "evidence": "renders/workshop-wall-detail/rear-close.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "door-close",
+      "positionM": [
+        5,
+        -14,
+        5
+      ],
+      "targetM": [
+        0,
+        -4.5,
+        2.5
+      ],
+      "orthoScaleM": 7,
+      "evidence": "renders/workshop-wall-detail/door-close.png",
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic"
+    },
+    {
+      "id": "interior-close",
+      "positionM": [
+        0,
+        -3.8,
+        2.05
+      ],
+      "targetM": [
+        0,
+        2.5,
+        1.6
+      ],
+      "evidence": "renders/workshop-interior-r3/interior-close.png",
+      "projection": "perspective",
+      "lensMm": 22,
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up"
+    },
+    {
+      "id": "interior-exit",
+      "positionM": [
+        0,
+        1,
+        2.05
+      ],
+      "targetM": [
+        0,
+        -5.2,
+        1.3
+      ],
+      "evidence": "renders/workshop-interior-r3/interior-exit.png",
+      "projection": "perspective",
+      "lensMm": 22,
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up"
+    },
+    {
+      "id": "interior-ceiling",
+      "positionM": [
+        -1,
+        -2.5,
+        2.05
+      ],
+      "targetM": [
+        0,
+        1,
+        5.7
+      ],
+      "evidence": "renders/workshop-interior-r3/interior-ceiling.png",
+      "projection": "perspective",
+      "lensMm": 22,
+      "status": "captured-current",
+      "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+      "coordinateSystem": "Blender Z-up"
+    }
+  ],
+  "gates": [
+    {
+      "id": "file-integrity",
+      "status": "passed-at-release",
+      "evidence": "4efcbf4: 20 file checks; published model and collision byte counts and SHA256 matched local release.",
+      "requirement": "All registered dependency bytes and hashes match; no missing or case-mismatched files.",
+      "historicalEvidence": "d20f843: scripts/validate-assets.cjs; rerun on every source change"
+    },
+    {
+      "id": "mesh-degeneracy",
+      "status": "passed-at-audit",
+      "evidence": "reports/workshop-wall-detail-audit.json: 11888 triangles; zero degenerate/duplicate triangles; diagnostic welded boundary count 0. Full self-intersection classification remains pending.",
+      "requirement": "No non-finite vertices, zero-area faces or duplicate triangles; report open/non-manifold edges without silently welding source.",
+      "historicalEvidence": "reports/asset-audit.json"
+    },
+    {
+      "id": "uv-quality",
+      "status": "partial",
+      "evidence": "reports/workshop-uv-r3-audit.json: blue-enamel 206 triangles, no positive-area UV overlaps or degeneracy; stretch median 1.323, max 1.532. Untextured amber has 3042 degenerate UV triangles; other untextured materials show high stretch. Untextured overlap and semantic reuse classification remain pending.",
+      "requirement": "Check stretch, intended overlap declarations, bake UV isolation and measured texel density; a UV layer alone is insufficient.",
+      "historicalEvidence": null
+    },
+    {
+      "id": "assembly",
+      "status": "partial",
+      "evidence": "reports/entry-pilot-audit.json and reports/workshop-entry-fit-audit.json; pilot and adapted entrance only",
+      "requirement": "Socket residual <=0.001m, normals opposite, up aligned, no exposed seam or overlapping render surfaces; door clear width >=0.9m.",
+      "historicalEvidence": null
+    },
+    {
+      "id": "visual-360",
+      "status": "needs-work",
+      "evidence": "renders/workshop-wall-detail/: six neutral views and door/rear closeups; candidate GLB hash equals release. renders/workshop-interior-r3/: three interior perspectives from release GLB. Interior props repetitive/materials plain; complete rain-night view set pending.",
+      "requirement": "Six neutral views plus door/interior/rear close-ups; repeat in rain-night lighting, inspect holes, penetrations and blank rear walls.",
+      "historicalEvidence": "reports/baseline-review.md"
+    },
+    {
+      "id": "controls",
+      "status": "partial",
+      "evidence": "4efcbf4: 13 Node tests including 48 attachment-collision cases. Local candidate browser entry/exit/jump checked. Full editor persistence and online manual route not repeated for revision 3.",
+      "requirement": "Rerun ground, indoor collision, jumping, low ceilings, layout persistence and zone transitions after mesh changes.",
+      "historicalEvidence": "d20f843: 12 Node tests and browser rotation/undo/jump check"
+    },
+    {
+      "id": "performance",
+      "status": "partial",
+      "evidence": "reports/post-benchmark-2026-10-15.json and reports/post-benchmark-review.md: Radeon 780M, 1600x900 render, one 60s foreground sample per mode after 15s warmup. Frame median/P95 byte 6.2/8.6ms, half-float 6.7/9.5ms. Full protocol incomplete.",
+      "requirement": "Record foreground frame-time median/P95, draw calls and visible triangles on a fixed route and hardware.",
+      "historicalEvidence": null
+    }
+  ],
+  "performanceProtocol": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "foreground": true,
+    "warmupSeconds": 15,
+    "sampleSeconds": 60,
+    "qualityPresets": [
+      "high",
+      "balanced"
+    ],
+    "runsPerPreset": 3,
+    "route": "Reset default layout seed 2077, use the existing camera-preview mode from the same start; separately inspect indoor walk/jump and all three zone transitions.",
+    "record": [
+      "commit",
+      "asset hashes",
+      "browser version",
+      "OS",
+      "GPU",
+      "devicePixelRatio",
+      "render resolution",
+      "route start and mode",
+      "frame time median ms",
+      "frame time P95 ms",
+      "draw calls median/max",
+      "visible triangles median/max",
+      "network transferred bytes",
+      "errors"
+    ],
+    "passThresholds": null,
+    "note": "No FPS promise until the same-machine baseline is collected; background throttled frames are invalid."
+  },
+  "approval": {
+    "allowed": false,
+    "reason": "Interior material/prop refinement, full UV and intersection review, rain-night views, editor persistence recheck and formal performance sampling remain incomplete."
+  },
+  "commit": "4efcbf4",
+  "updatedOn": "2026-10-14",
+  "historicalSource": {
+    "path": "models/workshop.glb",
+    "sha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+  },
+  "historicalNeutralViews": [
+    {
+      "id": "overview",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-overview.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        26.870819091796875,
+        -27.670820236206055,
+        23.64415740966797
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    {
+      "id": "front",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-front.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        -0.13750004768371582,
+        -42.69927978515625,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    {
+      "id": "back",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-back.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        -0.13750004768371582,
+        41.37428283691406,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    {
+      "id": "left",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-left.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        -42.17428207397461,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    {
+      "id": "right",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-right.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        41.8992805480957,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    },
+    {
+      "id": "top",
+      "status": "historical-needs-recapture",
+      "evidence": "renders/baseline/workshop-top.png",
+      "coordinateSystem": "Blender Z-up",
+      "projection": "orthographic",
+      "positionM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        48.12553024291992
+      ],
+      "targetM": [
+        -0.13750004768371582,
+        -0.6624999046325684,
+        6.088749885559082
+      ],
+      "orthoScaleM": 23.540597915649414,
+      "sourceSha256": "05bf28269484cdc6e703edf9dba8e4551ebc85400416366bc954faa960ffa212"
+    }
+  ],
+  "priorRevisionViews": [
+    {
+      "source": {
+        "path": "models/workshop.glb",
+        "sha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+        "revision": 2
+      },
+      "neutralViews": [
+        {
+          "id": "overview",
+          "positionM": [
+            26.870819091796875,
+            -27.670820236206055,
+            23.64415740966797
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/overview.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        },
+        {
+          "id": "front",
+          "positionM": [
+            -0.13750004768371582,
+            -42.69927978515625,
+            6.088749885559082
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/front.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        },
+        {
+          "id": "back",
+          "positionM": [
+            -0.13750004768371582,
+            41.37428283691406,
+            6.088749885559082
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/back.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        },
+        {
+          "id": "left",
+          "positionM": [
+            -42.17428207397461,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/left.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        },
+        {
+          "id": "right",
+          "positionM": [
+            41.8992805480957,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/right.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        },
+        {
+          "id": "top",
+          "positionM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            48.12553024291992
+          ],
+          "targetM": [
+            -0.13750004768371582,
+            -0.6624999046325684,
+            6.088749885559082
+          ],
+          "orthoScaleM": 23.540597915649414,
+          "evidence": "renders/workshop-current/top.png",
+          "status": "captured-current",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c",
+          "coordinateSystem": "Blender Z-up",
+          "projection": "orthographic"
+        }
+      ],
+      "pendingViews": [
+        {
+          "id": "door-close",
+          "purpose": "门洞侧壁、门框缝隙、雨棚净空",
+          "status": "captured-current",
+          "camera": {
+            "positionM": [
+              5,
+              -14,
+              5
+            ],
+            "targetM": [
+              0,
+              -4.5,
+              2.5
+            ],
+            "orthoScaleM": 7
+          },
+          "evidence": "renders/workshop-current/door-close.png",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c"
+        },
+        {
+          "id": "interior-close",
+          "purpose": "柜台、家具通路、天花板",
+          "status": "not-measured",
+          "camera": null
+        },
+        {
+          "id": "rear-close",
+          "purpose": "墙板接缝、管线、检修口",
+          "status": "captured-current",
+          "camera": {
+            "positionM": [
+              5,
+              16,
+              5
+            ],
+            "targetM": [
+              0,
+              4.8,
+              3.2
+            ],
+            "orthoScaleM": 14
+          },
+          "evidence": "renders/workshop-current/rear-close.png",
+          "sourceSha256": "e04ae4d926f3d1780c78ecff0006f2f9fde67a7e6e98a370a53605e78033952c"
+        }
+      ]
+    }
+  ],
+  "interiorAudit": {
+    "report": "reports/workshop-interior-r3-audit.json",
+    "inspectionLights": true,
+    "runtimeLightingEvidence": false,
+    "sampledFloorM": 0.32,
+    "sampledCeilingM": 5.86,
+    "collisionCeilingM": 5.85,
+    "rayPairs": 3
+  },
+  "uvAudit": {
+    "report": "reports/workshop-uv-r3-audit.json",
+    "sourceSha256": "a5efad0aa4bcef9846b6e68dd4a965a8804d9b30b6d0c3d6b3f92d548dc2dcba",
+    "texturedOverlapPairs": 0,
+    "untexturedDegenerateTriangles": 3042,
+    "fullApproval": false
+  },
+  "performanceTrial": {
+    "date": "2026-10-15",
+    "codeCommit": "8b8fecd",
+    "report": "reports/post-benchmark-2026-10-15.json",
+    "fullProtocolPassed": false
+  }
+}
