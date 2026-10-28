@@ -376,7 +376,10 @@ Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
   for(let z=-186;z<98;z+=32){box(35,4.6,z,2.6,36,3.0,'steel');}
   for(let z=92;z>-170;z-=4){box(37.6,22.05,z,.1,.02,3.2,'lane');}
   for(const z of [44,4,-36,-76,-116,-152])light(9,28.5,z,z%2?0xff58c0:0x59ccff,10,30);
-  for(const [z,id,sc] of [[58,'07',1.75],[26,'09',1.05],[-8,'07',1.9],[-44,'12',1.15],[-80,'07',1.65],[-116,'10',1.45],[-148,'07',1.8]])addPrefab(prefabs,id,22,22,z,sc,-Math.PI/2);
+  for(const [z,id,sc] of [[58,'07',1.75],[26,'09',1.05],[-8,'07',1.9],[-80,'07',1.65],[-116,'10',1.45],[-148,'07',1.8]])addPrefab(prefabs,id,22,22,z,sc,-Math.PI/2);
+  // The hologram pylon faces down the street rather than sideways, so its screen reads
+  // head-on from the walkway instead of edge-on.
+  addPrefab(prefabs,'12',11,22,-52,0.9,0);
   addPrefab(prefabs,'08',-57,18,-97,2.05,Math.PI/4);
   addPrefab(prefabs,'09',-49,-8,-225,2.0,.1);
   addPrefab(prefabs,'10',-17,22,-112,1.36,0);
