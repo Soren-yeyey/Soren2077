@@ -11,6 +11,9 @@ catch(e){fail('当前浏览器无法启动三维渲染，请使用支持硬件�
 renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);
 canvasHost.appendChild(renderer.domElement);
+// Decorative imports (facades, sky platforms, billboard) are ~13 MB together. They are
+// started only after the street is walkable, so they never hold up the enter button.
+function loadDecorations(){
 loadImportedScenery(T,scene,renderer,canvasHost,[
  ['importedFacade','models/neon-facade.glb',[[-48,22,5,50,Math.PI/2],[22,22,-30,48,-Math.PI/2]]],
  ['importedSkyCity','models/floating-city.glb',[[95,70,-120,35,.15]]],
@@ -22,6 +25,7 @@ loadImportedScenery(T,scene,renderer,canvasHost,[
 ]);
 // The overhead platforms sit above every street lamp, so give them their own rim lights.
 light(-34,96,-72,0x6ad8ff,46,120);light(46,84,-150,0xff5fbe,40,120);light(-96,112,-196,0x59e8ff,34,110);
+}
 const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.12,2600);camera.rotation.order='YXZ';
 const clock=new T.Clock(),obstacles=[],traffic=[],humans=[],animated=[];
 let active=false,ready=false,quality='high',dragging=false,yaw=-.155,pitch=.073,elapsed=0,frame=0;
@@ -317,6 +321,7 @@ for(const p of [[-4,42],[-8,8],[-28,24],[-29,-34],[-4,-123],[-6,-155]])pedestria
 // pedestrians. Each copy loads the same 1.26 MB file, which the HTTP cache serves once.
 const operativeSpots=[[-7,46,.35],[-7,-89,3.1],[-27,-108,-1.2]];
 const operatives=[];
+function loadOperatives(){
 for(const [x,z,ry] of operativeSpots){
   new T.GLTFLoader().load('models/operative-walk.glb',gltf=>{
     const model=gltf.scene,box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3());
@@ -333,6 +338,7 @@ for(const [x,z,ry] of operativeSpots){
     obstacles.push({minX:x-.4,maxX:x+.4,minZ:z-.4,maxZ:z+.4});
     canvasHost.dataset.operative=String((Number(canvasHost.dataset.operative)||0)+1);
   },undefined,error=>{canvasHost.dataset.operative='fallback';console.warn('Optional character:',error);});
+}
 }
 
 // Camera-local rain occupies a bounded volume and never crosses the UI layer.
@@ -410,7 +416,10 @@ function animate(){
   if(ready&&!adapted){perfFrames++;perfTime+=realDelta;if(perfTime>7){adapted=true;canvasHost.dataset.initialFps=(perfFrames/perfTime).toFixed(1);if(perfFrames/perfTime<27&&quality==='high'){setQuality('balanced');$('quality').value='balanced';toast('已切换均衡画质，让漫游更流畅');}}}
 }
 
-Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
+// Only the street prefabs block the enter button. Tripo towers, imported facades,
+// sky platforms and the rigged characters stream in after the walk is already usable.
+setTimeout(()=>{if(!ready)$('loading').textContent='网络较慢，街道仍在载入…';},12000);
+loadCity().then(gltf=>{
   const prefabs=gltf.scene.children;
   prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;
     // Baked window factors are 0.10 (Apartment) and 0.32 (Windows), and their emissive
@@ -456,8 +465,13 @@ Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
   addPrefab(prefabs,'10',67,-62,-43,1.1,0);
   addPrefab(prefabs,'09',209,-60,-84,1.7,0);
   addPrefab(prefabs,'08',-122,-42,75,1.5,0);
-  finishBatches();ready=true;$('enter').disabled=false;$('enter-label').textContent='观景漫游';$('loading').textContent='城区已就绪 · 六栋原始建筑模型';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
+  finishBatches();ready=true;$('enter').disabled=false;$('enter-label').textContent='观景漫游';$('loading').textContent='街道已就绪 · 细节陆续到场';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
   console.info('CITY_READY',{sourceModels:6,sourceTriangles:11984,colliders:obstacles.length});
+  // Everything below is decoration: it must not delay the first walkable frame.
+  loadDetailedBuildings();
+  loadDecorations();
+  loadOperatives();
+  $('enter').addEventListener('click',()=>{canvasHost.dataset.decorations='streaming';},{once:true});
 }).catch(e=>{console.error('CITY_LOAD_FAILED',e);fail('建筑资源未能载入。请从本地服务器或网站链接打开页面，并检查网络后重试。');});
 animate();
 })();
