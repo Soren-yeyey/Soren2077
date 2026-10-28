@@ -82,6 +82,10 @@
     "data/workshop-collision.json": {
       "bytes": 13232,
       "sha256": "85b5bbfc510b2432af159ee6935522c086352a082af7e954ded5e074d7439116"
+    },
+    "models/homepage-buildings.glb": {
+      "bytes": 3668168,
+      "sha256": "7adb5eaf73264cc371427888796cde01e5bb2a58f5c9a22e231fa7e88c2bad73"
     }
   },
   "assets": [

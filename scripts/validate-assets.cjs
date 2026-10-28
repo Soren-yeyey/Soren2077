@@ -14,7 +14,7 @@ function check(root=path.resolve(__dirname,'..')){
  };
  for(const [file,record] of Object.entries(manifest.files||{}))checkFile(file,record);
  const docs=new Map();
- for(const source of new Set(assets.map(a=>a.source))){
+ for(const source of new Set([...assets.map(a=>a.source),...Object.keys(manifest.files||{}).filter(f=>/\.(glb|gltf)$/.test(f))])){
   if(!fs.existsSync(path.join(root,source))){errors.push('Missing model: '+source);continue;}
   const data=fs.readFileSync(path.join(root,source));let doc;
   try{

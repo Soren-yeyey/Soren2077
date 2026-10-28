@@ -142,6 +142,37 @@ const manager=new T.LoadingManager();
 manager.onProgress=(url,loaded,total)=>{$('loading-bar').style.width=Math.round(loaded/total*92)+'%';};
 const loader=new T.GLTFLoader(manager);
 function loadCity(){return new Promise((resolve,reject)=>loader.load('models/city-kit.gltf',resolve,undefined,reject));}
+// Three existing Tripo buildings, extracted from the approved Blender racing
+// export without rebaking, decimating, recolouring or changing their UVs.
+function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().load('models/homepage-buildings.glb',gltf=>{
+  const placements=[
+    [3,68,-62,-120,118,.20],
+    [4,26,-62,-43,92,-.30],
+    [26,91,-62,-272,162,-.12],
+    [4,-80,-62,-70,125,.35],
+    [26,153,-62,-90,145,.12],
+    [3,-120,-62,-280,155,-.25]
+  ];
+  for(const [number,x,y,z,height,rotation] of placements){
+    const source=gltf.scene.getObjectByName('tripo-building-'+String(number).padStart(2,'0'));
+    if(!source)continue;
+    const obj=source.clone(true),bounds=new T.Box3().setFromObject(obj),size=bounds.getSize(new T.Vector3());
+    const scale=height/size.y,center=bounds.getCenter(new T.Vector3());
+    // A wrapper preserves original mesh coordinates, and gives a floor-centred pivot.
+    const group=new T.Group();obj.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);obj.scale.setScalar(scale);
+    group.add(obj);group.position.set(x,y,z);group.rotation.y=rotation;
+    group.updateMatrixWorld(true);bounds.setFromObject(group);
+    // Keep the entire building envelope outside the walkable deck, including
+    // rotated overhangs. Existing collision and portal paths stay usable.
+    if(x>0&&bounds.min.x<4)group.position.x+=4-bounds.min.x;
+    if(x<0&&bounds.max.x>-40)group.position.x-=bounds.max.x+40;
+    scene.add(group);
+    obj.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
+      if(m.map)m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    }});
+  }
+  canvasHost.dataset.tripoBuildings=String(placements.length);canvasHost.dataset.buildingDetail='ready';resolve();
+},undefined,error=>{canvasHost.dataset.buildingDetail='fallback';console.warn('CITY_OPTIONAL_BUILDINGS',error);resolve();}));}
 function addPrefab(prefabs,id,x,y,z,scale=1,rotation=0){
   const source=prefabs.find(o=>o.name.startsWith(id));if(!source)throw new Error('建筑资源缺失：'+id);
   const obj=source.clone(true);obj.position.set(x,y,z);obj.scale.setScalar(scale);obj.rotation.y=rotation;scene.add(obj);
@@ -312,7 +343,7 @@ function animate(){
   if(ready&&!adapted){perfFrames++;perfTime+=realDelta;if(perfTime>7){adapted=true;canvasHost.dataset.initialFps=(perfFrames/perfTime).toFixed(1);if(perfFrames/perfTime<27&&quality==='high'){setQuality('balanced');$('quality').value='balanced';toast('已切换均衡画质，让漫游更流畅');}}}
 }
 
-loadCity().then(gltf=>{
+Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
   const prefabs=gltf.scene.children;
   prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;});}}));
   for(const z of [68,36,4,-28,-60,-92,-124,-156])addPrefab(prefabs,'07',-44,22,z,1.8,Math.PI/2);
