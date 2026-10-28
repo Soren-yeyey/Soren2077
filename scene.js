@@ -11,6 +11,10 @@ catch(e){fail('当前浏览器无法启动三维渲染，请使用支持硬件�
 renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);
 canvasHost.appendChild(renderer.domElement);
+loadImportedScenery(T,scene,renderer,canvasHost,[
+ ['importedFacade','models/neon-facade.glb',[[-48,22,5,50,Math.PI/2],[22,22,-30,48,-Math.PI/2]]],
+ ['importedSkyCity','models/floating-city.glb',[[95,70,-120,35,.15]]]
+]);
 const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.12,2600);camera.rotation.order='YXZ';
 const clock=new T.Clock(),obstacles=[],traffic=[],humans=[],animated=[];
 let active=false,ready=false,quality='high',dragging=false,yaw=-.155,pitch=.073,elapsed=0,frame=0;
@@ -115,13 +119,18 @@ box(82,-67,-180,1000,4,1700,'black');
 // A planar wet-road reflection is distorted in world space to read as rainwater.
 const reflection=new T.WebGLRenderTarget(1024,768,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthBuffer:true});
 const mirrorCam=new T.PerspectiveCamera(),reflectionMatrix=new T.Matrix4(),bias=new T.Matrix4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1);
-const wetMaterial=new T.ShaderMaterial({uniforms:{reflection:{value:reflection.texture},reflectionMatrix:{value:reflectionMatrix},time:{value:0},eye:{value:camera.position},fogColor:{value:new T.Color(0x203347)}},vertexShader:`uniform mat4 reflectionMatrix;varying vec4 projected;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;projected=reflectionMatrix*p;gl_Position=projectionMatrix*viewMatrix*p;}`,fragmentShader:`
-precision highp float;uniform sampler2D reflection;uniform float time;uniform vec3 eye;uniform vec3 fogColor;varying vec4 projected;varying vec3 world;
+const groundFallback=new T.DataTexture(new Uint8Array([0,0,0,255]),1,1,T.RGBAFormat);groundFallback.needsUpdate=true;
+const wetMaterial=new T.ShaderMaterial({uniforms:{reflection:{value:reflection.texture},groundTexture:{value:groundFallback},groundStrength:{value:0},reflectionMatrix:{value:reflectionMatrix},time:{value:0},eye:{value:camera.position},fogColor:{value:new T.Color(0x203347)}},vertexShader:`uniform mat4 reflectionMatrix;varying vec4 projected;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;projected=reflectionMatrix*p;gl_Position=projectionMatrix*viewMatrix*p;}`,fragmentShader:`
+precision highp float;uniform sampler2D reflection;uniform sampler2D groundTexture;uniform float groundStrength;uniform float time;uniform vec3 eye;uniform vec3 fogColor;varying vec4 projected;varying vec3 world;
+vec3 groundLinear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
+vec3 groundSample(vec2 p){vec2 edge=smoothstep(vec2(.30),vec2(.48),abs(fract(p)-.5));vec3 a=texture2D(groundTexture,p).rgb,b=texture2D(groundTexture,p+vec2(.5,0.)).rgb,c=texture2D(groundTexture,p+vec2(0.,.5)).rgb,d=texture2D(groundTexture,p+vec2(.5)).rgb;return groundLinear(mix(mix(a,b,edge.x),mix(c,d,edge.x),edge.y));}
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}
-void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float puddle=smoothstep(.22,.74,noise(world.xz*.23));vec2 ripple=vec2(sin(world.z*52.+world.x*29.+time*2.),cos(world.x*43.-time*3.))*.00075;uv+=ripple+vec2(n-.5,noise(world.xz*4.3)-.5)*.003;vec3 refl=texture2D(reflection,clamp(uv,0.,1.)).rgb;float fres=pow(1.-max(normalize(eye-world).y,0.),3.);vec3 base=vec3(.014,.022,.028)*( .75+n*.5);vec3 col=mix(base,refl,.18+.64*puddle*fres);float seam=step(.98,fract(world.z*.5));col*=1.-seam*.23;float fog=1.-exp(-pow(distance(eye,world)*.0017,2.));gl_FragColor=vec4(mix(col,fogColor,fog),1.);
+void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float puddle=smoothstep(.22,.74,noise(world.xz*.23));vec2 ripple=vec2(sin(world.z*52.+world.x*29.+time*2.),cos(world.x*43.-time*3.))*.00075;uv+=ripple+vec2(n-.5,noise(world.xz*4.3)-.5)*.003;vec3 refl=texture2D(reflection,clamp(uv,0.,1.)).rgb;float fres=pow(1.-max(normalize(eye-world).y,0.),3.);vec3 base=vec3(.014,.022,.028)*( .75+n*.5);vec3 asphalt=groundSample(world.xz/12.);base=mix(base,asphalt,groundStrength);vec3 col=mix(base,refl,.18+.64*puddle*fres);float seam=step(.98,fract(world.z*.5));col*=1.-seam*.23;float fog=1.-exp(-pow(distance(eye,world)*.0017,2.));gl_FragColor=vec4(mix(col,fogColor,fog),1.);
 #include <tonemapping_fragment>
 #include <encodings_fragment>
 }`});
+canvasHost.dataset.groundTexture='loading';
+new T.TextureLoader().load('images/neon-wet-asphalt.webp',texture=>{texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());wetMaterial.uniforms.groundTexture.value=texture;wetMaterial.uniforms.groundStrength.value=.65;canvasHost.dataset.groundTexture='ready';},undefined,()=>{canvasHost.dataset.groundTexture='fallback';});
 const wetRoad=new T.Mesh(new T.PlaneGeometry(35.4,308),wetMaterial);wetRoad.rotation.x=-Math.PI/2;wetRoad.position.set(-18,22.025,-48);scene.add(wetRoad);
 // Shared landmark language with the playable commission street.
 const cityRing=new T.Group();cityRing.position.set(-10.2,31,16);scene.add(cityRing);

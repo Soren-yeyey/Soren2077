@@ -106,6 +106,18 @@
     "images/building-26-detail.webp": {
       "bytes": 936830,
       "sha256": "46ed2d279877d24246b76b47277826e400dcb63dde60e52183370efb92a6c63f"
+    },
+    "models/floating-city.glb": {
+      "bytes": 2427944,
+      "sha256": "81b68ed901657ba2daf29de3847cb139ca6db7290840bc6bf8ea164fb05038a0"
+    },
+    "models/neon-facade.glb": {
+      "bytes": 6719812,
+      "sha256": "207a261f4b9ad51350463d61ca66ace984d37ecd5aa6ddca09a6b3fb031ca02e"
+    },
+    "images/neon-wet-asphalt.webp": {
+      "bytes": 402192,
+      "sha256": "0a00993feb761be13572f63e7ded54032686b3adf2e0385806f56d7b35d4787f"
     }
   },
   "assets": [

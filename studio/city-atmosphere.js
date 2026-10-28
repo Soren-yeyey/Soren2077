@@ -1,6 +1,10 @@
 /* Reusable, non-colliding scenery for the street reference view. */
 window.CityAtmosphere = function(T, scene, renderer) {
  const group = new T.Group(); group.name = 'street-atmosphere'; scene.add(group);
+ loadImportedScenery(T,group,renderer,renderer.domElement.parentElement,[
+  ['importedFacade','models/neon-facade.glb',[[-30,0,30,46,Math.PI/2],[30,0,12,43,-Math.PI/2]]],
+  ['importedSkyCity','models/floating-city.glb',[[-74,48,35,32,.15]]]
+ ]);
  const metal = new T.MeshStandardMaterial({color:0x182936, metalness:.5, roughness:.42});
  const pink = new T.MeshBasicMaterial({color:0xff73d1});
  const cyan = new T.MeshBasicMaterial({color:0x65eaff});
@@ -24,6 +28,9 @@ window.CityAtmosphere = function(T, scene, renderer) {
  const glowTexture=new T.CanvasTexture(glowCanvas);glowTexture.encoding=T.sRGBEncoding;
  const glow=new T.Mesh(new T.PlaneGeometry(65,65),new T.MeshBasicMaterial({map:glowTexture,transparent:true,opacity:.75,depthWrite:false,fog:false,blending:T.AdditiveBlending}));
  glow.position.set(0,17,25);group.add(glow);
+ // A wide, soft cyan backlight gives the ring a luminous vanishing point.
+ const haloMaterial=new T.MeshBasicMaterial({map:glowTexture,color:0x6be5ff,transparent:true,opacity:.24,depthWrite:false,fog:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const halo=new T.Mesh(new T.PlaneGeometry(90,55),haloMaterial);halo.position.set(0,19,13);group.add(halo);
  // Elevated walkways and edge lighting stay above the playable street.
  function detailBox(w,h,d,x,y,z,material){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material);m.position.set(x,y,z);group.add(m);return m;}
  for(const [z,y] of [[23,14],[12,21]]){
@@ -37,8 +44,18 @@ window.CityAtmosphere = function(T, scene, renderer) {
   detailBox(.08,3.4,.08,side*11.9,3.4,z,side<0?pink:cyan);
   detailBox(2.8,.06,.15,side*13.3,5.4,z,side<0?cyan:pink);
  }
+ // Thin edge strips lead the eye toward the ring without blocking the route.
+ for(const side of [-1,1]){
+  detailBox(.09,.035,56,side*9.3,.225,59,side<0?pink:cyan);
+  for(const z of [29,49,69]){
+   const accent=side<0?pink:cyan;
+   detailBox(.08,11,.08,side*13.7,8.5,z,accent);
+   detailBox(2.4,.07,.08,side*14.85,14,z,accent);
+   detailBox(.06,5,.06,side*15.8,16.5,z,side<0?cyan:pink);
+  }
+ }
  const lamps=[];
- for(const [x,y,z,color,power,range] of [[0,13,39,0xff49b6,3,50],[0,17,25,0x3bdfff,3,70],[-15,8,58,0xff57bc,1.7,35],[15,8,58,0x3bdfff,1.7,35]]){
+ for(const [x,y,z,color,power,range] of [[0,13,39,0xff49b6,3,50],[0,17,25,0x3bdfff,3,70],[-15,8,58,0xff57bc,1.7,35],[15,8,58,0x3bdfff,1.7,35],[-13,12,36,0xff48bf,1.2,28],[13,12,36,0x50e9ff,1.2,28]]){
   const light=new T.PointLight(color,power,range,2);light.position.set(x,y,z);group.add(light);lamps.push(light);
  }
  const signCanvas=document.createElement('canvas');signCanvas.width=512;signCanvas.height=128;
