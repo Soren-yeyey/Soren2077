@@ -365,8 +365,26 @@ function animate(){
 
 Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
   const prefabs=gltf.scene.children;
-  prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;});}}));
-  for(const z of [68,36,4,-28,-60,-92,-124,-156])addPrefab(prefabs,'07',-44,22,z,1.8,Math.PI/2);
+  prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;
+    // Baked window factors are 0.10 (Apartment) and 0.32 (Windows), and their emissive
+    // map is the albedo itself, so the glass reads as dead. Derive a brightened copy of
+    // that same map: layout and per-pane colour stay pixel-aligned, only the gain changes.
+    if((mm.name==='Apartment'||mm.name==='Windows')&&mm.map&&mm.map.image&&mm.map.image.width){
+      const img=mm.map.image,c=document.createElement('canvas');
+      c.width=img.width*2;c.height=img.height*2;
+      const cx=c.getContext('2d');cx.filter='brightness(2.0) saturate(1.12)';cx.drawImage(img,0,0,c.width,c.height);
+      const lit=new T.CanvasTexture(c);
+      lit.encoding=T.sRGBEncoding;lit.flipY=mm.map.flipY;lit.wrapS=mm.map.wrapS;lit.wrapT=mm.map.wrapT;
+      lit.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+      lit.minFilter=T.LinearMipmapLinearFilter;lit.magFilter=T.LinearFilter;
+      mm.emissiveMap=lit;mm.emissive.setRGB(1,1,1);mm.emissiveIntensity=.78;mm.needsUpdate=true;
+    }
+    // Ground-floor shop interiors glow warm through the glass.
+    if(mm.name==='Interior'){mm.emissive.setRGB(.62,.36,.15);mm.emissiveIntensity=.38;}
+  });}}));
+  // Eight shopfronts from one prefab read as a copy-paste wall, so heights and yaw drift
+  // slightly per slot; the roofline and the sign spacing stop marching in lockstep.
+  for(const [z,sc,ry] of [[68,1.82,.02],[36,1.73,-.03],[4,1.91,.015],[-28,1.77,.035],[-60,1.86,-.02],[-92,1.7,.03],[-124,1.88,-.03],[-156,1.75,.012]])addPrefab(prefabs,'07',-44,22,z,sc,Math.PI/2+ry);
   // Right-hand terrace and shop row: without it the street reads as a bridge with a
   // single wall. This mirrors the left row so the corridor closes on both sides.
   const terrace=standard(0x0d1621,.18,.94);
