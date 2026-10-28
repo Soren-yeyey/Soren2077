@@ -60,7 +60,7 @@ const roadTexture=canvasMap(512,512,(c,w,h)=>{
   for(const x of [12,498]){c.fillStyle='#324755';c.fillRect(x,0,3,h);}
 });
 roadTexture.wrapS=roadTexture.wrapT=T.RepeatWrapping;roadTexture.anisotropy=4;
-const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0x63758e,metalness:.82,roughness:.22});
+const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0x34445b,metalness:.72,roughness:.27});
 // Road-local light streaks follow every bend. Broken longitudinal ripples keep
 // the wet surface legible without reflecting an unrelated static sky picture.
 roadMat.onBeforeCompile=shader=>{
@@ -89,7 +89,7 @@ reflectionSource.mapping=T.EquirectangularReflectionMapping;
 const reflectionGenerator=new T.PMREMGenerator(renderer);
 const reflectionTarget=reflectionGenerator.fromEquirectangular(reflectionSource);
 reflectionGenerator.dispose();reflectionSource.dispose();
-roadMat.envMap=reflectionTarget.texture;roadMat.envMapIntensity=1.0;
+roadMat.envMap=reflectionTarget.texture;roadMat.envMapIntensity=.55;
 scene.environment=reflectionTarget.texture;
 // Checkpoint rings and the road infrastructure are part of the Blender scene.
 // Geometry and layout are authored and checked in Blender before importing.
