@@ -3,6 +3,7 @@
   "units": "metres",
   "runtimeUpAxis": "Y",
   "files": {
+  "models/operative-walk.glb": {"bytes": 1321316, "sha256": "97ffeb737def6b75ffd1fd0796bdddd30a3eae3eeea0e8faaccca43dd5a73b9c"},
   "models/sky-platform-a.glb": {"bytes": 3363412, "sha256": "bb52b044f7e4207e9b86987932b079e4d21791cd6cae66d323d48fd7a5e7e272"},
   "models/sky-platform-b.glb": {"bytes": 2544188, "sha256": "49487344fb04196c3c860047ad8428c8e74c0ee9d0eb27c5540c34b5c92b06d6"},
   "models/billboard-tower.glb": {"bytes": 4725864, "sha256": "ea25fc4057bede70418f76056301178f872a3caccb1a00d60595c732362a1069"},

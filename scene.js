@@ -314,19 +314,22 @@ function pedestrian(x,z,coatColor){
 for(const p of [[-4,42],[-8,8],[-28,24],[-29,-34],[-4,-123],[-6,-155]])pedestrian(p[0],p[1],[0x25283b,0x142b34,0x382039][Math.floor(rand()*3)]);
 
 // The rigged Blender character (2.2万面, 41 bones) replaces three of the block
-// pedestrians. Each copy loads the same 1.1 MB file, which the HTTP cache serves once.
+// pedestrians. Each copy loads the same 1.26 MB file, which the HTTP cache serves once.
 const operativeSpots=[[-7,46,.35],[-7,-89,3.1],[-27,-108,-1.2]];
+const operatives=[];
 for(const [x,z,ry] of operativeSpots){
-  new T.GLTFLoader().load('models/operative.glb',gltf=>{
+  new T.GLTFLoader().load('models/operative-walk.glb',gltf=>{
     const model=gltf.scene,box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3());
     if(!size.y)return;
     const s=1.74/size.y;
     model.scale.setScalar(s);
     model.position.y=-box.min.y*s;
-    model.rotation.y=Math.PI+ry;
     model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;if(o.material&&o.material.map)o.material.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}});
     const wrap=new T.Group();wrap.add(model);wrap.position.set(x,22.06,z);scene.add(wrap);
-    humans.push({object:wrap,legs:[],phase:rand()*6.28});
+    // Baked 24-frame walk clip; a short patrol makes the in-place cycle read as walking.
+    let mixer=null;
+    if(gltf.animations.length){mixer=new T.AnimationMixer(model);const act=mixer.clipAction(gltf.animations[0]);act.play();act.timeScale=.9+rand()*.25;}
+    operatives.push({wrap,mixer,baseX:x,baseZ:z,baseRot:Math.PI+ry,phase:rand()*6.28,span:5+rand()*4});
     obstacles.push({minX:x-.4,maxX:x+.4,minZ:z-.4,maxZ:z+.4});
     canvasHost.dataset.operative=String((Number(canvasHost.dataset.operative)||0)+1);
   },undefined,error=>{canvasHost.dataset.operative='fallback';console.warn('Optional character:',error);});
@@ -390,6 +393,15 @@ function animate(){
   camera.rotation.set(pitch,yaw,0,'YXZ');sky.position.copy(camera.position);sky.material.uniforms.time.value=elapsed;wetMaterial.uniforms.time.value=elapsed;
   for(const a of traffic){a.object.position.x=a.baseX+Math.sin(elapsed*a.speed+a.phase)*a.radius;a.object.position.y=a.baseY+Math.sin(elapsed*.7+a.phase)*.3;}
   humans.forEach(h=>{h.object.rotation.y=Math.sin(elapsed*.25+h.phase)*.08;});
+  // Patrol the three rigged characters: the baked clip is in place, so the wrapper
+  // slides along the street and flips heading at each end of its short beat.
+  for(const o of operatives){
+    if(o.mixer)o.mixer.update(dt);
+    const swing=Math.sin(elapsed*.55+o.phase);
+    o.wrap.position.z=o.baseZ+swing*o.span;
+    o.wrap.position.x=o.baseX+Math.sin(elapsed*.32+o.phase)*1.1;
+    o.wrap.rotation.y=o.baseRot+(Math.cos(elapsed*.55+o.phase)>0?0:Math.PI);
+  }
   rain.position.set(camera.position.x,22,camera.position.z);
   for(let i=0;i<rainCount;i++){const s=rainSeeds[i],j=i*6;const y=((s[1]-elapsed*16)%43+43)%43;rainPos[j]=s[0];rainPos[j+1]=y;rainPos[j+2]=s[2];rainPos[j+3]=s[0]-.13;rainPos[j+4]=y+s[3];rainPos[j+5]=s[2]+.04;}
   rainGeo.attributes.position.needsUpdate=true;
