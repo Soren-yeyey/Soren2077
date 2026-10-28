@@ -32,6 +32,26 @@ window.CityWorld=class {
   for(const z of [-144,144]){this.mesh(90,.7,.4,0,.35,z,m.steel);this.mesh(90,.06,.42,0,.72,z,m.cyan);}
   // Distant skyline remains as cheap instances; no generation work in the render loop.
   const r=CityCore.random(81),geo=new T.BoxGeometry(1,1,1),facade=new T.MeshStandardMaterial({color:0x142939,roughness:.65,metalness:.25});
+  facade.name='city-skyline-facade';
+  // World-scale window rhythm gives distant silhouettes depth in one existing draw call.
+  facade.onBeforeCompile=shader=>{
+   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 skylinePosition;');
+   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+    vec4 skylinePoint=vec4(transformed,1.);
+    #ifdef USE_INSTANCING
+    skylinePoint=instanceMatrix*skylinePoint;
+    #endif
+    skylinePosition=(modelMatrix*skylinePoint).xyz;`);
+   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 skylinePosition;');
+   shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+    float horizontal=abs(normal.x)>.5?skylinePosition.z:skylinePosition.x;
+    vec2 cell=vec2(horizontal/2.5,skylinePosition.y/3.2);
+    vec2 tile=fract(cell);
+    float seed=fract(sin(dot(floor(cell),vec2(12.9898,78.233)))*43758.5453);
+    float windowMask=step(.23,tile.x)*step(tile.x,.66)*step(.28,tile.y)*step(tile.y,.67)*step(.64,seed)*(1.-step(.5,abs(normal.y)));
+    totalEmissiveRadiance+=windowMask*mix(vec3(.13,.27,.36),vec3(.36,.25,.13),step(.85,seed));`);
+  };
+  facade.customProgramCacheKey=()=> 'city-skyline-windows-v1';
   const count=100,inst=new T.InstancedMesh(geo,facade,count),o=new T.Object3D();
   for(let i=0;i<count;i++){const h=20+r()*100;o.position.set((i%2?1:-1)*(65+r()*220),h/2-6,-290+r()*590);o.scale.set(8+r()*16,h,10+r()*12);o.updateMatrix();inst.setMatrixAt(i,o.matrix);}this.scene.add(inst);
  }

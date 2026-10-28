@@ -28,15 +28,26 @@ function makeTrack(count=1600){
     return {x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t),z:lerp(a.z,b.z,t),s,
       tx:dx/mag,tz:dz/mag,nx:-dz/mag,nz:dx/mag,slope:(b.y-a.y)/mag};
   }
-  function nearest(x,z){
-    let best=Infinity,result;
+  function nearest(x,z,reference){
+    // A road can pass over itself in XZ. Prefer the driver's nearby route and
+    // elevation, while retaining an unrestricted fallback for explicit relocation.
+    const hasS=Number.isFinite(reference?.s),hasY=Number.isFinite(reference?.y);
+    let best=Infinity,result,nearBest=Infinity,nearResult;
     for(let i=0;i<raw.length-1;i++){
       const a=raw[i],b=raw[i+1],dx=b.x-a.x,dz=b.z-a.z;
       const t=clamp(((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz||1),0,1);
       const px=a.x+t*dx,pz=a.z+t*dz,d=(x-px)**2+(z-pz)**2;
-      if(d<best){best=d;const v=sample(a.s+t*(b.s-a.s));
-        result={...v,distance:Math.sqrt(d),lateral:(x-px)*v.nx+(z-pz)*v.nz};}
-    }return result;
+      const s=a.s+t*(b.s-a.s),dy=hasY?lerp(a.y,b.y,t)-reference.y:0;
+      const travel=hasS?Math.abs(wrap(s-reference.s+length/2,length)-length/2):0;
+      const score=d+dy*dy*4+(hasS?Math.min(travel,200)**2*.0001:0);
+      const candidate={s,px,pz,d};
+      if(score<best){best=score;result=candidate;}
+      if(hasS&&travel<=120&&Math.abs(dy)<=12&&score<nearBest){nearBest=score;nearResult=candidate;}
+    }
+    const chosen=nearResult&&nearResult.d<=60*60?nearResult:result;
+    if(!chosen)return undefined;
+    const v=sample(chosen.s);
+    return {...v,distance:Math.sqrt(chosen.d),lateral:(x-chosen.px)*v.nx+(z-chosen.pz)*v.nz};
   }
   return {raw,length,sample,nearest,width:40};
 }
@@ -74,7 +85,7 @@ class Driver{
     this.travelYaw+=directionError*(1-Math.exp(-(hand?1.9:12)*dt));
     const nx=this.x-Math.sin(this.travelYaw)*this.speed*dt;
     const nz=this.z-Math.cos(this.travelYaw)*this.speed*dt;
-    const p=this.track.nearest(nx,nz),limit=this.track.width/2-1.9;
+    const p=this.track.nearest(nx,nz,{s:this.lastS,y:this.y}),limit=this.track.width/2-1.9;
     if(Math.abs(p.lateral)>limit){
       const sign=Math.sign(p.lateral);
       this.x=p.x+p.nx*sign*limit;this.z=p.z+p.nz*sign*limit;
@@ -108,9 +119,9 @@ function resolveTraffic(driver,other){
     const amount=(3.25-Math.abs(side))*(Math.sign(side)||1);
     driver.x+=p.nx*amount;driver.z+=p.nz*amount;driver.speed*=.9;
   }
-  const road=driver.track.nearest(driver.x,driver.z),limit=driver.track.width/2-1.9;
+  const road=driver.track.nearest(driver.x,driver.z,{s:driver.lastS,y:driver.y}),limit=driver.track.width/2-1.9;
   const lane=clamp(road.lateral,-limit,limit);
-  driver.x=road.x+road.nx*lane;driver.z=road.z+road.nz*lane;driver.y=road.y;driver.wall=1;
+  driver.x=road.x+road.nx*lane;driver.z=road.z+road.nz*lane;driver.y=road.y;driver.road=road;driver.wall=1;
   return true;
 }
 function advanceRace(driver,traffic,input,delta){

@@ -23,6 +23,15 @@ if(diagnosticMode){let lastTick=performance.now();setInterval(()=>{
   const now=performance.now();host.dataset.timerMs=(now-lastTick).toFixed(2);lastTick=now;
 },250);}
 let car,quality=true,lastLap=0,previousInput={},frame=0,cruise=false;
+let phase='intro',countdown=3,runId=null,pendingResult=null,raceSound=null,soundEnabled=false;
+function readProgress(){try{return CityProgress.read(localStorage);}catch(_){return CityProgress.createState();}}
+let progress=readProgress();
+host.dataset.phase=phase;
+function showBest(){
+  $('best').textContent=progress.race.best===null?'最佳 —':'最佳 '+fmt(progress.race.best);
+  $('race-progress').textContent=progress.race.completed?'已完成 '+progress.race.completed+' 圈 · 最佳 '+fmt(progress.race.best)+' · 城市进度保留':'城市改造与委托进度保留，首次完赛解锁天穹纪念。';
+}
+showBest();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const materials={};
 function material(name,color,metal=.4,rough=.4,glow=0){
@@ -32,6 +41,15 @@ function material(name,color,metal=.4,rough=.4,glow=0){
 const steel=material('steel',0x182838,.75,.33),edge=material('edge',0x364c60,.7,.28);
 const cyan=material('cyan',0x44dce9,.3,.25,2.3),pink=material('pink',0xee368f,.2,.3,2);
 const amber=material('amber',0xe8be82,.2,.35,1.5);
+// A single merged mesh keeps the driving direction readable without extra lights.
+const arrowPositions=[];
+for(let s=30;s<track.length;s+=68){
+  const p=track.sample(s),point=(side,along)=>[p.x+p.nx*side+p.tx*along,p.y+.13+p.slope*along,p.z+p.nz*side+p.tz*along];
+  for(const [side,along] of [[0,4],[-1.4,-2],[0,-.5],[0,4],[0,-.5],[1.4,-2]])arrowPositions.push(...point(side,along));
+}
+const arrowGeometry=new T.BufferGeometry();arrowGeometry.setAttribute('position',new T.Float32BufferAttribute(arrowPositions,3));
+const routeArrows=new T.Mesh(arrowGeometry,new T.MeshBasicMaterial({color:0x6aebf3,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));
+routeArrows.name='race-route-arrows';scene.add(routeArrows);
 function canvasMap(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const tex=new T.CanvasTexture(c);tex.encoding=T.sRGBEncoding;return tex;}
 const roadTexture=canvasMap(512,512,(c,w,h)=>{
   c.fillStyle='#182333';c.fillRect(0,0,w,h);let seed=77;
@@ -117,19 +135,19 @@ function attachVehicle(gltf){
     if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){m.envMap=reflectionTarget.texture;m.envMapIntensity=1.25;}
   });
   for(const side of [-1,1]){const flame=new T.Mesh(new T.ConeGeometry(.15,1,8,1,true),exhaustMaterial);flame.rotation.x=-Math.PI/2;flame.position.set(side*.6,.56,3.02);car.add(flame);exhaust.push(flame);}
-  for(let i=0;i<8;i++){
+  for(let i=0;i<3;i++){
     const o=visual.clone(true),aiWheels=[];scene.add(o);
     o.traverse(part=>{if(/-wheel$/.test(part.name))aiWheels.push(part);
       if(part.isMesh&&part.name.includes('racing-body')){part.material=part.material.clone();part.material.color.setHex([0x093f78,0x6b082b,0x32102f,0x093f78][i%4]);}
     });
-    ai.push({object:o,wheels:aiWheels,s:35+i*i*24,speed:24+(i%4)*2,lane:i%2?4:-4});
+    ai.push({object:o,wheels:aiWheels,s:35+i*i*24,startS:35+i*i*24,speed:24+(i%4)*2,lane:i%2?4:-4});
   }
   positionCar(car,8);camera.position.copy(car.position).add(new T.Vector3(0,5,11));
   host.dataset.vehicle='ready';host.dataset.rotors=String(rotors.length);host.dataset.wheels=String(wheels.length);
 }
-Promise.all([getModel('models/racing-vehicle.glb?v=tripo-replacement'),environment.load(),importedWorld.load()]).then(([vehicle])=>{
+Promise.all([getModel('models/racing-vehicle.glb?v=experience-1'),environment.load().catch(error=>{host.dataset.environment='fallback';console.warn('BOOZE_OPTIONAL_ENVIRONMENT',error);}),importedWorld.load()]).then(([vehicle])=>{
   attachVehicle(vehicle);ready=true;
-  $('start').disabled=false;$('start').textContent='进入驾驶 ↗';$('load-status').textContent='W 前进 · A D 转向 · 空格刹车';
+  $('start').disabled=false;$('start').textContent='开始单圈计时 ↗';$('load-status').textContent='3 秒倒计时后发车 · W 前进 · A D 转向 · 空格刹车';
   $('track-length').textContent=(track.length/1000).toFixed(2)+' 公里';
   host.dataset.ready='true';host.dataset.trackLength=track.length.toFixed(1);
   ensureComposer();$('quality').textContent='画质 · 高';
@@ -137,11 +155,54 @@ Promise.all([getModel('models/racing-vehicle.glb?v=tripo-replacement'),environme
 }).catch(error=>{console.error('BOOZE_LOAD_FAILED',error);$('race-error').hidden=false;});
 
 function setCruise(v){cruise=v;$('cruise').setAttribute('aria-pressed',String(v));$('cruise').textContent=v?'巡航油门 · 开':'巡航油门';}
-function setPaused(v,reason='manual'){paused=v;keys.clear();if(v)setCruise(false);hudDirty=true;host.dataset.pauseReason=v?reason:'none';$('paused').hidden=!v;$('pause').textContent=v?'继续':'暂停';clock.getDelta();}
-function startRace(){if(!ready)return;active=true;camMode=0;setPaused(false);$('race-start').hidden=true;$('race-hud').hidden=false;host.focus();toast('磁驱上线 · 按 C 切换参考构图与驾驶视角');}
+function setPhase(next){phase=next;active=next==='countdown'||next==='racing';host.dataset.phase=next;$('race-countdown').hidden=next!=='countdown';$('race-result').hidden=next!=='finished';$('pause').disabled=!active;$('cruise').disabled=next!=='racing';hudDirty=true;}
+function setPaused(v,reason='manual'){paused=v;keys.clear();if(v){setCruise(false);raceSound?.update(driver.speed*3.6,false,true);}hudDirty=true;host.dataset.pauseReason=v?reason:'none';$('paused').hidden=!v;$('pause').textContent=v?'继续':'暂停';clock.getDelta();}
+function startRace(){
+  if(!ready)return;
+  driver.reset();driver.best=null;lastLap=0;previousInput={};pendingResult=null;countdown=3;keys.clear();setCruise(false);
+  for(const a of ai)a.s=a.startS;
+  runId=typeof globalThis.crypto?.randomUUID==='function'?crypto.randomUUID():'race-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+  host.dataset.runId=runId;host.dataset.saved='pending';$('countdown-number').textContent='3';
+  camMode=0;orbitYaw=0;orbitPitch=0;orbitZoom=1;setPhase('countdown');setPaused(false);
+  $('race-start').hidden=true;$('race-hud').hidden=false;showBest();host.focus();toast('依次通过 3 个检查点，返回起点完赛');
+}
+function saveResult(){
+  if(!pendingResult)return;
+  try{
+    const current=readProgress(),first=current.race.completed===0;
+    const next=CityProgress.finishRace(current,pendingResult.seconds,pendingResult.runId);
+    progress=CityProgress.persist(localStorage,next);pendingResult.saved=true;showBest();
+    $('result-best').textContent=fmt(progress.race.best);
+    $('result-reward').textContent=first?'首次完赛 · 天穹纪念已解锁':'天穹纪念已解锁 · 已完成 '+progress.race.completed+' 圈';
+    $('result-save').textContent='成绩与纪念已保存，刷新后保留。';$('result-save').dataset.saved='true';
+    $('result-retained').textContent='返回街区后，委托、城市改造与赛车成绩均保留。';$('save-result').hidden=true;host.dataset.saved='true';
+  }catch(error){
+    $('result-save').textContent='保存失败，本次成绩尚未写入。请重试保存。';$('result-save').dataset.saved='false';
+    $('result-reward').textContent='完赛纪念待保存';$('result-retained').textContent='原城市进度保留；离开或重新比赛会丢失本次未保存成绩。';
+    $('save-result').hidden=false;host.dataset.saved='false';console.warn('BOOZE_SAVE_FAILED',error);
+  }
+}
+function finishRun(seconds){
+  pendingResult={seconds,runId,saved:false};setPhase('finished');setPaused(false);setCruise(false);keys.clear();
+  $('result-time').textContent=fmt(seconds);$('result-best').textContent=fmt(progress.race.best===null?seconds:Math.min(progress.race.best,seconds));
+  saveResult();$('race-again').focus();
+}
 $('start').onclick=startRace;$('pause').onclick=()=>{if(active)setPaused(!paused);};$('resume').onclick=()=>setPaused(false);
-$('restart').onclick=()=>{driver.reset();setCruise(false);setPaused(false);toast('已返回发车位');};
-$('cruise').onclick=()=>{if(active&&!paused){setCruise(!cruise);host.focus();}};
+$('restart').onclick=startRace;$('race-again').onclick=startRace;$('save-result').onclick=saveResult;
+$('sound').onclick=async()=>{
+  $('sound').disabled=true;
+  try{
+    let state;
+    if(!raceSound){if(typeof window.CitySound?.createRaceSound!=='function'){toast('声音暂不可用，仍可继续比赛');return;}raceSound=CitySound.createRaceSound();state=await raceSound.start();}
+    else state=await raceSound.toggle();
+    soundEnabled=Boolean(state?.enabled);
+    $('sound').textContent=soundEnabled?'声音 · 开':'声音 · 关';$('sound').setAttribute('aria-pressed',String(soundEnabled));
+    if(state?.available===false||state?.error)toast('声音暂不可用，仍可继续比赛');
+  }catch(error){soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');toast('声音未能开启，可稍后重试');console.warn('BOOZE_SOUND_FAILED',error);}
+  finally{$('sound').disabled=false;}
+};
+addEventListener('pagehide',()=>raceSound?.dispose());
+$('cruise').onclick=()=>{if(phase==='racing'&&!paused){setCruise(!cruise);host.focus();}};
 $('camera').onclick=()=>{camMode=(camMode+1)%4;orbitYaw=0;orbitPitch=0;orbitZoom=1;toast(['追逐视角','近车视角','俯瞰视角','参考构图'][camMode]);};
 $('quality').onclick=()=>{quality=!quality;renderer.setPixelRatio(Math.min(devicePixelRatio,quality?1.6:1));if(quality)ensureComposer();if(composer)composer.setPixelRatio(renderer.getPixelRatio());$('quality').textContent=quality?'画质 · 高':'画质 · 均衡';resize();};
 addEventListener('keydown',e=>{
@@ -150,7 +211,7 @@ addEventListener('keydown',e=>{
   if(e.repeat){keys.add(e.code);return;}
   if(e.code==='Escape'||e.code==='KeyP'){if(active)setPaused(!paused);return;}
   if(['Space','KeyS','ArrowDown','KeyR'].includes(e.code))setCruise(false);
-  if(e.code==='KeyR'&&active){driver.reset();hudDirty=true;toast('已返回发车位');}
+  if(e.code==='KeyR'&&active){startRace();return;}
   if(e.code==='KeyC')$('camera').click();keys.add(e.code);
 });addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('blur',()=>{keys.clear();if(active)setPaused(true,'blur');});
@@ -177,21 +238,27 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
   if(timing.suspend){setPaused(true,'frame-gap');toast('画面长时间停顿，已暂停驾驶');}
   const cpuStart=performance.now();time+=dt;frame++;
   if(car){
+    if(phase==='countdown'&&!paused){
+      countdown=Math.max(0,countdown-dt);$('countdown-number').textContent=String(Math.max(1,Math.ceil(countdown)));host.dataset.countdown=countdown.toFixed(3);
+      if(countdown===0){setPhase('racing');driver.running=true;toast('出发 · 跟随青色箭头通过检查点');}
+    }
     const input={forward:cruise||keys.has('KeyW')||keys.has('ArrowUp'),reverse:keys.has('KeyS')||keys.has('ArrowDown'),
       left:keys.has('KeyA')||keys.has('ArrowLeft'),right:keys.has('KeyD')||keys.has('ArrowRight'),
       brake:keys.has('Space'),drift:keys.has('ControlLeft')||keys.has('ControlRight'),
-      boost:keys.has('ShiftLeft')||keys.has('ShiftRight'),pause:paused||!active};
+      boost:keys.has('ShiftLeft')||keys.has('ShiftRight'),pause:paused||phase!=='racing'};
     BoozeRacing.advanceRace(driver,ai,input,dt);previousInput=input;
-    const p=track.nearest(driver.x,driver.z);
+    if(driver.completed>lastLap){lastLap=driver.completed;finishRun(driver.best);}
+    const driving=phase==='racing'&&!paused,p=track.nearest(driver.x,driver.z,{s:driver.lastS,y:driver.y});
     car.position.set(driver.x,driver.y+.08,driver.z);car.rotation.order='YXZ';car.rotation.y=driver.yaw;
     car.rotation.x=Math.atan(p.slope);car.rotation.z=-driver.steer*Math.min(Math.abs(driver.speed)*.002,.055);
     steering.forEach(o=>o.rotation.y=driver.steer*.18);
-    if(!paused){rotors.forEach(o=>o.rotateY(driver.speed*dt*.7));wheels.forEach(o=>o.rotateX(-driver.speed*dt/.51));}
-    const boosting=input.boost&&driver.boost>.02&&driver.speed>8&&!paused;
+    if(driving){rotors.forEach(o=>o.rotateY(driver.speed*dt*.7));wheels.forEach(o=>o.rotateX(-driver.speed*dt/.51));}
+    const boosting=input.boost&&driver.boost>.02&&driver.speed>8&&driving;
+    raceSound?.update(driver.speed*3.6,boosting,!driving);
     exhaust.forEach(o=>{o.visible=Math.abs(driver.speed)>1;o.scale.set(1,boosting?3:Math.max(.1,Math.abs(driver.speed)*.02),1);});
     document.body.classList.toggle('boosting',boosting&&!reduced);document.body.classList.toggle('hit',driver.wall>.3&&!reduced);
     ai.forEach(a=>{const p=positionCar(a.object,a.s,a.lane);a.object.rotation.x=Math.atan(p.slope);
-      if(!paused&&active)a.wheels.forEach(w=>w.rotateX(-a.speed*dt/.49));
+      if(driving)a.wheels.forEach(w=>w.rotateX(-a.speed*dt/.49));
     });
     const reference=importedWorld.getReferenceView();
     host.dataset.camera=String(camMode);
@@ -208,13 +275,12 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
     camera.position.lerp(camTarget,1-Math.exp(-dt*5));camera.lookAt(look);
     camera.fov=T.MathUtils.damp(camera.fov,reduced?63:63+Math.max(driver.speed,0)*.16,4,dt);camera.updateProjectionMatrix();
     }
-    if(hudDirty||frame%4===0){hudDirty=false;$('speed').textContent=String(Math.round(Math.abs(driver.speed)*3.6)).padStart(3,'0');
-      $('timer').textContent=fmt(driver.lapTime);$('lap').textContent=String(driver.lap).padStart(2,'0');
-      $('checkpoint').textContent='检查点 '+driver.checkpoint+' / 3';$('boost').style.transform=`scaleX(${driver.boost})`;
-      $('drive-state').textContent=paused?'已暂停':driver.wall>.2?'护栏接触':input.brake?'制动':driver.speed<-.5?'倒车':boosting?'氮气推进':input.drift&&Math.abs(driver.speed)>3?'磁场漂移':'磁驱在线';
-      host.dataset.speed=driver.speed.toFixed(3);host.dataset.position=`${driver.x.toFixed(2)},${driver.y.toFixed(2)},${driver.z.toFixed(2)}`;
-      host.dataset.paused=String(paused);host.dataset.checkpoint=String(driver.checkpoint);miniMap();}
-    if(driver.completed>lastLap){lastLap=driver.completed;$('best').textContent='最佳 '+fmt(driver.best);toast('完成一圈 · '+fmt(driver.best));}
+    if(hudDirty||frame%4===0){hudDirty=false;$('speed').textContent=String(phase==='finished'?0:Math.round(Math.abs(driver.speed)*3.6)).padStart(3,'0');
+      $('timer').textContent=fmt(phase==='finished'?pendingResult.seconds:driver.lapTime);$('lap').textContent='01';
+      $('checkpoint').textContent=phase==='finished'?'全部检查点已完成':driver.checkpoint<3?'下一目标：检查点 '+(driver.checkpoint+1)+' / 3':'下一目标：回到起点完赛';$('boost').style.transform=`scaleX(${driver.boost})`;
+      $('drive-state').textContent=paused?'已暂停':phase==='countdown'?'准备发车':phase==='finished'?'比赛完成':driver.wall>.2?'护栏接触':input.brake?'制动':driver.speed<-.5?'倒车':boosting?'氮气推进':input.drift&&Math.abs(driver.speed)>3?'磁场漂移':'磁驱在线';
+      host.dataset.speed=driver.speed.toFixed(3);host.dataset.position=`${driver.x.toFixed(2)},${driver.y.toFixed(2)},${driver.z.toFixed(2)}`;host.dataset.heading=driver.yaw.toFixed(4);host.dataset.route=driver.lastS.toFixed(2);
+      host.dataset.paused=String(paused);host.dataset.checkpoint=String(driver.checkpoint);host.dataset.completed=String(driver.completed);miniMap();}
   }else{const p=track.sample(8);camera.position.set(p.x+12,p.y+6,p.z+19);camera.lookAt(p.x,p.y+2,p.z-10);}
   environment.update(time,camera);importedWorld.update(time,camera);renderer.info.reset();
   if(diagnosticMode==='empty')renderer.clear();else if(quality)ensureComposer().render();else renderer.render(scene,camera);

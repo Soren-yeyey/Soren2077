@@ -162,6 +162,15 @@ test('calibration reward is not applied in memory when persistence fails', () =>
   failWrite = false; assert.equal(campaign.send(event), true); assert.equal(campaign.state.tokens, 30); assert.deepEqual(sounds, ['calibrate']);
 });
 
+test('quest delivery cannot unlock renovation or pay rewards when its save fails',()=>{
+ const fs=require('node:fs'),vm=require('node:vm'),messages=[];let fail=true,saved=null;
+ const Campaign=vm.runInNewContext(fs.readFileSync(require.resolve('./campaign.js'),'utf8')+'\nCityCampaign;',{CityGameplay:game,localStorage:{setItem(_key,value){if(fail)throw Error('quota');saved=value;}}});
+ const c=Object.create(Campaign.prototype);c.state=game.createState();c.render=c.tick=()=>{};c.scanned=new Set();c.app={notify:t=>messages.push(t)};
+ for(const event of [{type:'accept',mission:'market'},{type:'evidence',mission:'market',key:'chip'},{type:'evidence',mission:'market',key:'receipt'}])c.state=game.transition(c.state,event);
+ const event={type:'resolve',mission:'market',choice:'return'};assert.equal(c.send(event),false);assert.equal(c.state.tokens,20);assert.equal(c.state.missions.market.status,'active');assert.equal(saved,null);
+ fail=false;assert.equal(c.send(event),true);assert.equal(game.restore(saved).tokens,60);assert.match(messages.at(-1),/40.*解锁/);assert.equal(c.send(event),false);assert.equal(c.state.tokens,60);
+});
+
 test('scanner range and analysis upgrade independently without collecting evidence', () => {
   let state = game.transition(game.createState(), { type: 'accept', mission: 'market' });
   const points = [{ id: 'market', key: 'receipt', x: 18, z: 0 }, { id: 'market', key: 'chip', x: 9, z: 0 }, { id: 'homes', key: 'resident', x: 3, z: 0 }, { id: 'market', key: 'terminal', x: 0, z: 0 }];

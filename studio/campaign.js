@@ -46,12 +46,12 @@ class CityCampaign {
  active(p){const m=this.state.missions[p.id];return p.key==='terminal'?m.status!=='locked':m.status==='active'&&!m.evidence.includes(p.key);}
  send(event){
   let next;try{next=CityGameplay.transition(this.state,event);}catch(e){this.app.notify('当前条件尚未满足');return false;}
-  try{localStorage.setItem('rain-city-campaign-v1',JSON.stringify(next));}catch(e){if(event.type==='calibrate'){this.app.notify('校准奖励未能保存，本次未结算，请导出进度后重试');return false;}this.app.notify('浏览器无法保存进度，本次进度仍可继续游玩');}
-  this.state=next;
+  try{localStorage.setItem('rain-city-campaign-v1',JSON.stringify(next));}catch(e){this.app.notify('任务进度未能保存，本次操作未结算；请检查浏览器存储后重试');return false;}
+  const reward=next.tokens-this.state.tokens;this.state=next;
   this.app.audio?.play(event.type);
   if(event.type==='accept')this.scanMessage='委托已接取，按 Q 查找附近信号。';
   if(event.type==='evidence'){this.scanned.delete(event.mission+'/'+event.key);this.scanMessage='线索已记录，可继续扫描其他信号。';}
-  if(event.type==='resolve'){this.scanned.clear();this.scanMessage='委托已交付，可在下个任务区域继续扫描。';}
+  if(event.type==='resolve'){this.scanned.clear();this.scanMessage='委托已交付，可在下个任务区域继续扫描。';this.app.notify('委托已交付 · 获得 '+reward+' 券'+(event.mission==='market'?' · 城市改造权限已解锁':''));}
   this.render();this.tick(.2);return true;
  }
  interact(){
@@ -59,9 +59,9 @@ class CityCampaign {
   const p=this.nearest;if(!p||this.distance(p)>2.6){this.app.notify('靠近发光信标后按 E 交互');return;}
   const m=this.state.missions[p.id];
   if(p.key==='terminal'){
-   if(m.status==='available'){this.send({type:'accept',mission:p.id});this.app.notify('委托已接取，沿街寻找青色线索信标');}
+   if(m.status==='available'){if(this.send({type:'accept',mission:p.id}))this.app.notify('委托已接取，沿街寻找青色线索信标');}
    else this.app.notify(m.status==='resolved'?CityGameplay.districtStatus(this.state)[p.id].note:'线索齐全后，可在委托面板选择交付');
-  }else{this.send({type:'evidence',mission:p.id,key:p.key});this.app.notify(this.copy[p.id].clues[p.key][1]);}
+  }else{if(this.send({type:'evidence',mission:p.id,key:p.key}))this.app.notify(this.copy[p.id].clues[p.key][1]);}
  }
  distance(p){return Math.hypot(this.app.camera.position.x-p.x,this.app.camera.position.z-p.z);}
  scan(){
@@ -148,7 +148,9 @@ class CityCampaign {
   this.pendingProgress=null;
   this.actionKey=null;
   const id=this.current(),m=this.state.missions[id],c=this.copy[id];this.panel.replaceChildren();
-  const heading=document.createElement('h2');heading.textContent='街区委托 · '+c.title;this.panel.append(heading);
+  const finished=this.state.missions.market.status==='resolved';this.panel.classList.toggle('campaign-optional',finished);this.panel.classList.toggle('expanded',Boolean(this.showOptional));
+  const heading=document.createElement('h2');heading.textContent=finished&&!this.showOptional?'断电委托已完成':'街区委托 · '+c.title;this.panel.append(heading);
+  if(finished){const optional=this.button(this.showOptional?'收起可选委托':'继续可选委托',()=>{this.showOptional=!this.showOptional;this.render();});optional.className='optional-toggle';this.panel.append(optional);}
   const balance=document.createElement('p');balance.textContent=`算力券 ${this.state.tokens} · 随身智能体 ${this.state.upgrades.aiLevel} 级`;this.panel.append(balance);
   const objective=document.createElement('p');objective.className='campaign-objective';objective.textContent=m.status==='available'?'靠近金色终端，按 E 接取委托':m.status==='resolved'?(m.choice==='open'?'接口已公开。街区恢复了自己的身份记录。':'账本已封存。你获得了报酬，但许可仍握在塔方手中。'):`已取得 ${m.evidence.length} / ${CityGameplay.missions[id].evidence.length} 条线索`;this.panel.append(objective);
   this.navigation=document.createElement('p');this.navigation.className='campaign-objective';this.panel.append(this.navigation);
@@ -158,7 +160,7 @@ class CityCampaign {
   this.panel.append(this.button('交互 · E',()=>this.interact()));
   this.scanButton=this.button('侦察扫描 · Q',()=>this.scan());this.panel.append(this.scanButton);
   this.scanStatus=document.createElement('p');this.scanStatus.className='campaign-scan';this.scanStatus.setAttribute('aria-live','polite');this.panel.append(this.scanStatus);
-  this.panel.append(this.button('朝向下一目标',()=>{if(this.target){this.app.lookAt(new THREE.Vector3(this.target.x,this.app.camera.position.y,this.target.z));document.getElementById('viewport').focus();}},!CityGameplay.objective(this.state)));
+  this.panel.append(this.button('引导步行至下一目标',()=>{if(this.target)this.app.guideTo(this.target);},!CityGameplay.objective(this.state)));
   const journal=document.createElement('details'),summary=document.createElement('summary');journal.open=journalOpen;summary.textContent='线索与抉择记录';journal.append(summary);
   for(const [mission,entry] of Object.entries(this.state.missions)){
    if(entry.status==='locked')continue;
@@ -173,7 +175,7 @@ class CityCampaign {
   this.updateTerminals();
  }
  tick(dt){
-  this.elapsed+=dt;if(this.elapsed<.15)return;this.elapsed=0;this.panel.hidden=this.app.mode!=='walk';this.group.visible=this.app.mode==='walk';
+  this.elapsed+=dt;if(this.elapsed<.15)return;this.elapsed=0;this.panel.hidden=this.app.mode!=='walk'||Boolean(this.app.renovation?.open);this.group.visible=this.app.mode==='walk';
   const now=performance.now()/1000,profile=CityGameplay.scanProfile(this.state),remaining=Math.max(0,Math.ceil(this.scanReadyAt-now));
   this.scanButton.disabled=remaining>0;this.scanButton.textContent=remaining?`扫描冷却 · ${remaining} 秒`:'侦察扫描 · Q';
   const scanText=`${profile.range} 米范围 · ${profile.cooldown} 秒冷却。${this.scanMessage}`;if(this.scanStatus.textContent!==scanText)this.scanStatus.textContent=scanText;

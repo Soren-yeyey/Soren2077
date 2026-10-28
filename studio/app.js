@@ -10,12 +10,23 @@ try{
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.append(renderer.domElement);app.renderer=renderer;
  const scene=new T.Scene();scene.background=new T.Color(0x182d41);scene.fog=new T.FogExp2(0x182d41,.006);app.scene=scene;
  // 夜空穹顶：与主街页共用同一套程序化云场，两个入口的氛围必须一致。
- const sky=new T.Mesh(new T.SphereGeometry(520,40,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{time:{value:0}},vertexShader:'varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'precision highp float;varying vec3 direction;uniform float time;float hash(vec3 p){p=fract(p*.3183099+vec3(.13,.29,.73));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.07+13.1;a*=.5;}return v;}void main(){vec3 dir=normalize(direction);float horizon=pow(1.-max(dir.y,0.),3.);vec3 col=mix(vec3(.008,.017,.035),vec3(.09,.16,.24),horizon);vec3 p=dir*5.6+vec3(time*.003,0.,0.);float n=fbm(p+fbm(p*2.));float cloud=smoothstep(.35,.69,n);float silver=pow(max(dot(dir,normalize(vec3(-.3,.6,-.6))),0.),8.);col+=cloud*(vec3(.04,.065,.095)+silver*vec3(.10,.15,.20));col*=1.-.3*smoothstep(.62,.82,n);gl_FragColor=vec4(col,1.);}'}));
+ const sky=new T.Mesh(new T.SphereGeometry(520,40,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{time:{value:0},skyTint:{value:new T.Color(0xffffff)},skyGain:{value:1}},vertexShader:'varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'precision highp float;varying vec3 direction;uniform float time;uniform vec3 skyTint;uniform float skyGain;float hash(vec3 p){p=fract(p*.3183099+vec3(.13,.29,.73));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.07+13.1;a*=.5;}return v;}void main(){vec3 dir=normalize(direction);float horizon=pow(1.-max(dir.y,0.),3.);vec3 col=mix(vec3(.008,.017,.035),vec3(.09,.16,.24),horizon);vec3 p=dir*5.6+vec3(time*.003,0.,0.);float n=fbm(p+fbm(p*2.));float cloud=smoothstep(.35,.69,n);float silver=pow(max(dot(dir,normalize(vec3(-.3,.6,-.6))),0.),8.);col+=cloud*(vec3(.04,.065,.095)+silver*vec3(.10,.15,.20));col*=1.-.3*smoothstep(.62,.82,n);gl_FragColor=vec4(col*skyTint*skyGain,1.);}'}));
  sky.frustumCulled=false;scene.add(sky);app.sky=sky;
  const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.15,850);camera.rotation.order='YXZ';app.camera=camera;
  const ambient=new T.HemisphereLight(0x8cbbdf,0x172735,.86);scene.add(ambient);const sun=new T.DirectionalLight(0x97bee6,1.05);sun.position.set(30,70,40);scene.add(sun);
  const loader=new T.GLTFLoader(),sources=new Map(),prefabs=new Map();
- for(const source of [...new Set(app.registry.map(a=>a.source))]){const fingerprint=responses[0].files?.[source]?.sha256;const url=fingerprint?source+'?v='+fingerprint.slice(0,12):source;sources.set(source,await loader.loadAsync(url));$('load-status').textContent='模型已载入 '+sources.size+' / 2';}
+ for(const source of [...new Set(app.registry.map(a=>a.source))]){
+  const fingerprint=responses[0].files?.[source]?.sha256,url=fingerprint?source+'?v='+fingerprint.slice(0,12):source;
+  try{sources.set(source,await loader.loadAsync(url));}catch(error){
+   if(source!=='models/workshop.glb')throw error;
+   // The optional shop may fail independently; keep the mission sidewalk playable.
+   const fallback=new T.Group();fallback.name=app.registry.find(a=>a.source===source).node;
+   const material=new T.MeshStandardMaterial({color:0x284050,roughness:.8});material.name='fallback-metal';
+   for(const [w,h,d,x,y,z]of [[12.6,.2,11.5,0,.1,0],[12.6,.25,11.5,0,4.8,0],[.3,4.5,.3,-6,2.4,5.4],[.3,4.5,.3,6,2.4,5.4]]){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material);m.position.set(x,y,z);fallback.add(m);}
+   sources.set(source,{scene:fallback});host.dataset.optionalAssetFallback='workshop';app.notify('样板店资源暂不可用，已启用简易遮棚，委托与比赛仍可继续');
+  }
+  $('load-status').textContent='模型已载入 '+sources.size+' / 2';
+ }
  for(const a of app.registry){let node; sources.get(a.source).scene.traverse(o=>{if(!node&&o.name.startsWith(a.node))node=o;});if(!node)throw Error('模型缺失：'+a.name);node=node.clone(true);node.position.set(0,0,0);node.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());m.map.magFilter=T.LinearFilter;}if(m.transparent)m.depthWrite=false;if(m.emissiveIntensity>1.5)m.emissiveIntensity=1.5;}}});prefabs.set(a.id,node);}
 
  // Optional counter-only reflection; incompatible assets/devices keep their original material.
@@ -76,18 +87,18 @@ try{
  const grade=new T.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(1./2.2)),1.);}'});grade.material.toneMapped=false;composer.addPass(grade);
  // Actual planar reflection, shared along the continuously connected roadway.
  const reflection=new T.WebGLRenderTarget(768,512),mirror=new T.PerspectiveCamera(),matrix=new T.Matrix4(),bias=new T.Matrix4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1);
- const wet=new T.ShaderMaterial({uniforms:{map:{value:reflection.texture},project:{value:matrix},time:{value:0}},vertexShader:'uniform mat4 project;varying vec4 coord;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;coord=project*p;gl_Position=projectionMatrix*viewMatrix*p;}',fragmentShader:'uniform sampler2D map;uniform float time;varying vec4 coord;varying vec3 world;void main(){vec2 uv=coord.xy/coord.w;uv+=vec2(sin(world.z*1.8+time*.8),cos(world.x*2.1-time*.7))*.00065;vec3 c=texture2D(map,clamp(uv,0.,1.)).rgb;float puddle=.35+.30*sin(world.x*1.8+sin(world.z*.6))*sin(world.z*.53);gl_FragColor=vec4(mix(vec3(.025,.04,.05),c,.3+puddle*.6),1.);}'});
+ const wet=new T.ShaderMaterial({uniforms:{map:{value:reflection.texture},project:{value:matrix},time:{value:0}},vertexShader:'uniform mat4 project;varying vec4 coord;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;coord=project*p;gl_Position=projectionMatrix*viewMatrix*p;}',fragmentShader:'uniform sampler2D map;uniform float time;varying vec4 coord;varying vec3 world;void main(){vec2 uv=coord.xy/coord.w;uv+=vec2(sin(world.z*1.8+time*.8),cos(world.x*2.1-time*.7))*.00065;vec3 c=texture2D(map,clamp(uv,0.,1.)).rgb*.4;c+=texture2D(map,clamp(uv+vec2(.0025,.0015),0.,1.)).rgb*.3;c+=texture2D(map,clamp(uv-vec2(.0025,.0015),0.,1.)).rgb*.3;float puddle=.35+.30*sin(world.x*1.8+sin(world.z*.6))*sin(world.z*.53);gl_FragColor=vec4(mix(vec3(.025,.04,.05),c,.12+puddle*.30),1.);}'});
  const roadMirror=world.roadSurface;roadMirror.material=wet;const mirrorHeight=roadMirror.position.y;
  const rainCount=800,positions=new Float32Array(rainCount*6),rg=new T.BufferGeometry(),random=CityCore.random(11),seeds=Array.from({length:rainCount},()=>[random()*60-30,random()*32,random()*80-50]);rg.setAttribute('position',new T.BufferAttribute(positions,3));const rain=new T.LineSegments(rg,new T.LineBasicMaterial({color:0xa3cad8,transparent:true,opacity:.16,depthWrite:false}));rain.frustumCulled=false;scene.add(rain);
  const actor=CityMotions.createActor(T,world.materials);actor.root.position.set(3.9,.19,74);scene.add(actor.root);app.actor=actor;
  const vehicle=CityMotions.vehicle(T,world.materials);scene.add(vehicle);let vehicleZ=125;
  for(const p of [[-20,5,65,0xffb467],[-20,5,0,0x6adeff],[20,5,-96,0xe58cf1]]){const l=new T.PointLight(p[3],2,30,2);l.position.set(...p.slice(0,3));scene.add(l);}
  app.lookAt=(target)=>{camera.lookAt(target);const e=new T.Euler().setFromQuaternion(camera.quaternion,'YXZ');app.yaw=e.y;app.pitch=e.x;};
- app.applyLayout=l=>{app.layout=JSON.parse(JSON.stringify(l));world.setLayout(app.layout);world.update(camera.position.z,true);host.dataset.layoutSeed=l.seed;host.dataset.placements=l.placements.length;};
- app.zone=zone=>{app.jump=null;app.jumpRequested=false;camera.position.set(6.8,2.05,zone.center-6);app.lookAt(new T.Vector3(-20,4,zone.center-31));actor.root.position.z=zone.center-12;app.route={min:zone.center-27,max:zone.center+25};app.keys.clear();app.world.update(camera.position.z);app.editor?.outline();};
+ app.applyLayout=l=>{app.layout=JSON.parse(JSON.stringify(l));world.setLayout(app.layout);world.update(camera.position.z,true);app.presetController?.refresh();host.dataset.layoutSeed=l.seed;host.dataset.placements=l.placements.length;};
+ app.zone=zone=>{app.guide=null;app.jump=null;app.jumpRequested=false;camera.position.set(6.8,2.05,zone.center-6);app.lookAt(new T.Vector3(-20,4,zone.center-31));actor.root.position.z=zone.center-12;app.route={min:zone.center-27,max:zone.center+25};app.keys.clear();app.world.update(camera.position.z);app.editor?.outline();};
  app.focus=p=>{camera.position.set(p.x<0?2:-2,9,p.z+22);app.lookAt(new T.Vector3(p.x,5,p.z));world.update(p.z);app.editor.outline();};
  app.applyLayout(layout);app.zone(app.config.zones[0]);app.editor=new CityEditor(app);
- function setMode(mode){app.mode=mode;app.jump=null;app.jumpRequested=false;app.keys.clear();app.drag=null;document.body.classList.toggle('editing',mode==='edit');document.body.classList.toggle('filming',mode==='film');$('editor').hidden=mode!=='edit';for(const m of ['walk','edit','film'])$('mode-'+m).classList.toggle('active',mode===m);$('help').textContent=mode==='edit'?'点击建筑选择 · 右侧修改并保存 · 按住鼠标环顾':mode==='film'?'自动镜头预览 · 可切回漫游继续搭建':'W A S D 行走 · E 交互 · Q 扫描 · 空格跳跃 · 按住鼠标环顾 · Shift 快走';if(mode==='walk')app.zone(CityCore.zoneAt(camera.position.z,app.config));if(mode==='film')app.filmTime=0;if(mode==='edit')app.focus(app.layout.placements.find(p=>p.id===app.editor.selected)||app.layout.placements[0]);app.editor.outline();host.dataset.mode=mode;}
+ function setMode(mode){if(mode==='edit'&&!CityProgress.canRenovate(app.campaign?.state)){app.notify('完成断电委托后解锁城市改造与自由搭建');return;}app.mode=mode;app.guide=null;app.renovation?.hide();app.jump=null;app.jumpRequested=false;app.keys.clear();app.drag=null;document.body.classList.toggle('editing',mode==='edit');document.body.classList.toggle('filming',mode==='film');$('editor').hidden=mode!=='edit';for(const m of ['walk','edit','film'])$('mode-'+m).classList.toggle('active',mode===m);$('help').textContent=mode==='edit'?'点击建筑选择 · 右侧修改并保存 · 按住鼠标环顾':mode==='film'?'自动镜头预览 · 可切回漫游继续搭建':'W A S D 行走 · E 交互 · Q 扫描 · 空格跳跃 · 按住鼠标环顾 · Shift 快走';if(mode==='walk')app.zone(CityCore.zoneAt(camera.position.z,app.config));if(mode==='film')app.filmTime=0;if(mode==='edit')app.focus(app.layout.placements.find(p=>p.id===app.editor.selected)||app.layout.placements[0]);app.editor.outline();host.dataset.mode=mode;}
  for(const mode of ['walk','edit','film'])$('mode-'+mode).onclick=()=>setMode(mode);
  for(const z of app.config.zones){const b=document.createElement('button');b.textContent=z.name;b.dataset.zone=z.id;b.onclick=()=>{if(app.mode==='film')setMode('walk');app.zone(z);};$('zones').append(b);}
  $('visit-workshop').onclick=()=>{
@@ -97,10 +108,11 @@ try{
   if(!entry){app.notify('店门前没有安全落脚点，请调整建筑位置');return;}
   setMode('walk');camera.position.set(entry.x,1.86+world.groundAt(entry.x,entry.z),entry.z);app.lookAt(new T.Vector3(shop.placement.x,camera.position.y,shop.placement.z));world.update(entry.z);host.focus();app.notify('已到店门前，按 W 进入，按住鼠标环顾');
  };
- app.audio=new CitySound.Engine(app);app.campaign=new CityCampaign(app);
+ app.presetController=CityPresets.create(T,app,{ambient,sun,bloom});
+ app.audio=new CitySound.Engine(app);app.campaign=new CityCampaign(app);app.renovation=new CityRenovation(app,app.presetController);
+ app.guideTo=point=>{app.keys.clear();app.guide={x:point.x,z:point.z,stalled:0};app.notify('引导步行已开启，方向键或 W A S D 可随时接管');host.focus();};
  fetch('data/soundtrack.json?v=track-1').then(r=>{if(!r.ok)throw Error('track');return r.json();}).then(track=>app.audio.setTrack(track)).catch(()=>{app.audio.trackMessage='歌曲配置暂时不可用';app.audio.render();});
  $('motion').onchange=e=>app.clip=e.target.value;
- $('lighting').onchange=e=>{const blue=e.target.value==='blue';ambient.intensity=blue?2:1.45;sun.intensity=blue?3:2.2;scene.background.set(blue?0x46637a:0x122332);scene.fog.color.copy(scene.background);};
  let high=true;$('quality').onchange=e=>{high=e.target.value==='high';renderer.setPixelRatio(Math.min(devicePixelRatio,high?1.5:1));composer.setPixelRatio(Math.min(devicePixelRatio,high?1.5:1));reflection.setSize(high?768:512,high?512:320);};
  $('capture').onclick=()=>{renderReflection();composer.render();renderer.domElement.toBlob(b=>{if(b)app.download(b,'rain-city-studio.png');else app.notify('截图失败，请重试');});};
  const raycaster=new T.Raycaster();renderer.domElement.addEventListener('pointerdown',e=>{app.drag={x:e.clientX,y:e.clientY,originX:e.clientX,originY:e.clientY};renderer.domElement.setPointerCapture(e.pointerId);host.focus();});
@@ -116,10 +128,19 @@ try{
  function animate(){requestAnimationFrame(animate);const real=clock.getDelta(),dt=Math.min(real,.05);if(document.hidden)return;time+=dt;frame++;
   if(app.mode==='walk'){
    const k=app.keys,s=(k.has('KeyD')?1:0)-(k.has('KeyA')?1:0),f=(k.has('KeyW')||k.has('ArrowUp')?1:0)-(k.has('KeyS')||k.has('ArrowDown')?1:0);if(k.has('ArrowLeft'))app.yaw+=dt;if(k.has('ArrowRight'))app.yaw-=dt;const pace=(k.has('ShiftLeft')?7:3.5)*(app.campaign.state.upgrades.mobility?1.25:1)*dt/Math.max(1,Math.hypot(s,f));
-   const dx=(s*Math.cos(app.yaw)-f*Math.sin(app.yaw))*pace,dz=(-s*Math.sin(app.yaw)-f*Math.cos(app.yaw))*pace;
+   let dx=(s*Math.cos(app.yaw)-f*Math.sin(app.yaw))*pace,dz=(-s*Math.sin(app.yaw)-f*Math.cos(app.yaw))*pace;
+   if(app.renovation.open){dx=0;dz=0;app.guide=null;}
+   if(app.guide){
+    if(s||f||k.has('ArrowLeft')||k.has('ArrowRight'))app.guide=null;
+    else{const gx=app.guide.x-camera.position.x,gz=app.guide.z-camera.position.z,distance=Math.hypot(gx,gz);
+     if(distance<=1.75){app.guide=null;app.notify('已到目标附近，点击“交互”或按 E');}
+     else{const step=Math.min(3.5*dt,distance-1.7);dx=gx/distance*step;dz=gz/distance*step;app.yaw=Math.atan2(-gx,-gz);app.pitch=0;}
+    }
+   }
    const obstacles=world.getColliders().concat([{minX:actor.root.position.x-.3,maxX:actor.root.position.x+.3,minZ:actor.root.position.z-.3,maxZ:actor.root.position.z+.3},{minX:vehicle.position.x-1,maxX:vehicle.position.x+1,minZ:vehicle.position.z-2.1,maxZ:vehicle.position.z+2.1}]);
    let p=CityCore.move(camera.position,dx,dz,obstacles);
    if(app.jump&&!app.jump.grounded&&app.jump.feet+1.9>world.ceilingAt(p.x,p.z))p={x:camera.position.x,z:camera.position.z};
+   if(app.guide){app.guide.stalled=Math.hypot(p.x-camera.position.x,p.z-camera.position.z)<.0001?app.guide.stalled+dt:0;if(app.guide.stalled>1){app.guide=null;app.notify('前方有障碍，请使用方向键绕行，再开启引导');}}
    camera.position.x=p.x;camera.position.z=p.z;
    const wasAirborne=app.jump&&!app.jump.grounded;
    if(app.jumpRequested&&!wasAirborne){host.dataset.jumpCount=String(Number(host.dataset.jumpCount||0)+1);host.dataset.jumpPeak='0';}
@@ -129,7 +150,7 @@ try{
   }else if(app.mode==='film'){
    app.filmTime+=dt;const t=app.filmTime%24;camera.position.set(6+Math.sin(t/24*Math.PI*2)*2,3+t*.28,125-t*6);app.lookAt(new T.Vector3(-24,5,65-t*2));
   }
-  camera.rotation.set(app.pitch,app.yaw,0,'YXZ');const zone=world.update(camera.position.z);app.campaign.tick(dt);app.audio.update(zone,Boolean(world.roomAt(camera.position.x,camera.position.z)));
+  camera.rotation.set(app.pitch,app.yaw,0,'YXZ');const oldChunk=world.activeKey,zone=world.update(camera.position.z);if(oldChunk!==world.activeKey)app.presetController.refresh();app.campaign.tick(dt);app.renovation.tick();app.audio.update(zone,Boolean(world.roomAt(camera.position.x,camera.position.z)));
   const actorStep=(CityMotions.clips[app.clip]?.speed||0)*dt*actor.direction;const actorBlocked=app.mode==="walk"&&Math.abs(camera.position.x-actor.root.position.x)<.75&&Math.abs(camera.position.z-(actor.root.position.z+actorStep))<.85;CityMotions.update(actor,dt,actorBlocked?"idle":app.clip,app.route);const nextZ=vehicleZ-dt*5;const nearPlayer=Math.abs(camera.position.x+2)<1.6&&Math.abs(camera.position.z-nextZ)<4;const nearActor=Math.abs(actor.root.position.x+2)<1.6&&Math.abs(actor.root.position.z-nextZ)<4;if(!nearPlayer&&!nearActor)vehicleZ=nextZ;if(vehicleZ< -160)vehicleZ=160;vehicle.position.set(-2,.06,vehicleZ);vehicle.visible=vehicleZ>=-142&&vehicleZ<=142;
   sky.material.uniforms.time.value=time;sky.position.copy(camera.position);
   for(let i=0;i<rainCount;i++){const s=seeds[i],j=i*6,y=((s[1]-time*13)%32+32)%32;positions[j]=s[0]+camera.position.x;positions[j+1]=y;positions[j+2]=s[2]+camera.position.z;const sheltered=world.underRoof(positions[j],y,positions[j+2]);positions[j+3]=positions[j]-(sheltered?0:.06);positions[j+4]=y+(sheltered?0:.6);positions[j+5]=positions[j+2];}rg.attributes.position.needsUpdate=true;wet.uniforms.time.value=time;renderReflection();composer.render();

@@ -7,6 +7,11 @@
   'use strict';
   const KEY = 'rain-city-audio-v1';
   const DEFAULTS = { master: .6, music: .4, rain: .3, effects: .55, muted: false };
+  const PRESETS = {
+    rain: { name: '雨夜街声', outsideLevel: .1, insideLevel: .025, outsideCutoff: 6000, insideCutoff: 1100 },
+    quiet: { name: '静谧工坊', outsideLevel: .035, insideLevel: .012, outsideCutoff: 1600, insideCutoff: 650 }
+  };
+  function validPreset(id) { return typeof id === 'string' && Object.prototype.hasOwnProperty.call(PRESETS, id); }
   const CUES = {
     scan: [420, 840, 1260], accept: [330, 440], evidence: [660, 880],
     resolve: [440, 550, 660], purchase: [390, 780], calibrate: [440, 660, 880], 'calibration-node': [520], 'calibration-error': [220, 160]
@@ -35,10 +40,14 @@
       this.storage = env.storage;
       if (this.storage === undefined) { try { this.storage = root.localStorage; } catch (_) { this.storage = null; } }
       this.contextFactory = env.contextFactory || (() => { const Context = root.AudioContext || root.webkitAudioContext; if (!Context) throw Error('unsupported'); return new Context(); });
-      this.preferences = settings();
-      try { this.preferences = settings(JSON.parse(this.storage?.getItem(KEY) || 'null')); } catch (_) { /* Keep usable defaults. */ }
+      this.preferences = settings(); this.presetId = 'rain';
+      try {
+        const saved = JSON.parse(this.storage?.getItem(KEY) || 'null');
+        this.preferences = settings(saved);
+        if (validPreset(saved?.preset)) this.presetId = saved.preset;
+      } catch (_) { /* Keep usable defaults. */ }
       this.enabled = false; this.busy = false; this.hidden = Boolean(this.document?.hidden); this.context = null;
-      this.track = null; this.media = env.media || null; this.songWanted = true; this.trackMessage = '歌曲信息载入中';
+      this.track = null; this.media = env.media || null; this.songWanted = true; this.trackMessage = '程序化声景可用，点击开启游戏声音';
       this.inside = false; this.zone = app.config.zones[0]; this.lastCue = '';
       if (this.document) { this.mount(); this.document.addEventListener('visibilitychange', () => this.visibility(this.document.hidden)); }
     }
@@ -58,18 +67,18 @@
     }
     apply() {
       if (!this.context) return;
-      const now = this.context.currentTime, p = this.preferences;
+      const now = this.context.currentTime, p = this.preferences, preset = PRESETS[this.presetId];
       this.master.gain.setTargetAtTime(p.muted ? 0 : p.master, now, .06);
       this.rainBus.gain.setTargetAtTime(p.rain, now, .08); this.effectsBus.gain.setTargetAtTime(p.effects, now, .08);
-      this.rainLevel.gain.setTargetAtTime(this.inside ? .025 : .1, now, .35);
-      this.rainFilter.frequency.setTargetAtTime(this.inside ? 1100 : 6000, now, .35);
+      this.rainLevel.gain.setTargetAtTime(this.inside ? preset.insideLevel : preset.outsideLevel, now, .35);
+      this.rainFilter.frequency.setTargetAtTime(this.inside ? preset.insideCutoff : preset.outsideCutoff, now, .35);
       if (this.media) { this.media.volume = p.master * p.music; this.media.muted = p.muted; }
     }
     setTrack(value) {
       const next = soundtrack(value);
       if (this.media) { this.media.pause(); this.media.removeAttribute('src'); this.media.load(); }
       this.track = next; this.songWanted = true;
-      this.trackMessage = next.src ? '歌曲已配置，点击开启声音播放' : '歌曲暂未上架，尚无公共播放音源';
+      this.trackMessage = next.src ? '歌曲已配置，点击开启声音播放' : '程序化声景可用；尚无外部歌曲音源';
       this.render();
     }
     async startTrack() {
@@ -108,8 +117,20 @@
     }
     setPreferences(patch) {
       this.preferences = settings({ ...this.preferences, ...patch });
-      try { this.storage?.setItem(KEY, JSON.stringify(this.preferences)); } catch (_) { this.app.notify('本次音量已生效，但浏览器未能保存设置'); }
+      this.savePreferences('本次音量已生效，但浏览器未能保存设置');
       this.apply(); this.render();
+    }
+    savePreferences(message) {
+      try { this.storage?.setItem(KEY, JSON.stringify({ ...this.preferences, preset: this.presetId })); }
+      catch (_) { this.app.notify(message); }
+    }
+    getPreset() { return this.presetId; }
+    setPreset(id) {
+      if (!validPreset(id)) throw Error('Invalid audio preset');
+      this.presetId = id;
+      this.savePreferences('本次声景已生效，但浏览器未能保存设置');
+      // Changing a soundscape never enables audio or constructs an AudioContext.
+      this.apply(); this.render(); return id;
     }
     update(zone, inside) {
       if (this.zone.id === zone.id && this.inside === Boolean(inside)) return;
@@ -153,14 +174,129 @@
       if (!this.panel) return;
       const state = !this.enabled ? '未开启' : this.hidden ? '后台暂停' : this.preferences.muted ? '已静音' : this.context?.state === 'running' ? '已开启' : '等待恢复';
       this.summary.textContent = '声音 · ' + state; this.toggleButton.textContent = this.enabled ? '暂停游戏声音' : '开启游戏声音'; this.toggleButton.disabled = this.busy;
-      this.status.textContent = state + ' · ' + this.zone.name + ' · ' + (this.inside ? '室内雨声减弱' : '室外雨声');
-      this.trackTitle.textContent = this.track ? this.track.title + ' · ' + this.track.artists.join(' / ') + ' · ' + this.track.album : '指定游戏歌曲';
+      this.status.textContent = state + ' · ' + this.zone.name + ' · ' + PRESETS[this.presetId].name + ' · ' + (this.inside ? '室内声景减弱' : '室外声景');
+      this.trackTitle.textContent = this.track?.src ? this.track.title + ' · ' + this.track.artists.join(' / ') + ' · ' + this.track.album : '程序化声景 · ' + PRESETS[this.presetId].name;
       this.trackStatus.textContent = this.trackMessage; this.songButton.disabled = !this.track?.src || this.busy;
+      this.songButton.hidden = !this.track?.src;
       this.songButton.textContent = this.enabled && this.songWanted && this.media && !this.media.paused ? '暂停歌曲' : '播放歌曲';
       for (const [key, control] of Object.entries(this.sliders)) { control.input.value = String(Math.round(this.preferences[key] * 100)); control.output.textContent = control.input.value + '%'; }
       this.mute.checked = this.preferences.muted; this.feedback.textContent = this.lastCue ? '最近声音反馈：' + this.lastCue : '接取、调查、扫描、交付和升级时提供声音反馈。';
-      this.panel.dataset.audioState = JSON.stringify({ enabled: this.enabled, state: this.context?.state || 'uninitialized', hidden: this.hidden, inside: this.inside, zone: this.zone.id, ...this.preferences, lastCue: this.lastCue, trackConfigured: Boolean(this.track?.src), trackPlaying: Boolean(this.media && !this.media.paused) });
+      this.panel.dataset.audioState = JSON.stringify({ enabled: this.enabled, state: this.context?.state || 'uninitialized', hidden: this.hidden, inside: this.inside, zone: this.zone.id, ...this.preferences, preset: this.presetId, lastCue: this.lastCue, trackConfigured: Boolean(this.track?.src), trackPlaying: Boolean(this.media && !this.media.paused) });
     }
   }
-  return { settings, soundtrack, Engine };
+  function createRaceSound(env = {}) {
+    const document = env.document === undefined ? root.document : env.document;
+    const view = env.window === undefined ? root : env.window;
+    let storage = env.storage;
+    if (storage === undefined) { try { storage = root.localStorage; } catch (_) { storage = null; } }
+    const contextFactory = env.contextFactory || (() => {
+      const Context = root.AudioContext || root.webkitAudioContext;
+      if (!Context) throw Error('unsupported');
+      return new Context();
+    });
+    let available = Boolean(env.contextFactory || root.AudioContext || root.webkitAudioContext);
+    let context = null, output = null, filter = null, voices = [], nodes = [];
+    let enabled = false, busy = false, disposed = false, error = '', preferences = settings();
+    let speed = 0, boosting = false, racePaused = false, hidden = Boolean(document?.hidden), blurred = false;
+    function readPreferences() {
+      try { preferences = settings(JSON.parse(storage?.getItem(KEY) || 'null')); }
+      catch (_) { preferences = settings(); }
+    }
+    readPreferences();
+    function paused() { return racePaused || hidden || blurred; }
+    function getState() {
+      const muted = preferences.muted || !preferences.master || !preferences.effects;
+      return { enabled, available, active: Boolean(enabled && !paused() && !muted && context?.state === 'running' && !error), paused: paused(), muted, busy, error, disposed };
+    }
+    function silence() {
+      if (output && context) { output.gain.cancelScheduledValues?.(context.currentTime); output.gain.setValueAtTime(0, context.currentTime); }
+    }
+    function apply() {
+      if (!context || !output) return;
+      const now = context.currentTime, ratio = Math.min(1, Math.abs(speed) / 320), pitch = 42 + ratio * 130 + (boosting ? 24 : 0);
+      voices[0].frequency.setTargetAtTime(pitch, now, .07);
+      voices[1].frequency.setTargetAtTime(pitch * 2.005, now, .07);
+      filter.frequency.setTargetAtTime(250 + ratio * 1250 + (boosting ? 300 : 0), now, .08);
+      if (!getState().active) silence();
+      else output.gain.setTargetAtTime(preferences.master * preferences.effects * (.035 + ratio * .045) * (boosting ? 1.15 : 1), now, .06);
+    }
+    function release() {
+      const old = context;
+      try { silence(); } catch (_) { /* A failed audio device must not stop racing. */ }
+      for (const voice of voices) { try { voice.stop(); } catch (_) { /* Already stopped. */ } }
+      for (const node of nodes) { try { node.disconnect(); } catch (_) { /* Partially built graph. */ } }
+      voices = []; nodes = []; context = null; output = null; filter = null;
+      try { const closing = old?.close?.(); closing?.catch?.(() => {}); } catch (_) { /* Closing is best effort. */ }
+    }
+    function fail() {
+      enabled = false; available = false; error = '引擎音暂时无法开启，请再次点击重试'; release();
+      return getState();
+    }
+    function build() {
+      context = contextFactory();
+      output = context.createGain(); nodes.push(output); output.gain.setValueAtTime(0, context.currentTime);
+      filter = context.createBiquadFilter(); nodes.push(filter); filter.type = 'lowpass';
+      filter.connect(output); output.connect(context.destination);
+      for (const [type, level] of [['sawtooth', .7], ['triangle', .3]]) {
+        const voice = context.createOscillator(), gain = context.createGain();
+        voices.push(voice); nodes.push(voice, gain); voice.type = type; gain.gain.setValueAtTime(level, context.currentTime);
+        voice.connect(gain); gain.connect(filter); voice.start();
+      }
+    }
+    async function start() {
+      if (disposed || busy) return getState();
+      busy = true; error = ''; readPreferences();
+      try {
+        // Only the explicit start/toggle call may build or first resume this graph.
+        if (!context) build();
+        await context.resume();
+        if (!disposed) { enabled = true; available = true; apply(); }
+      } catch (_) { if (!disposed) fail(); }
+      finally { busy = false; }
+      return getState();
+    }
+    async function toggle() {
+      if (disposed || busy) return getState();
+      if (!enabled) return start();
+      enabled = false; busy = true;
+      try { silence(); await context?.suspend(); }
+      catch (_) { /* Output is already silent even if device suspension fails. */ }
+      finally { busy = false; }
+      return getState();
+    }
+    function update(nextSpeed, nextBoosting, nextPaused) {
+      if (disposed) return getState();
+      speed = typeof nextSpeed === 'number' && Number.isFinite(nextSpeed) ? nextSpeed : 0;
+      boosting = Boolean(nextBoosting); racePaused = Boolean(nextPaused);
+      try { apply(); } catch (_) { fail(); }
+      return getState();
+    }
+    function refresh() {
+      if (disposed) return;
+      try {
+        apply();
+        // Browsers can suspend a previously unlocked context while a tab is hidden.
+        if (enabled && !paused() && !busy && context?.state === 'suspended') {
+          Promise.resolve(context.resume()).then(() => { if (!disposed) apply(); }).catch(() => { if (!disposed) fail(); });
+        }
+      } catch (_) { fail(); }
+    }
+    const onVisibility = () => { hidden = Boolean(document.hidden); refresh(); };
+    const onBlur = () => { blurred = true; refresh(); };
+    const onFocus = () => { blurred = false; refresh(); };
+    const onStorage = event => { if (event.key === KEY || event.key === null) { readPreferences(); refresh(); } };
+    document?.addEventListener?.('visibilitychange', onVisibility);
+    view?.addEventListener?.('blur', onBlur); view?.addEventListener?.('focus', onFocus); view?.addEventListener?.('storage', onStorage);
+    function dispose() {
+      if (!disposed) {
+        disposed = true; enabled = false;
+        document?.removeEventListener?.('visibilitychange', onVisibility);
+        view?.removeEventListener?.('blur', onBlur); view?.removeEventListener?.('focus', onFocus); view?.removeEventListener?.('storage', onStorage);
+        release();
+      }
+      return getState();
+    }
+    return { start, toggle, update, dispose, getState };
+  }
+  return { settings, soundtrack, Engine, createRaceSound };
 });

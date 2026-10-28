@@ -327,7 +327,7 @@ loadCity().then(gltf=>{
   addPrefab(prefabs,'10',67,-62,-43,1.1,0);
   addPrefab(prefabs,'09',209,-60,-84,1.7,0);
   addPrefab(prefabs,'08',-122,-42,75,1.5,0);
-  finishBatches();ready=true;$('enter').disabled=false;$('enter-label').textContent='进入街区';$('loading').textContent='城区已就绪 · 六栋原始建筑模型';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
+  finishBatches();ready=true;$('enter').disabled=false;$('enter-label').textContent='观景漫游';$('loading').textContent='城区已就绪 · 六栋原始建筑模型';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
   console.info('CITY_READY',{sourceModels:6,sourceTriangles:11984,colliders:obstacles.length});
 }).catch(e=>{console.error('CITY_LOAD_FAILED',e);fail('建筑资源未能载入。请从本地服务器或网站链接打开页面，并检查网络后重试。');});
 animate();
