@@ -153,3 +153,26 @@ powershell -ExecutionPolicy Bypass -File .codex/skills/release-preflight/scripts
 ```
 
 退出码 `0` 表示全部通过，`1` 表示存在失败，`2` 表示存在无法验证的阻断项。命令运行结束不代表发布检查通过；必须查看报告中的总体结果与证据。检查器只报告问题，不自动修改、提交或发布项目。
+
+## 本机环境备注：Windows 上推送 GitHub 的 TLS 问题
+
+自 2026-10-28 起，本机 Windows 的 schannel（`git` 与 `curl` 默认使用的 TLS 后端）无法与 `github.com` 完成握手，直接 `git push` 会报：
+
+```text
+fatal: unable to access 'https://github.com/…': schannel: failed to receive handshake, SSL/TLS connection failed
+```
+
+同一时刻用 .NET 栈访问是正常的（`Invoke-WebRequest https://github.com` 返回 200），`*.github.io` 也一直可访问，所以**这不是网络被封，也不是仓库权限问题**，只是 schannel 这一条 TLS 路径坏了。
+
+已验证的绕过方式：改用 Git for Windows 自带的 OpenSSL 后端，并显式指定它的 CA 证书。
+
+```powershell
+git -c http.sslBackend=openssl `
+    -c "http.sslCAInfo=D:\Program Files\Git\usr\ssl\certs\ca-bundle.crt" `
+    push origin main
+```
+
+- `ca-bundle.crt` 的位置随 Git 安装路径变化，一般在 `<Git 安装目录>\usr\ssl\certs\`；找不到时用 `where git` 反推安装根目录。
+- 只在网络或系统证书环境修好之前需要这么写；如果 `git push` 恢复正常，可以省掉这两个参数。
+- 这条只影响推送，不影响 `git status` / `git log` / `git diff` 等本地操作。
+
