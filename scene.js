@@ -15,7 +15,7 @@ const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.12,2600);camera.
 const clock=new T.Clock(),obstacles=[],traffic=[],humans=[],animated=[];
 let active=false,ready=false,quality='high',dragging=false,yaw=-.155,pitch=.073,elapsed=0,frame=0;
 const keys=new Set(),mouse={x:0,y:0},speed=new T.Vector2();
-const views={street:{x:-5,z:62,yaw:-.20,pitch:.073,name:'南侧街口'},overlook:{x:-1.8,z:-60,yaw:-.38,pitch:.11,name:'中央塔观景台'},neon:{x:-20,z:-20,yaw:.88,pitch:.17,name:'霓虹长街'}};
+const views={street:{x:-5,z:62,yaw:.09,pitch:.073,name:'南侧街口'},overlook:{x:-1.8,z:-60,yaw:-.38,pitch:.11,name:'中央塔观景台'},neon:{x:-20,z:-20,yaw:.88,pitch:.17,name:'霓虹长街'}};
 let seed=2077;
 function rand(){seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;}
 const range=(a,b)=>a+(b-a)*rand();
@@ -123,6 +123,16 @@ void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float p
 #include <encodings_fragment>
 }`});
 const wetRoad=new T.Mesh(new T.PlaneGeometry(35.4,308),wetMaterial);wetRoad.rotation.x=-Math.PI/2;wetRoad.position.set(-18,22.025,-48);scene.add(wetRoad);
+// Shared landmark language with the playable commission street.
+const cityRing=new T.Group();cityRing.position.set(-10.2,34,8);scene.add(cityRing);
+for(const [radius,tube,material,z] of [[12,.55,mat.steel,0],[11.45,.16,mat.pink,.45],[12.6,.1,mat.cyan,-.1]]){
+ const part=new T.Mesh(new T.TorusGeometry(radius,tube,10,100),material);part.position.z=z;cityRing.add(part);
+}
+const existingCityRing=new T.Group();existingCityRing.position.copy(cityRing.position);scene.add(existingCityRing);
+loadExistingCityRing(T,renderer,existingCityRing,24).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(11.3,.055,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'fallback';});
+const cityGlow=canvasTexture(256,256,(c,w,h)=>{const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(100,235,255,.68)');g.addColorStop(.35,'rgba(25,170,220,.3)');g.addColorStop(1,'rgba(0,100,200,0)');c.fillStyle=g;c.fillRect(0,0,w,h);});
+const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.7,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-10.2,38,-15);scene.add(cityGlowPlane);
+light(-10.2,34,8,0xff5bc6,32,52);light(-10.2,35,-15,0x48dfff,38,75);
 const waterMaterial=new T.MeshStandardMaterial({color:0x0b2232,metalness:.85,roughness:.18,emissive:0x0c1e2d,emissiveIntensity:.3});
 const water=new T.Mesh(new T.PlaneGeometry(130,1100),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(70,-61,-350);scene.add(water);
 for(let i=0;i<95;i++)box(range(10,126),-60.96,range(-650,130),range(.1,.6),.014,range(.8,6),i%3?'cyan':'pink');
@@ -145,6 +155,7 @@ function loadCity(){return new Promise((resolve,reject)=>loader.load('models/cit
 // Three existing Tripo buildings, extracted from the approved Blender racing
 // export without rebaking, decimating, recolouring or changing their UVs.
 function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().load('models/homepage-buildings.glb',gltf=>{
+  const detailMaterials=new Map([[3,new Set()],[4,new Set()],[26,new Set()]]);
   const placements=[
     [3,68,-62,-120,118,.20],
     [4,26,-62,-43,92,-.30],
@@ -167,10 +178,12 @@ function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().
     if(x>0&&bounds.min.x<4)group.position.x+=4-bounds.min.x;
     if(x<0&&bounds.max.x>-40)group.position.x-=bounds.max.x+40;
     scene.add(group);
-    obj.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
+    obj.traverse(o=>{if(!o.isMesh)return;if(detailMaterials.has(number))o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();for(const m of Array.isArray(o.material)?o.material:[o.material]){
       if(m.map)m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+      if(m.map)detailMaterials.get(number)?.add(m);
     }});
   }
+  for(const [number,materials] of detailMaterials)new T.TextureLoader().load('images/building-'+String(number).padStart(2,'0')+'-detail.webp',texture=>{texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());for(const m of materials){m.map=texture;if(m.emissiveMap)m.emissiveMap=texture;m.needsUpdate=true;}canvasHost.dataset['building'+number+'Texture']='2048';},undefined,()=>{canvasHost.dataset['building'+number+'Texture']='original';});
   canvasHost.dataset.tripoBuildings=String(placements.length);canvasHost.dataset.buildingDetail='ready';resolve();
 },undefined,error=>{canvasHost.dataset.buildingDetail='fallback';console.warn('CITY_OPTIONAL_BUILDINGS',error);resolve();}));}
 function addPrefab(prefabs,id,x,y,z,scale=1,rotation=0){
@@ -229,7 +242,7 @@ views.yuheng={x:-15.5,z:43.5,yaw:.63,pitch:-.12,name:'玉衡停靠位'};
 const yuhengView=document.createElement('button');yuhengView.dataset.view='yuheng';
 yuhengView.textContent='玉衡';document.querySelector('.views').appendChild(yuhengView);
 // A real 3D portal links the existing district to the separate racing scene.
-const racingPortal=new T.Group();racingPortal.position.set(-5.5,24.2,54);
+const racingPortal=new T.Group();racingPortal.position.set(-5.5,24.2,76);
 const portalFrame=new T.Mesh(new T.TorusGeometry(2.05,.17,8,48),mat.edge);
 const portalEnergy=new T.Mesh(new T.TorusGeometry(1.83,.045,5,48),mat.cyan);
 racingPortal.add(portalFrame,portalEnergy);scene.add(racingPortal);
@@ -321,7 +334,7 @@ let perfFrames=0,perfTime=0,adapted=false;
 function animate(){
   requestAnimationFrame(animate);const realDelta=clock.getDelta(),dt=Math.min(realDelta,.04);if(document.hidden)return;elapsed+=dt;frame++;
   if(active){
-    if(keys.has('KeyE')&&Math.hypot(camera.position.x+5.5,camera.position.z-54)<3){location.href='booze.html';return;}
+    if(keys.has('KeyE')&&Math.hypot(camera.position.x+5.5,camera.position.z-76)<3){location.href='booze.html';return;}
     portalEnergy.rotation.z=elapsed*.25;
     if(portalMembrane)portalMembrane.material.uniforms.time.value=elapsed;
     const side=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);

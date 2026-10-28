@@ -3,6 +3,14 @@
   "units": "metres",
   "runtimeUpAxis": "Y",
   "files": {
+    "images/city-ring-detail.webp": {
+      "bytes": 758996,
+      "sha256": "9ec35ea044c943cafc38b1b0323c121a7305054cc0adfbac55a9dad80ecb8626"
+    },
+    "images/building-03-detail.webp": {
+      "bytes": 994916,
+      "sha256": "69c1632b75325028c5420de45053b08b32f2dce02d43495d78fd313e1523852e"
+    },
     "models/city-kit.gltf": {
       "bytes": 57945,
       "sha256": "05a3ebbe720b4dc391818a89e6f3a43ab6ea67c60805e0018d0fe21e0d68969a"
@@ -86,6 +94,18 @@
     "models/homepage-buildings.glb": {
       "bytes": 3668168,
       "sha256": "7adb5eaf73264cc371427888796cde01e5bb2a58f5c9a22e231fa7e88c2bad73"
+    },
+    "models/city-ring.glb": {
+      "bytes": 963096,
+      "sha256": "fc2a92985a51cb5acbdd96e86dad607199e164a2e2bed823603a87883f1ec5c2"
+    },
+    "images/building-04-detail.webp": {
+      "bytes": 910686,
+      "sha256": "4c889be4e84d9baf245d75e3736226148f08c63befb5577c527e2684ee2737fe"
+    },
+    "images/building-26-detail.webp": {
+      "bytes": 936830,
+      "sha256": "46ed2d279877d24246b76b47277826e400dcb63dde60e52183370efb92a6c63f"
     }
   },
   "assets": [

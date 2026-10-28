@@ -32,14 +32,17 @@ class CityCampaign {
   this.app.renderer.domElement.parentElement.dataset.districtStatus=JSON.stringify(statuses);
  }
  rebuild(){
-  for(const p of this.points){this.group.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();if(p.display){this.group.remove(p.display);const materials=new Set();p.display.traverse(o=>{if(!o.isSprite)o.geometry?.dispose();if(o.material)materials.add(o.material);});for(const m of materials){m.map?.dispose();m.dispose();}}}this.points=[];
+  for(const p of this.points){this.group.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();if(p.evidenceLabel){p.evidenceLabel.material.map.dispose();p.evidenceLabel.material.dispose();}if(p.display){this.group.remove(p.display);const materials=new Set();p.display.traverse(o=>{if(!o.isSprite)o.geometry?.dispose();if(o.material)materials.add(o.material);});for(const m of materials){m.map?.dispose();m.dispose();}}}this.points=[];
   for(const [id,config] of Object.entries(CityGameplay.missions)){
    const zone=this.app.config.zones.find(z=>z.id===id);if(!zone)continue;
    ['terminal',...config.evidence].forEach((key,i)=>{
     let position;for(const x of [6.8,7.6,5.8]){const z=zone.center-6-i*9;if(!CityCore.blocked(x,z,this.app.world.getColliders())){position={x,z};break;}}
     if(!position)return;
     const mesh=new THREE.Mesh(new THREE.OctahedronGeometry(.24),new THREE.MeshBasicMaterial({color:key==='terminal'?0xffc56c:0x78eee5}));
-    mesh.position.set(position.x,this.app.world.groundAt(position.x,position.z)+1.2,position.z);this.group.add(mesh);const point={id,key,mesh,...position};if(key==='terminal')this.makeTerminal(point);this.points.push(point);
+    mesh.position.set(position.x,this.app.world.groundAt(position.x,position.z)+1.2,position.z);this.group.add(mesh);const point={id,key,mesh,...position};if(key==='terminal')this.makeTerminal(point);else{
+     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const c=canvas.getContext('2d');c.fillStyle='rgba(5,25,38,.88)';c.fillRect(0,0,512,128);c.strokeStyle='#78eee5';c.lineWidth=4;c.strokeRect(3,3,506,122);c.fillStyle='#dcffff';c.textAlign='center';c.textBaseline='middle';c.font='bold 38px Microsoft YaHei, sans-serif';c.fillText(this.copy[id].clues[key][0],256,64,470);
+     const texture=new THREE.CanvasTexture(canvas);texture.encoding=THREE.sRGBEncoding;const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));label.scale.set(1.8,.45,1);label.position.y=.8;label.visible=false;mesh.add(label);point.evidenceLabel=label;
+    }this.points.push(point);
    });
   }this.updateTerminals();
  }
@@ -181,7 +184,7 @@ class CityCampaign {
   const scanText=`${profile.range} 米范围 · ${profile.cooldown} 秒冷却。${this.scanMessage}`;if(this.scanStatus.textContent!==scanText)this.scanStatus.textContent=scanText;
   const signature=JSON.stringify(this.app.layout);if(signature!==this.signature){this.signature=signature;this.rebuild();}
   this.updateChallenge();
-  const available=this.points.filter(p=>this.active(p));for(const p of this.points){p.mesh.visible=this.active(p);if(p.display)p.display.visible=this.active(p);p.mesh.rotation.y+=.12;}
+  const available=this.points.filter(p=>this.active(p));for(const p of this.points){p.mesh.visible=this.active(p);if(p.display){p.display.visible=this.active(p)&&this.distance(p)>3;if(p.label)p.label.visible=this.distance(p)>5;}p.mesh.rotation.y+=.12;}
   this.nearest=available.reduce((best,p)=>!best||this.distance(p)<this.distance(best)?p:best,null);
   const p=this.nearest,near=p&&this.distance(p)<=2.6;
   this.revisit.hidden=!near||p.key!=='terminal';if(!this.revisit.hidden){const status=CityGameplay.districtStatus(this.state)[p.id];this.revisit.textContent=status.label+'：'+status.note;}
@@ -192,7 +195,7 @@ class CityCampaign {
   const scan=this.state.upgrades.optic?45:25;
   this.hint.textContent=near?'按 E 交互 · '+this.copy[p.id].title+' · '+(p.key==='terminal'?'委托终端':this.copy[p.id].clues[p.key][0]):'沿街前进，靠近信标后按 E';
   if(target&&this.distance(target)<=scan&&this.state.upgrades.aiLevel===2)this.hint.textContent+=' · 智能体：'+(goal.phase==='accept'?'在此接取委托':goal.phase==='deliver'?'线索齐全，可以交付':this.copy[target.id].clues[target.key][1]);
-  for(const point of this.points){const highlighted=now<this.scanUntil&&this.scanned.has(point.id+'/'+point.key);point.mesh.scale.setScalar(highlighted?2+.3*Math.sin(now*8):this.state.upgrades.optic&&this.distance(point)<scan?1.6:1);if(point.key!=='terminal')point.mesh.material.color.setHex(highlighted?0xffdf89:0x78eee5);}
+  for(const point of this.points){const highlighted=now<this.scanUntil&&this.scanned.has(point.id+'/'+point.key),scale=highlighted?2+.3*Math.sin(now*8):this.state.upgrades.optic&&this.distance(point)<scan?1.6:1;point.mesh.scale.setScalar(scale);if(point.key!=='terminal'){point.mesh.material.color.setHex(highlighted?0xffdf89:0x78eee5);if(point.evidenceLabel){point.evidenceLabel.visible=this.active(point)&&(highlighted||this.distance(point)<8);point.evidenceLabel.scale.set(1.8/scale,.45/scale,1);}}}
   const key=near?`${p.id}/${p.key}/${this.state.tokens}/${JSON.stringify(this.state.missions)}/${JSON.stringify(this.state.upgrades)}`:'';
   if(key===this.actionKey)return;this.actionKey=key;this.actions.replaceChildren();
   if(!near||p.key!=='terminal')return;

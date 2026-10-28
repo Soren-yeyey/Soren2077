@@ -14,6 +14,8 @@ window.CityWorld=class {
    const g=new T.Group();g.position.z=zone.center;this.infrastructure.add(g);
    for(let z=-46;z<48;z+=8)this.mesh(.12,.025,3,0,.052,z,m.amber,g);
    for(const x of [-8.7,8.7])for(const z of [-36,-12,12,36]){
+    // Keep the first view toward the ring clear, including its interaction area.
+    if(zone.id==='market'&&x>0&&z===-12)continue;
     this.mesh(.13,6,.13,x,3,z,m.steel,g);this.mesh(.55,.1,.55,x,6,z,m.cyan,g);
     this.furniture.push({minX:x-.12,maxX:x+.12,minZ:zone.center+z-.12,maxZ:zone.center+z+.12});
    }
@@ -22,6 +24,7 @@ window.CityWorld=class {
    for(const side of [-1,1]){
     for(let z=-46;z<48;z+=3)this.mesh(7,.02,.035,side*13.5,.025,z,m.steel,g);
     for(const z of [-45,-15,16,45]){
+     if(zone.id==='market'&&side>0&&z===-15)continue;
      this.mesh(1.2,.75,2.8,side*11,.375,z,m.steel,g);this.mesh(1,.05,2.5,side*11,.77,z,m.dark,g);
      const leaves=new T.Mesh(new T.IcosahedronGeometry(.7,1),new T.MeshStandardMaterial({color:0x24493d,roughness:.8}));leaves.position.set(side*11,1,z);leaves.scale.set(.8,.55,1.7);g.add(leaves);
      this.mesh(.07,.06,2.1,side*10.37,.60,z,m.amber,g);
