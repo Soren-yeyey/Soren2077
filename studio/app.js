@@ -114,7 +114,11 @@ try{
   setMode('walk');camera.position.set(entry.x,1.86+world.groundAt(entry.x,entry.z),entry.z);app.lookAt(new T.Vector3(shop.placement.x,camera.position.y,shop.placement.z));world.update(entry.z);host.focus();app.notify('已到店门前，按 W 进入，按住鼠标环顾');
  };
  app.presetController=CityPresets.create(T,app,{ambient,sun,bloom});
- app.audio=new CitySound.Engine(app);app.campaign=new CityCampaign(app);app.renovation=new CityRenovation(app,app.presetController);
+ // Audio is optional: a missing or blocked script must not stop exploration or saving.
+ const AudioEngine=window.CitySound?.Engine;
+ app.audio=AudioEngine?new AudioEngine(app):{setPreset(){},play(){},update(){},setTrack(){},render(){},trackMessage:''};
+ if(!AudioEngine){host.dataset.audioFallback='true';app.notify('声音资源暂不可用，街区仍可继续');}
+ app.campaign=new CityCampaign(app);app.renovation=new CityRenovation(app,app.presetController);
  app.guideTo=point=>{app.keys.clear();app.guide={x:point.x,z:point.z,stalled:0};app.notify('引导步行已开启，方向键或 W A S D 可随时接管');host.focus();};
  fetch('data/soundtrack.json?v=track-1').then(r=>{if(!r.ok)throw Error('track');return r.json();}).then(track=>app.audio.setTrack(track)).catch(()=>{app.audio.trackMessage='歌曲配置暂时不可用';app.audio.render();});
  $('motion').onchange=e=>app.clip=e.target.value;
