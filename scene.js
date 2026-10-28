@@ -304,7 +304,26 @@ function pedestrian(x,z,coatColor){
   group.position.set(x,22.06,z);scene.add(group);humans.push({object:group,legs,phase:rand()*6.28});
   obstacles.push({minX:x-.38,maxX:x+.38,minZ:z-.38,maxZ:z+.38});
 }
-for(const p of [[-4,42],[-8,8],[-5,-26],[-28,24],[-29,-34],[-7,-89],[-4,-123],[-27,-108],[-6,-155]])pedestrian(p[0],p[1],[0x25283b,0x142b34,0x382039][Math.floor(rand()*3)]);
+for(const p of [[-4,42],[-8,8],[-28,24],[-29,-34],[-4,-123],[-6,-155]])pedestrian(p[0],p[1],[0x25283b,0x142b34,0x382039][Math.floor(rand()*3)]);
+
+// The rigged Blender character (2.2万面, 41 bones) replaces three of the block
+// pedestrians. Each copy loads the same 1.1 MB file, which the HTTP cache serves once.
+const operativeSpots=[[-7,46,.35],[-7,-89,3.1],[-27,-108,-1.2]];
+for(const [x,z,ry] of operativeSpots){
+  new T.GLTFLoader().load('models/operative.glb',gltf=>{
+    const model=gltf.scene,box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3());
+    if(!size.y)return;
+    const s=1.74/size.y;
+    model.scale.setScalar(s);
+    model.position.y=-box.min.y*s;
+    model.rotation.y=Math.PI+ry;
+    model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;if(o.material&&o.material.map)o.material.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}});
+    const wrap=new T.Group();wrap.add(model);wrap.position.set(x,22.06,z);scene.add(wrap);
+    humans.push({object:wrap,legs:[],phase:rand()*6.28});
+    obstacles.push({minX:x-.4,maxX:x+.4,minZ:z-.4,maxZ:z+.4});
+    canvasHost.dataset.operative=String((Number(canvasHost.dataset.operative)||0)+1);
+  },undefined,error=>{canvasHost.dataset.operative='fallback';console.warn('Optional character:',error);});
+}
 
 // Camera-local rain occupies a bounded volume and never crosses the UI layer.
 const rainCount=1600,rainGeo=new T.BufferGeometry(),rainPos=new Float32Array(rainCount*6),rainSeeds=[];

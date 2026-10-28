@@ -54,11 +54,11 @@ function check(root=path.resolve(__dirname,'..')){
  for(const folder of ['images','models'])for(const file of fs.readdirSync(path.join(root,folder),{recursive:true})){
   const target=path.join(root,folder,file);if(fs.statSync(target).isFile()){const size=fs.statSync(target).size;assetBytes+=size;if(/\.(png|jpe?g|webp)$/i.test(file)&&size>1000000)errors.push('Image exceeds 1 MB: '+file);}
  }
- // Desktop-only build: the old 5 MB web budget no longer applies. Keep a ceiling
- // so the repo does not silently grow without bound; single files above 20 MB
- // should move to LFS or object storage per AGENTS.md.
- const ASSET_BUDGET_BYTES=60*1000*1000;
- if(assetBytes>ASSET_BUDGET_BYTES)errors.push('Assets exceed 60 MB');
+ // Desktop-only build. The ceiling was raised to 100 MB so imported Blender/Tripo
+ // buildings can replace the procedural placeholders; single files above 20 MB
+ // should still move to LFS or object storage per AGENTS.md.
+ const ASSET_BUDGET_BYTES=100*1000*1000;
+ if(assetBytes>ASSET_BUDGET_BYTES)errors.push('Assets exceed 100 MB');
  return {valid:errors.length===0,version:manifest.version,assets:assets.length,checkedFiles,assetBytes,triangles:assets.reduce((n,a)=>n+a.triangles,0),errors,warnings};
 }
 if(require.main===module){try{const result=check();console.log(JSON.stringify(result,null,2));if(!result.valid)process.exitCode=1;}catch(e){console.error(e.message);process.exitCode=1;}}

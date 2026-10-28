@@ -3,6 +3,7 @@
   "units": "metres",
   "runtimeUpAxis": "Y",
   "files": {
+  "models/operative.glb": {"bytes": 1144668, "sha256": "bbc19ab4aca724d05ea1a69008183ae7d70e5c90fb8d7285964e9ac0670b852e"},
     "images/city-ring-detail.webp": {
       "bytes": 758996,
       "sha256": "9ec35ea044c943cafc38b1b0323c121a7305054cc0adfbac55a9dad80ecb8626"
