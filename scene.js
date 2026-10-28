@@ -13,8 +13,15 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWid
 canvasHost.appendChild(renderer.domElement);
 loadImportedScenery(T,scene,renderer,canvasHost,[
  ['importedFacade','models/neon-facade.glb',[[-48,22,5,50,Math.PI/2],[22,22,-30,48,-Math.PI/2]]],
- ['importedSkyCity','models/floating-city.glb',[[95,70,-120,35,.15]]]
+ ['importedSkyCity','models/floating-city.glb',[[95,70,-120,35,.15]]],
+ // Tripo masters (1.9M faces, 4K textures) re-exported at 55k/1024: the library is a
+ // sky-city kit, so these hang over the street the way the reference does.
+ ['importedSkyA','models/sky-platform-a.glb',[[-34,116,-72,72,.35],[86,152,-250,62,-.22]]],
+ ['importedSkyB','models/sky-platform-b.glb',[[46,102,-150,58,.1],[-96,132,-196,54,-.4]]],
+ ['importedBillboard','models/billboard-tower.glb',[[31,22,-104,44,Math.PI]]]
 ]);
+// The overhead platforms sit above every street lamp, so give them their own rim lights.
+light(-34,96,-72,0x6ad8ff,46,120);light(46,84,-150,0xff5fbe,40,120);light(-96,112,-196,0x59e8ff,34,110);
 const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.12,2600);camera.rotation.order='YXZ';
 const clock=new T.Clock(),obstacles=[],traffic=[],humans=[],animated=[];
 let active=false,ready=false,quality='high',dragging=false,yaw=-.155,pitch=.073,elapsed=0,frame=0;
