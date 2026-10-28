@@ -146,6 +146,8 @@ function sign(text,x,y,z,w,h,color,rotation=0){
   const panel=new T.Mesh(new T.PlaneGeometry(w,h),m);panel.position.z=.184;group.add(panel);scene.add(group);return group;
 }
 for(let i=0;i<8;i++){const z=64-i*30;sign(i%2?'夜行酒馆':'未来生活',-35.4,32+((i+1)%3)*3,z,1.9,7.5,i%2?'#ff55ba':'#9affef',Math.PI/2);box(-35.9,34,z,1.1,.2,.25,'steel');}
+// Same signage on the right-hand shop row, so the corridor is lit on both sides.
+for(let i=0;i<6;i++){const z=56-i*30;sign(i%2?'未来生活':'夜行酒馆',8.9,30+((i+2)%3)*3.4,z,1.85,7.2,i%2?'#9affef':'#ff55ba',-Math.PI/2);box(9.4,32,z,1.1,.2,.25,'steel');}
 
 // Six approved Blender prefabs. Model origins are floor-centred and in metres.
 const manager=new T.LoadingManager();
@@ -157,9 +159,9 @@ function loadCity(){return new Promise((resolve,reject)=>loader.load('models/cit
 function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().load('models/homepage-buildings.glb',gltf=>{
   const detailMaterials=new Map([[3,new Set()],[4,new Set()],[26,new Set()]]);
   const placements=[
-    [3,68,-62,-120,118,.20],
-    [4,26,-62,-43,92,-.30],
-    [26,91,-62,-272,162,-.12],
+    [3,130,-62,-120,118,.20],
+    [4,120,-62,-43,92,-.30],
+    [26,160,-62,-272,162,-.12],
     [4,-80,-62,-70,125,.35],
     [26,153,-62,-90,145,.12],
     [3,-120,-62,-280,155,-.25]
@@ -365,6 +367,16 @@ Promise.all([loadCity(),loadDetailedBuildings()]).then(([gltf])=>{
   const prefabs=gltf.scene.children;
   prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;});}}));
   for(const z of [68,36,4,-28,-60,-92,-124,-156])addPrefab(prefabs,'07',-44,22,z,1.8,Math.PI/2);
+  // Right-hand terrace and shop row: without it the street reads as a bridge with a
+  // single wall. This mirrors the left row so the corridor closes on both sides.
+  const terrace=standard(0x0d1621,.18,.94);
+  box(19,20.6,-48,38,2.8,310,terrace);
+  box(37.9,22.6,-48,.34,1.15,310,'edge');
+  box(37.9,23.22,-48,.11,.11,310,'cyan');
+  for(let z=-186;z<98;z+=32){box(35,4.6,z,2.6,36,3.0,'steel');}
+  for(let z=92;z>-170;z-=4){box(37.6,22.05,z,.1,.02,3.2,'lane');}
+  for(const z of [44,4,-36,-76,-116,-152])light(9,28.5,z,z%2?0xff58c0:0x59ccff,10,30);
+  for(const [z,id,sc] of [[58,'07',1.75],[26,'09',1.05],[-8,'07',1.9],[-44,'12',1.15],[-80,'07',1.65],[-116,'10',1.45],[-148,'07',1.8]])addPrefab(prefabs,id,22,22,z,sc,-Math.PI/2);
   addPrefab(prefabs,'08',-57,18,-97,2.05,Math.PI/4);
   addPrefab(prefabs,'09',-49,-8,-225,2.0,.1);
   addPrefab(prefabs,'10',-17,22,-112,1.36,0);
