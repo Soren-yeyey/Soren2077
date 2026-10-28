@@ -50,6 +50,34 @@ for(let s=30;s<track.length;s+=68){
 const arrowGeometry=new T.BufferGeometry();arrowGeometry.setAttribute('position',new T.Float32BufferAttribute(arrowPositions,3));
 const routeArrows=new T.Mesh(arrowGeometry,new T.MeshBasicMaterial({color:0x6aebf3,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));
 routeArrows.name='race-route-arrows';scene.add(routeArrows);
+// Neon edge strips: the reference circuit reads as two glowing rails around a dark
+// deck, so each border gets a bright ribbon plus a wider dim halo. Both are single
+// merged strips, not one mesh per sample, so the draw-call cost stays at four.
+function neonEdge(offset,color,width,gain){
+  const step=2.6,pos=[],index=[];let n=0;
+  for(let s=0;s<=track.length;s+=step){
+    const p=track.sample(s),cx=p.x+p.nx*offset,cz=p.z+p.nz*offset,y=p.y+.12;
+    pos.push(cx+p.nx*width,y,cz+p.nz*width);
+    pos.push(cx-p.nx*width,y,cz-p.nz*width);
+    if(n>0){const a=(n-1)*2;index.push(a,a+1,a+2,a+1,a+3,a+2);}
+    n++;
+  }
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+  geometry.setIndex(index);
+  geometry.computeBoundingSphere();
+  const material=new T.MeshBasicMaterial({color,transparent:true,opacity:.85,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending});
+  material.color.multiplyScalar(gain||1);
+  const mesh=new T.Mesh(geometry,material);mesh.name='race-edge-'+offset;mesh.frustumCulled=false;scene.add(mesh);
+  return {mesh,v:index.length/3,sphere:geometry.boundingSphere};
+}
+for(const [offset,color] of [[-19.3,0x6ef2ff],[19.3,0xff4aa8]]){
+  const halo=neonEdge(offset,color,1.3,1.5);      // soft shoulder around the line
+  const core=neonEdge(offset,color,.4,2.2);       // hot core that feeds the bloom pass
+  host.dataset.edgeStrips=String((Number(host.dataset.edgeStrips)||0)+2);
+  host.dataset.edgeVertices=String(halo.v+core.v);
+  host.dataset.edgeRadius=halo.sphere?halo.sphere.radius.toFixed(0):'none';
+}
 function canvasMap(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const tex=new T.CanvasTexture(c);tex.encoding=T.sRGBEncoding;return tex;}
 const roadTexture=canvasMap(512,512,(c,w,h)=>{
   c.fillStyle='#182333';c.fillRect(0,0,w,h);let seed=77;
