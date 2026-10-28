@@ -164,6 +164,7 @@ class CityCampaign {
   this.scanButton=this.button('侦察扫描 · Q',()=>this.scan());this.panel.append(this.scanButton);
   this.scanStatus=document.createElement('p');this.scanStatus.className='campaign-scan';this.scanStatus.setAttribute('aria-live','polite');this.panel.append(this.scanStatus);
   this.panel.append(this.button('引导步行至下一目标',()=>{if(this.target)this.app.guideTo(this.target);},!CityGameplay.objective(this.state)));
+  this.zoneJumpButton=this.button('前往目标区域',()=>{const goal=CityGameplay.objective(this.state),zone=this.app.config.zones.find(z=>z.id===goal?.id);if(!zone)return;this.app.zone(zone);this.app.renderer.domElement.focus();});this.zoneJumpButton.hidden=true;this.panel.append(this.zoneJumpButton);
   const journal=document.createElement('details'),summary=document.createElement('summary');journal.open=journalOpen;summary.textContent='线索与抉择记录';journal.append(summary);
   for(const [mission,entry] of Object.entries(this.state.missions)){
    if(entry.status==='locked')continue;
@@ -191,6 +192,9 @@ class CityCampaign {
   const goal=CityGameplay.objective(this.state);
   const target=goal&&this.points.find(p=>p.id===goal.id&&p.key===goal.key);
   this.target=target;
+  const currentZone=CityCore.zoneAt(this.app.camera.position.z,this.app.config),targetZone=goal&&this.app.config.zones.find(z=>z.id===goal.id);
+  this.zoneJumpButton.hidden=!targetZone||currentZone.id===targetZone.id;
+  if(targetZone)this.zoneJumpButton.textContent='前往目标区域 · '+targetZone.name;
   this.navigation.textContent=target?`${this.app.config.zones.find(z=>z.id===target.id).name} · ${goal.phase==='accept'?'接取委托':goal.phase==='deliver'?'返回终端交付':this.copy[target.id].clues[target.key][0]} · ${Math.round(this.distance(target))} 米`:goal?'目标暂不可达，请恢复有效街区布局':'本章已结束，可继续漫游和返回商业街升级。';
   const scan=this.state.upgrades.optic?45:25;
   this.hint.textContent=near?'按 E 交互 · '+this.copy[p.id].title+' · '+(p.key==='terminal'?'委托终端':this.copy[p.id].clues[p.key][0]):'沿街前进，靠近信标后按 E';
