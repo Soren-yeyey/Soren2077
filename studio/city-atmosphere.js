@@ -70,7 +70,7 @@ window.CityAtmosphere = function(T, scene, renderer) {
   renderer.domElement.parentElement.dataset.atmosphereBuildings='ready';
   for(const [number,materials] of detailMaterials)new T.TextureLoader().load('images/building-'+String(number).padStart(2,'0')+'-detail.webp',texture=>{
    texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-   for(const m of materials){m.map=texture;if(m.emissiveMap)m.emissiveMap=texture;m.needsUpdate=true;}
+   for(const m of materials){m.map=texture;m.needsUpdate=true;}
    renderer.domElement.parentElement.dataset['building'+number+'Texture']='2048';
   },undefined,()=>{renderer.domElement.parentElement.dataset['building'+number+'Texture']='original';});
  },undefined,()=>{renderer.domElement.parentElement.dataset.atmosphereBuildings='fallback';});

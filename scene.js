@@ -95,7 +95,7 @@ for(let z=-173;z<=83;z+=26){
   box(-10.2,26.1,z,.19,8.2,.19,'black');box(-8.6,30.13,z,3.4,.24,.25,'steel');box(-7.4,30.01,z,1.5,.08,.24,'white');
   box(-10.2,24.6,z,.21,2.8,.21,'cyan');
   obstacles.push({minX:-10.45,maxX:-9.95,minZ:z-.25,maxZ:z+.25});
-  if(z>-95)light(-7.4,28,z,0xb5dcff,14,19);
+  if(z>-95)light(-7.4,28,z,Math.round(z)%2?0xff58c0:0xb5dcff,14,19);
 }
 // Benches and planting boxes sit outside the clear walking line.
 for(let z=-150;z<90;z+=36){
@@ -124,15 +124,15 @@ void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float p
 }`});
 const wetRoad=new T.Mesh(new T.PlaneGeometry(35.4,308),wetMaterial);wetRoad.rotation.x=-Math.PI/2;wetRoad.position.set(-18,22.025,-48);scene.add(wetRoad);
 // Shared landmark language with the playable commission street.
-const cityRing=new T.Group();cityRing.position.set(-10.2,34,8);scene.add(cityRing);
+const cityRing=new T.Group();cityRing.position.set(-10.2,31,16);scene.add(cityRing);
 for(const [radius,tube,material,z] of [[12,.55,mat.steel,0],[11.45,.16,mat.pink,.45],[12.6,.1,mat.cyan,-.1]]){
  const part=new T.Mesh(new T.TorusGeometry(radius,tube,10,100),material);part.position.z=z;cityRing.add(part);
 }
 const existingCityRing=new T.Group();existingCityRing.position.copy(cityRing.position);scene.add(existingCityRing);
-loadExistingCityRing(T,renderer,existingCityRing,24).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(11.3,.055,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'fallback';});
+loadExistingCityRing(T,renderer,existingCityRing,30).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(14.2,.055,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'fallback';});
 const cityGlow=canvasTexture(256,256,(c,w,h)=>{const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(100,235,255,.68)');g.addColorStop(.35,'rgba(25,170,220,.3)');g.addColorStop(1,'rgba(0,100,200,0)');c.fillStyle=g;c.fillRect(0,0,w,h);});
 const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.7,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-10.2,38,-15);scene.add(cityGlowPlane);
-light(-10.2,34,8,0xff5bc6,32,52);light(-10.2,35,-15,0x48dfff,38,75);
+light(-10.2,31,16,0xff5bc6,32,52);light(-10.2,35,-15,0x48dfff,38,75);
 const waterMaterial=new T.MeshStandardMaterial({color:0x0b2232,metalness:.85,roughness:.18,emissive:0x0c1e2d,emissiveIntensity:.3});
 const water=new T.Mesh(new T.PlaneGeometry(130,1100),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(70,-61,-350);scene.add(water);
 for(let i=0;i<95;i++)box(range(10,126),-60.96,range(-650,130),range(.1,.6),.014,range(.8,6),i%3?'cyan':'pink');
@@ -180,10 +180,15 @@ function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().
     scene.add(group);
     obj.traverse(o=>{if(!o.isMesh)return;if(detailMaterials.has(number))o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();for(const m of Array.isArray(o.material)?o.material:[o.material]){
       if(m.map)m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+      // The Tripo prototypes are baked from pale grey concrete. Cool and darken them so
+      // they read as night-time massing instead of lit rubble next to the neon street.
+      m.color.setRGB(.34,.40,.52);m.emissiveIntensity=.55;
       if(m.map)detailMaterials.get(number)?.add(m);
     }});
   }
-  for(const [number,materials] of detailMaterials)new T.TextureLoader().load('images/building-'+String(number).padStart(2,'0')+'-detail.webp',texture=>{texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());for(const m of materials){m.map=texture;if(m.emissiveMap)m.emissiveMap=texture;m.needsUpdate=true;}canvasHost.dataset['building'+number+'Texture']='2048';},undefined,()=>{canvasHost.dataset['building'+number+'Texture']='original';});
+  // Only the base colour is swapped. The baked emissive map keeps its own mask, so
+  // windows and screens glow while concrete stays in shadow.
+  for(const [number,materials] of detailMaterials)new T.TextureLoader().load('images/building-'+String(number).padStart(2,'0')+'-detail.webp',texture=>{texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());for(const m of materials){m.map=texture;m.needsUpdate=true;}canvasHost.dataset['building'+number+'Texture']='2048';},undefined,()=>{canvasHost.dataset['building'+number+'Texture']='original';});
   canvasHost.dataset.tripoBuildings=String(placements.length);canvasHost.dataset.buildingDetail='ready';resolve();
 },undefined,error=>{canvasHost.dataset.buildingDetail='fallback';console.warn('CITY_OPTIONAL_BUILDINGS',error);resolve();}));}
 function addPrefab(prefabs,id,x,y,z,scale=1,rotation=0){

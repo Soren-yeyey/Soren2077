@@ -11,7 +11,7 @@ window.loadExistingCityRing = function(T, renderer, parent, diameter) {
   const model=new T.Group();model.rotation.y=Math.PI/2;model.scale.setScalar(diameter/Math.max(size.y,size.z));model.add(source);parent.add(model);
   new T.TextureLoader().load('images/city-ring-detail.webp',texture=>{
    texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-   for(const material of materials){material.map=texture;if(material.emissiveMap)material.emissiveMap=texture;material.needsUpdate=true;}
+   for(const material of materials){material.map=texture;material.needsUpdate=true;}
   },undefined,()=>{});
   resolve(true);
  },undefined,()=>resolve(false)));
