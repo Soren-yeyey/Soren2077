@@ -54,6 +54,17 @@ try{
  shopEnvironment=reflectionGenerator.fromEquirectangular(reflectionSource);
  reflectionSource.dispose();reflectionGenerator.dispose();
  const reflectiveMaterials=new Set();let counterTriangles=0,counterMeshes=0;
+ // The workshop was baked in daylight pastels (mint / lavender). Under the space sky it
+ // reads as a cardboard cut-out, so pull every surface into the night palette once here.
+ prefabs.get('workshop').traverse(o=>{
+  if(!o.isMesh)return;
+  for(const m of (Array.isArray(o.material)?o.material:[o.material])){
+   if(!m||!m.color)continue;
+   m.color.multiplyScalar(.30);m.color.lerp(new T.Color(0x18263c),.58);
+   if(m.emissive)m.emissive.multiplyScalar(.55);
+   m.needsUpdate=true;
+  }
+ });
  prefabs.get('workshop').traverse(o=>{
   if(!o.isMesh||Array.isArray(o.material)||o.material.name!=='enamel')return;
   const g=o.geometry.clone(),p=g.attributes.position,idx=g.index,count=idx?idx.count:p.count;
