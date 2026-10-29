@@ -46,6 +46,46 @@ test('invalid textured LOD without UV falls back to original mesh',async()=>{
   const {scene,high,runtime}=fixture(false);await runtime.load();
   assert.equal(scene.children.length,1);assert.equal(scene.children[0],high);
 });
+test('missing optional detail prototypes retain the original world and still check the route',async()=>{
+  const {scene,high}=fixture(false),root=high.parent,geometry=high.geometry,material=high.material,requests=[];
+  const placement=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshStandardMaterial());placement.position.set(1000,0,1000);placement.updateMatrixWorld(true);
+  context.BoozeRacing={makeTrack:()=>({raw:[{x:0,y:0,z:0}]})};
+  const sceneAssets={configuration:Promise.resolve({assets:{},race:{placements:[{id:'race-a'}]}}),
+    load:async url=>{requests.push(url);return {scene:root};},
+    populate:async (name,target,callback)=>{assert.equal(name,'race');callback(placement,{id:'race-a'},new T.Box3().setFromObject(placement));return {config:{race:{placements:[{id:'race-a'}]}},objects:[placement]};}};
+  await world.create(T,scene,renderer,new T.MeshStandardMaterial(),sceneAssets).load();
+  assert.deepEqual(requests,['models/racing-world.glb']);assert.equal(high.geometry,geometry);assert.equal(high.material,material);
+  assert.equal(host.dataset.upgradedPrototypes,'');assert.equal(host.dataset.upgradeEnvelope,'original');assert.equal(host.dataset.routeClearance,'verified');assert.equal(host.dataset.routeSamples,'1');
+});
+test('relocating the start-view cluster keeps mounted group meshes together and rejects a road overlap',async()=>{
+  async function run(blocked){
+    host={dataset:{}};const root=new T.Group(),scene=new T.Scene();
+    const hero=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshStandardMaterial());hero.name=T.PropertyBinding.sanitizeNodeName('TR 左侧广告商业巨构');hero.userData.principal_building=true;hero.position.set(100,30,0);root.add(hero);
+    const group=new T.Group();group.userData.mounted_on='TR 左侧广告商业巨构';const sign=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshStandardMaterial());sign.position.set(102,30,0);group.add(sign);root.add(group);
+    T.GLTFLoader=class{load(url,callback){callback({scene:root});}};
+    context.BoozeRacing={makeTrack:()=>({raw:[blocked?{x:100,y:30,z:300}:{x:0,y:0,z:0}]})};
+    await world.create(T,scene,renderer,new T.MeshStandardMaterial()).load();
+    return {hero,sign,data:host.dataset};
+  }
+  const moved=await run(false);assert.equal(moved.data.cityRelocation,'z-plus-300');assert.equal(moved.data.cityRelocationMeshes,'2');
+  assert.equal(moved.hero.matrix.elements[14],300);assert.equal(moved.sign.matrix.elements[14],300);
+  const blocked=await run(true);assert.equal(blocked.data.cityRelocation,'blocked');assert.equal(blocked.hero.matrix.elements[14],0);assert.equal(blocked.sign.matrix.elements[14],0);
+});
+test('identified damaged building and its mounted group leave rendering without modifying the source',async()=>{
+  host={dataset:{}};const root=new T.Group(),scene=new T.Scene();root.userData.building_instances=2;
+  const hero=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshStandardMaterial());
+  hero.name=T.PropertyBinding.sanitizeNodeName('TR 左侧广告商业巨构');
+  hero.userData={principal_building:true,source_id:'3103dfdd-6f4e-4d62-be36-cee1646bea9c'};root.add(hero);
+  const signGroup=new T.Group();signGroup.userData.mounted_on='TR 左侧广告商业巨构';
+  const sign=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshStandardMaterial());signGroup.add(sign);root.add(signGroup);
+  const other=new T.Mesh(new T.BoxGeometry(3,3,3),new T.MeshStandardMaterial());other.name='unrelated';other.userData.principal_building=true;root.add(other);
+  T.GLTFLoader=class{load(url,callback){callback({scene:root});}};
+  context.BoozeRacing={makeTrack:()=>({raw:[{x:0,y:0,z:0}]})};
+  await world.create(T,scene,renderer,new T.MeshStandardMaterial()).load();
+  assert.equal(host.dataset.cityExcludedBuildings,'1');assert.equal(host.dataset.cityExcludedMeshes,'2');
+  assert.equal(host.dataset.buildings,'1');assert.equal(scene.children.length,1);assert.equal(scene.children[0],other);
+  assert.equal(hero.parent,root);assert.equal(sign.parent,signGroup);assert.equal(signGroup.parent,root);
+});
 function readGLB(file){
   const bytes=fs.readFileSync(path.join(__dirname,'models',file)),length=bytes.readUInt32LE(12);
   const doc=JSON.parse(bytes.subarray(20,20+length));

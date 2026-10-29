@@ -9,6 +9,10 @@
   "models/kit/billboard-column.glb": {"bytes": 1925364, "sha256": "7b4ac5977503f6acf4fe1a657c14cc7e6a6bae98b232d67cbb157995f2ea37a2"},
   "models/kit/mechanical-block.glb": {"bytes": 1916760, "sha256": "4618519479a2aa3595d394c2641dae49efd7f2be491871026a0697c5dd9c8214"},
   "models/kit/car-red.glb": {"bytes": 2412260, "sha256": "25ad38beceecd0d5ca75bf00180c6149a48a2b84f16685bbd243da8fb560a889"},
+  "models/race-car-01.glb": {"bytes": 5080400, "sha256": "28e446d7122e0d5adf344faf58b4ab36ae354df4028d7f76a08321bf4c7a7c06"},
+  "models/race-car-02.glb": {"bytes": 4450488, "sha256": "b4a413cc68399c8a59f85f5da5cb6cc06a5f10bc2b93685abb5772282686c8de"},
+  "models/race-car-03.glb": {"bytes": 3522744, "sha256": "436fa1e2e4453e293f9d6553d7decbab36b865eda8de2af81fbb517923dcf458"},
+  "models/race-car-04.glb": {"bytes": 4353100, "sha256": "b42aa352f62872d899cfcf608eb43b570669a9c2b67abae088b05740ec53fd8e"},
   "models/kit/girl-rigged.glb": {"bytes": 1741300, "sha256": "a3dcaec9f81324b41c2290efc406ab8ca66cf69b8fd699e618d9b70bb366bde7"},
     "models/operative-walk.glb": {
       "bytes": 1321316,
@@ -143,8 +147,8 @@
       "sha256": "0a00993feb761be13572f63e7ded54032686b3adf2e0385806f56d7b35d4787f"
     },
     "data/city-scenes.json": {
-      "bytes": 8151,
-      "sha256": "2fb5ffbe222c14aeceefdb1a5192f6bbe15a00847094397a7b9f6fe332f82b93"
+      "bytes": 8152,
+      "sha256": "500bdbc7452f7e502ec4b97a2d718ce25567f54b042ed7c27105d39cc3969530"
     },
     "images/booze-portrait.png": {
       "bytes": 188586,

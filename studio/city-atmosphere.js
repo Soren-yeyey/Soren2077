@@ -26,10 +26,10 @@ window.CityAtmosphere = function(T, scene, renderer) {
  gradient.addColorStop(0,'rgba(104,245,255,.7)');gradient.addColorStop(.3,'rgba(28,194,240,.35)');gradient.addColorStop(1,'rgba(0,100,200,0)');
  ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
  const glowTexture=new T.CanvasTexture(glowCanvas);glowTexture.encoding=T.sRGBEncoding;
- const glow=new T.Mesh(new T.PlaneGeometry(65,65),new T.MeshBasicMaterial({map:glowTexture,transparent:true,opacity:.75,depthWrite:false,fog:false,blending:T.AdditiveBlending}));
+ const glow=new T.Mesh(new T.PlaneGeometry(65,65),new T.MeshBasicMaterial({map:glowTexture,transparent:true,opacity:.18,depthWrite:false,fog:false,blending:T.AdditiveBlending}));
  glow.position.set(0,17,25);group.add(glow);
  // A wide, soft cyan backlight gives the ring a luminous vanishing point.
- const haloMaterial=new T.MeshBasicMaterial({map:glowTexture,color:0x6be5ff,transparent:true,opacity:.24,depthWrite:false,fog:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const haloMaterial=new T.MeshBasicMaterial({map:glowTexture,color:0x6be5ff,transparent:true,opacity:.08,depthWrite:false,fog:false,blending:T.AdditiveBlending,side:T.DoubleSide});
  const halo=new T.Mesh(new T.PlaneGeometry(90,55),haloMaterial);halo.position.set(0,19,13);group.add(halo);
  // Elevated walkways and edge lighting stay above the playable street.
  function detailBox(w,h,d,x,y,z,material){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material);m.position.set(x,y,z);group.add(m);return m;}
@@ -40,6 +40,9 @@ window.CityAtmosphere = function(T, scene, renderer) {
   for(let x=-36;x<=36;x+=6)detailBox(.12,1.0,.12,x,y+.7,z+1.55,metal);
  }
  for(const side of [-1,1])for(const z of [48,64]){
+  // The market workshop entrance faces the street near (-15, 65).
+  // Leave this corner open so the decorative pole does not cross its doorway.
+  if(side===-1&&z===64)continue;
   detailBox(.15,5,.15,side*12,3,z,metal);
   detailBox(.08,3.4,.08,side*11.9,3.4,z,side<0?pink:cyan);
   detailBox(2.8,.06,.15,side*13.3,5.4,z,side<0?cyan:pink);

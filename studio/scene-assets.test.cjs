@@ -17,6 +17,14 @@ test('simultaneous placements request a shared GLB once, preserve authored mater
  const [a,b]=result.objects.map(o=>new f.T.Box3().setFromObject(o));assert.ok(Math.abs(a.min.y-22)<1e-6);assert.ok(Math.abs(a.max.y-a.min.y-40)<1e-6);assert.ok(a.max.x<=-20+1e-6);assert.ok(b.min.x>=5-1e-6);
  assert.equal(f.host.dataset.sceneFailures,'[]');
 });
+test('race placements with bank labels and no straight-street clearance reach the route validator',async()=>{
+ const f=fixture(),scene=new f.T.Scene(),seen=[];
+ f.config.race={placements:[{id:'turn-left',asset:'tower',position:[14,-62,-140],height:20,yaw:.4,bank:'left'},{id:'turn-right',asset:'tower',position:[-14,-62,-160],height:20,yaw:-.4,bank:'right'}]};
+ const result=await f.runtime.populate('race',scene,(object,placement,bounds)=>seen.push({id:placement.id,x:object.position.x,minY:bounds.min.y}));
+ assert.equal(result.objects.length,2);assert.deepEqual(seen.map(x=>x.id),['turn-left','turn-right']);
+ assert.deepEqual(seen.map(x=>x.x),[14,-14]);for(const entry of seen)assert.ok(Math.abs(entry.minY+62)<1e-6);
+ assert.equal(f.host.dataset.sceneFailures,'[]');
+});
 test('failed primary models stay visible in diagnostics and can retry without a poisoned cache',async()=>{
  const f=fixture();f.setFail(true);await assert.rejects(f.runtime.populate('home',new f.T.Scene()),/Asset placements failed/);assert.match(f.host.dataset.assetErrors,/tower.glb/);assert.equal(JSON.parse(f.host.dataset.sceneFailures).length,2);
  f.setFail(false);await f.runtime.load('models/tower.glb');assert.equal(f.loads,2);assert.equal(f.host.dataset.assetErrors,'[]');

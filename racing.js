@@ -153,13 +153,61 @@ function getModel(url){return sceneAssets.load(url);}
 const ai=[],rotors=[],wheels=[],steering=[];
 const exhaustMaterial=new T.MeshBasicMaterial({color:0x52edff,transparent:true,opacity:.65,depthWrite:false,side:T.DoubleSide});
 let exhaust=[];
+// These are existing owned models; the four single-mesh Blender exports retain
+// their authored textures and have no separately animated wheel objects.
+const vehicleOptions={
+ original:{label:'原有组装赛车',source:null},
+ 'blender-01':{label:'黑橙赛车',source:'models/race-car-01.glb',yaw:Math.PI/2},
+ 'blender-02':{label:'紫蓝赛车',source:'models/race-car-02.glb',yaw:-Math.PI/2},
+ 'blender-03':{label:'银白赛车',source:'models/race-car-03.glb',yaw:0},
+ 'blender-04':{label:'紫铜赛车',source:'models/race-car-04.glb',yaw:Math.PI/2},
+ yuheng:{label:'玉衡',source:'models/yuheng-drive.glb',yaw:0},
+ 'red-assembled':{label:'红色组装赛车',source:'models/kit/car-red.glb',yaw:-Math.PI/2}
+};
+const vehicleSelect=$('vehicle-select'),vehicleStatus=$('vehicle-status');
+let originalVisual=null,currentVehicleVisual=null,currentVehicle='original',vehicleLoading=false,pageDisposed=false;
+for(const [id,spec] of Object.entries(vehicleOptions)){const option=document.createElement('option');option.value=id;option.textContent=spec.label;vehicleSelect.append(option);}
+function releasePrivateVehicle(object){
+ const geometries=new Set(),materials=new Set(),textures=new Set(),images=new Set();
+ object.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material]){materials.add(m);for(const value of Object.values(m))if(value?.isTexture&&value!==reflectionTarget.texture&&value!==scene.environment)textures.add(value);}});
+ for(const texture of textures){if(texture.image&&typeof texture.image.close==='function')images.add(texture.image);texture.dispose();}
+ for(const material of materials)material.dispose();for(const geometry of geometries)geometry.dispose();for(const image of images)image.close();
+}
+function installVehicle(visual,key){
+ const previous=currentVehicleVisual;
+ if(previous)car.remove(previous);
+ currentVehicleVisual=visual;currentVehicle=key;car.add(visual);
+ rotors.length=wheels.length=steering.length=0;
+ visual.traverse(o=>{if(/-rotor$/.test(o.name))rotors.push(o);if(/-wheel$/.test(o.name))wheels.push(o);if(/front-.*-steer/.test(o.name))steering.push(o);
+  if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){m.envMap=reflectionTarget.texture;m.envMapIntensity=1.25;}});
+ if(previous&&previous!==originalVisual)releasePrivateVehicle(previous);
+ host.dataset.selectedVehicle=key;host.dataset.wheels=String(wheels.length);host.dataset.rotors=String(rotors.length);
+}
+function loadPrivateVehicle(spec){
+ return new Promise((resolve,reject)=>new T.GLTFLoader().load(spec.source,gltf=>{
+  const oriented=new T.Group();oriented.rotation.y=spec.yaw;oriented.add(gltf.scene);oriented.updateMatrixWorld(true);
+  const box=new T.Box3().setFromObject(oriented),size=box.getSize(new T.Vector3()),centre=box.getCenter(new T.Vector3());
+  if(!Number.isFinite(size.length())||size.z<=0||size.y<=0){releasePrivateVehicle(oriented);reject(Error('车辆尺寸不可用'));return;}
+  oriented.position.set(-centre.x,-box.min.y,-centre.z);
+  const root=new T.Group();root.add(oriented);root.scale.setScalar(5.8/size.z);root.name='selected-race-vehicle';resolve(root);
+ },undefined,reject));
+}
+async function selectVehicle(key){
+ if(vehicleLoading||!Object.hasOwn(vehicleOptions,key)||!car)return;
+ if(key===currentVehicle){vehicleSelect.value=key;return;}
+ vehicleLoading=true;vehicleSelect.disabled=true;$('start').disabled=true;vehicleStatus.textContent='正在载入赛车…';
+ try{
+  const spec=vehicleOptions[key],visual=key==='original'?originalVisual:await loadPrivateVehicle(spec);
+  if(pageDisposed){if(visual!==originalVisual)releasePrivateVehicle(visual);return;}
+  installVehicle(visual,key);vehicleSelect.value=key;vehicleStatus.textContent=spec.label+'已就绪';
+  try{localStorage.setItem('rain-city-race-car-v1',key);}catch(_){}
+ }catch(error){vehicleSelect.value=currentVehicle;vehicleStatus.textContent='赛车载入失败，保留当前赛车';console.warn('BOOZE_VEHICLE_LOAD_FAILED',error);}
+ finally{vehicleLoading=false;vehicleSelect.disabled=false;$('start').disabled=!ready;}
+}
+vehicleSelect.addEventListener('change',()=>selectVehicle(vehicleSelect.value));
 function positionCar(o,s,offset=0){const p=track.sample(s);o.position.set(p.x+p.nx*offset,p.y+.08,p.z+p.nz*offset);o.rotation.y=Math.atan2(-p.tx,-p.tz);return p;}
 function attachVehicle(gltf){
-  car=new T.Group();car.name='yuheng-player';scene.add(car);const visual=gltf.scene;car.add(visual);
-  visual.traverse(o=>{
-    if(/-rotor$/.test(o.name))rotors.push(o);if(/-wheel$/.test(o.name))wheels.push(o);if(/front-.*-steer/.test(o.name))steering.push(o);
-    if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){m.envMap=reflectionTarget.texture;m.envMapIntensity=1.25;}
-  });
+  car=new T.Group();car.name='yuheng-player';scene.add(car);const visual=gltf.scene;originalVisual=visual;installVehicle(visual,'original');
   for(const side of [-1,1]){const flame=new T.Mesh(new T.ConeGeometry(.15,1,8,1,true),exhaustMaterial);flame.rotation.x=-Math.PI/2;flame.position.set(side*.6,.56,3.02);car.add(flame);exhaust.push(flame);}
   for(let i=0;i<3;i++){
     const o=visual.clone(true),aiWheels=[];scene.add(o);
@@ -174,6 +222,8 @@ function attachVehicle(gltf){
 Promise.all([getModel('models/racing-vehicle.glb?v=experience-1'),environment.load().catch(error=>{host.dataset.environment='fallback';console.warn('BOOZE_OPTIONAL_ENVIRONMENT',error);}),importedWorld.load()]).then(([vehicle])=>{
   attachVehicle(vehicle);ready=true;
   $('start').disabled=false;$('start').textContent='开始单圈计时 ↗';$('load-status').textContent='3 秒倒计时后发车 · W 前进 · A D 转向 · 空格刹车';
+  vehicleSelect.disabled=false;let saved='original';try{saved=localStorage.getItem('rain-city-race-car-v1')||saved;}catch(_){}
+  if(Object.hasOwn(vehicleOptions,saved)&&saved!=='original')selectVehicle(saved);
   $('track-length').textContent=(track.length/1000).toFixed(2)+' 公里';
   host.dataset.ready='true';host.dataset.trackLength=track.length.toFixed(1);
   ensureComposer();$('quality').textContent='画质 · 高';
@@ -184,7 +234,7 @@ function setCruise(v){cruise=v;$('cruise').setAttribute('aria-pressed',String(v)
 function setPhase(next){phase=next;active=next==='countdown'||next==='racing';host.dataset.phase=next;$('race-countdown').hidden=next!=='countdown';$('race-result').hidden=next!=='finished';$('pause').disabled=!active;$('cruise').disabled=next!=='racing';hudDirty=true;}
 function setPaused(v,reason='manual'){paused=v;keys.clear();if(v){setCruise(false);raceSound?.update(driver.speed*3.6,false,true);}hudDirty=true;host.dataset.pauseReason=v?reason:'none';$('paused').hidden=!v;$('pause').textContent=v?'继续':'暂停';clock.getDelta();}
 function startRace(){
-  if(!ready)return;
+  if(!ready||vehicleLoading)return;
   driver.reset();driver.best=null;lastLap=0;previousInput={};pendingResult=null;countdown=3;keys.clear();setCruise(false);
   for(const a of ai)a.s=a.startS;
   runId=typeof globalThis.crypto?.randomUUID==='function'?crypto.randomUUID():'race-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
@@ -227,7 +277,7 @@ $('sound').onclick=async()=>{
   }catch(error){soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');toast('声音未能开启，可稍后重试');console.warn('BOOZE_SOUND_FAILED',error);}
   finally{$('sound').disabled=false;}
 };
-addEventListener('pagehide',event=>{raceSound?.dispose();raceSound=null;soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');if(event.persisted)return;sceneAssets.dispose();daylight.dispose();reflectionTarget.dispose();if(composer)composer.dispose();renderer.dispose();});
+addEventListener('pagehide',event=>{raceSound?.dispose();raceSound=null;soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');if(event.persisted)return;pageDisposed=true;if(currentVehicleVisual&&currentVehicleVisual!==originalVisual)releasePrivateVehicle(currentVehicleVisual);sceneAssets.dispose();daylight.dispose();reflectionTarget.dispose();if(composer)composer.dispose();renderer.dispose();});
 $('cruise').onclick=()=>{if(phase==='racing'&&!paused){setCruise(!cruise);host.focus();}};
 $('camera').onclick=()=>{camMode=(camMode+1)%4;orbitYaw=0;orbitPitch=0;orbitZoom=1;toast(['追逐视角','近车视角','俯瞰视角','参考构图'][camMode]);};
 $('quality').onclick=()=>{quality=!quality;renderer.setPixelRatio(Math.min(devicePixelRatio,quality?1.6:1));if(quality)ensureComposer();if(composer)composer.setPixelRatio(renderer.getPixelRatio());$('quality').textContent=quality?'画质 · 高':'画质 · 均衡';resize();};
@@ -281,7 +331,7 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
     if(driving){rotors.forEach(o=>o.rotateY(driver.speed*dt*.7));wheels.forEach(o=>o.rotateX(-driver.speed*dt/.51));}
     const boosting=input.boost&&driver.boost>.02&&driver.speed>8&&driving;
     raceSound?.update(driver.speed*3.6,boosting,!driving);
-    exhaust.forEach(o=>{o.visible=Math.abs(driver.speed)>1;o.scale.set(1,boosting?3:Math.max(.1,Math.abs(driver.speed)*.02),1);});
+    exhaust.forEach(o=>{o.visible=currentVehicle==='original'&&Math.abs(driver.speed)>1;o.scale.set(1,boosting?3:Math.max(.1,Math.abs(driver.speed)*.02),1);});
     document.body.classList.toggle('boosting',boosting&&!reduced);document.body.classList.toggle('hit',driver.wall>.3&&!reduced);
     ai.forEach(a=>{const p=positionCar(a.object,a.s,a.lane);a.object.rotation.x=Math.atan(p.slope);
       if(driving)a.wheels.forEach(w=>w.rotateX(-a.speed*dt/.49));

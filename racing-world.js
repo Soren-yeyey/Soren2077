@@ -22,10 +22,33 @@ window.RacingWorld={needsDetail,create(T,scene,renderer,roadMaterial,sceneAssets
         root.traverse(o=>{if(!o.isMesh)return;const name=o.userData.principal_building?o.name:o.userData.mounted_on,transform=name&&(mounts.get(name)||mounts.get(T.PropertyBinding.sanitizeNodeName(name)));if(transform){o.matrixWorld.premultiply(transform);mounted++;}});
         host.dataset.cityClusterScale=String(cityScale);host.dataset.clusterObjects=String(mounted);
       }
+      // Preserve the existing safe relocation for the named authored cluster.
+      const target=T.PropertyBinding.sanitizeNodeName('TR 左侧广告商业巨构'),shift=new T.Matrix4().makeTranslation(0,0,300),relocation=[];
+      root.traverse(o=>{if(!o.isMesh)return;let node=o,label;
+        while(node&&!label){label=node.userData.principal_building?node.name:(node.userData.mounted_on&&T.PropertyBinding.sanitizeNodeName(node.userData.mounted_on));node=node.parent;}
+        if(label!==target)return;
+        o.geometry.computeBoundingBox();const matrix=shift.clone().multiply(o.matrixWorld),bounds=o.geometry.boundingBox.clone().applyMatrix4(matrix);
+        relocation.push({object:o,matrix,bounds});
+      });
+      if(relocation.length){
+        const track=BoozeRacing.makeTrack();
+        const blocked=relocation.some(({bounds})=>track.raw.some(p=>p.y+4>=bounds.min.y&&p.y-1<=bounds.max.y&&p.x>=bounds.min.x-24&&p.x<=bounds.max.x+24&&p.z>=bounds.min.z-24&&p.z<=bounds.max.z+24));
+        if(!blocked)relocation.forEach(({object,matrix})=>object.matrixWorld.copy(matrix));
+        host.dataset.cityRelocation=blocked?'blocked':'z-plus-300';host.dataset.cityRelocationMeshes=String(relocation.length);host.dataset.cityRelocationSamples=String(track.raw.length);
+      }
+      // The user identified this specific authored building as visually damaged.
+      // Exclude its display instance and mounted details together; retain the GLB.
+      const excludedNames=new Set(),excludedMeshes=new Set();
+      root.traverse(o=>{if(o.userData.principal_building&&o.userData.source_id==='3103dfdd-6f4e-4d62-be36-cee1646bea9c'&&T.PropertyBinding.sanitizeNodeName(o.name)===T.PropertyBinding.sanitizeNodeName('TR 左侧广告商业巨构'))excludedNames.add(T.PropertyBinding.sanitizeNodeName(o.name));});
+      root.traverse(o=>{if(!o.isMesh)return;let node=o;
+        while(node){const label=node.userData.principal_building?node.name:node.userData.mounted_on;
+          if(label&&excludedNames.has(T.PropertyBinding.sanitizeNodeName(label))){excludedMeshes.add(o);break;}node=node.parent;}
+      });
+      host.dataset.cityExcludedBuildings=String(excludedNames.size);host.dataset.cityExcludedMeshes=String(excludedMeshes.size);
       const batches=new Map(),lods=new Map();let sourceMeshes=0;
       root.traverse(o=>{if(o.isMesh&&o.userData.role==='lod-prototype')lods.set(o.userData.asset_number,o);});
       root.traverse(o=>{
-        if(!o.isMesh||o.userData.role==='lod-prototype')return;
+        if(!o.isMesh||o.userData.role==='lod-prototype'||excludedMeshes.has(o))return;
         const upgrade=upgrades.get(o.userData.asset_number);
         if(upgrade){
           if(!upgradedGeometry.has(o.geometry.uuid)){
@@ -84,7 +107,7 @@ window.RacingWorld={needsDetail,create(T,scene,renderer,roadMaterial,sceneAssets
       }
       host.dataset.racingWorld='ready';host.dataset.racingWorldSource='blender';
       host.dataset.worldMeshes=String(sourceMeshes);host.dataset.worldBatches=String(groups.length);
-      host.dataset.buildings=String(gltf.scene.userData.building_instances||0);
+      host.dataset.buildings=String(Math.max(0,Number(gltf.scene.userData.building_instances||0)-excludedNames.size));
       host.dataset.tripoAssets=String(gltf.scene.userData.asset_kinds||26);
       resolve(root);
     };
@@ -98,7 +121,10 @@ window.RacingWorld={needsDetail,create(T,scene,renderer,roadMaterial,sceneAssets
     if(sceneAssets){
       const config=await sceneAssets.configuration;
       cityScale=T.MathUtils.clamp(config.race.existingCityScale||1,.5,1);
-      await Promise.all([[3,'commercial-island'],[4,'mechanical-tower'],[26,'portrait-tower']].map(async([number,id])=>{
+      // Optional detailed prototypes must be explicitly configured. When one is
+      // absent retain the existing mesh already supplied by racing-world.glb.
+      const configured=[[3,'commercial-island'],[4,'mechanical-tower'],[26,'portrait-tower']].filter(([,id])=>config.assets[id]);
+      await Promise.all(configured.map(async([number,id])=>{
         const asset=config.assets[id],gltf=await sceneAssets.load(asset.source);let mesh;sceneAssets.prepare(asset,gltf);
         gltf.scene.updateMatrixWorld(true);gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
         if(!mesh)throw Error('Missing detailed Tripo prototype: '+id);
@@ -106,7 +132,7 @@ window.RacingWorld={needsDetail,create(T,scene,renderer,roadMaterial,sceneAssets
         if(asset.rotation)geometry.applyMatrix4(new T.Matrix4().makeRotationFromEuler(new T.Euler(...asset.rotation)));
         upgrades.set(number,{geometry,material:mesh.material});sceneAssets.track(new T.Mesh(geometry,mesh.material));
       }));
-      host.dataset.upgradedPrototypes='3,4,26';host.dataset.upgradeEnvelope='contained';
+      host.dataset.upgradedPrototypes=configured.map(([number])=>number).join(',');host.dataset.upgradeEnvelope=configured.length?'contained':'original';
     }
     await loadWorld();
     if(sceneAssets){

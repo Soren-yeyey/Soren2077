@@ -21,7 +21,7 @@ function create(T,renderer,host){
   }
   return requests.get(source);
  }
- const configuration=fetch('data/city-scenes.json').then(r=>{if(!r.ok)throw Error('Scene layout HTTP '+r.status);return r.json();}).then(config=>{
+ const configuration=fetch('data/city-scenes.json?v=scene-layout-20261029-2').then(r=>{if(!r.ok)throw Error('Scene layout HTTP '+r.status);return r.json();}).then(config=>{
   if(config.version!==1||config.upAxis!=='Y'||config.units!=='metres')throw Error('Unsupported scene coordinates');return config;
  });
  function instantiate(gltf,asset,placement){
@@ -60,8 +60,10 @@ function create(T,renderer,host){
    const asset=config.assets[p.asset];if(!asset)throw Error('Unknown asset '+p.asset);
    const gltf=await load(asset.source);if(disposed)return;
    const object=instantiate(gltf,asset,p);let bounds=new T.Box3().setFromObject(object);
-   if(p.bank==='left'&&bounds.max.x>layout.clearance.left)object.position.x-=bounds.max.x-layout.clearance.left;
-   if(p.bank==='right'&&bounds.min.x<layout.clearance.right)object.position.x+=layout.clearance.right-bounds.min.x;
+   // Only straight streets define left/right limits. Curved routes validate their
+   // full footprint in their own onPlaced callback instead.
+   if(layout.clearance&&p.bank==='left'&&bounds.max.x>layout.clearance.left)object.position.x-=bounds.max.x-layout.clearance.left;
+   if(layout.clearance&&p.bank==='right'&&bounds.min.x<layout.clearance.right)object.position.x+=layout.clearance.right-bounds.min.x;
    object.updateMatrixWorld(true);bounds=new T.Box3().setFromObject(object);
    scene.add(object);if(onPlaced)onPlaced(object,p,bounds);return object;
   }));

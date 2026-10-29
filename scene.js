@@ -82,15 +82,16 @@ for(let z=-197;z<104;z+=4){
 }
 for(const z of [-171,81]){box(-17.8,22.6,z,35.2,1.2,.55,'steel');box(-17.8,23.25,z,35.2,.16,.6,'edge');}
 for(let z=-173;z<=83;z+=26){
-  box(-10.2,26.1,z,.19,8.2,.19,'black');box(-8.6,30.13,z,3.4,.24,.25,'steel');box(-7.4,30.01,z,1.5,.08,.24,'white');
-  box(-10.2,24.6,z,.21,2.8,.21,'cyan');
-  obstacles.push({minX:-10.45,maxX:-9.95,minZ:z-.25,maxZ:z+.25});
-  if(z>-95)light(-7.4,28,z,Math.round(z)%2?0xff58c0:0xb5dcff,14,19);
+  // Keep poles at the edge of the deck so the landmark and walking line remain open.
+  box(37.5,26.1,z,.19,8.2,.19,'black');box(35.9,30.13,z,3.4,.24,.25,'steel');box(34.7,30.01,z,1.5,.08,.24,'white');
+  box(37.5,24.6,z,.21,2.8,.21,'cyan');
+  obstacles.push({minX:37.25,maxX:37.75,minZ:z-.25,maxZ:z+.25});
+  if(z>-95)light(34.7,28,z,Math.round(z)%2?0xff58c0:0xb5dcff,14,19);
 }
 // Benches and planting boxes sit outside the clear walking line.
 for(let z=-150;z<90;z+=36){
-  box(-2.4,22.65,z,1.8,1.3,5,'steel');box(-2.4,23.32,z,1.6,.12,4.8,'soil');
-  for(let i=0;i<4;i++)box(-2.4+range(-.3,.3),23.8,z-1.6+i*1.05,1.1,range(.5,1.1),1.2,'leaf',range(-.3,.3));
+  box(-2.4,22.55,z,1.8,1.1,5,'steel');box(-2.4,23.16,z,1.6,.12,4.8,'soil');
+  for(let i=0;i<4;i++)box(-2.4+range(-.3,.3),23.64,z-1.6+i*1.05,1.1,range(.5,1.1),1.2,'leaf',range(-.3,.3));
   obstacles.push({minX:-3.35,maxX:-1.45,minZ:z-2.6,maxZ:z+2.6});
   box(-11.7,22.62,z-8,1.05,.16,2.8,'edge');box(-12.12,23,z-8,.13,.85,2.8,'steel');
   for(const zz of [-9,-7])box(-11.7,22.3,z+zz,.65,.6,.22,'steel');
@@ -124,25 +125,19 @@ for(const [radius,tube,material,z] of [[12,.55,mat.steel,0],[11.45,.16,mat.pink,
  const part=new T.Mesh(new T.TorusGeometry(radius,tube,10,100),material);part.position.z=z;cityRing.add(part);
 }
 const existingCityRing=new T.Group();existingCityRing.position.copy(cityRing.position);scene.add(existingCityRing);
-const primaryRing=loadExistingCityRing(T,renderer,existingCityRing,48).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(23.2,.035,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'failed';if(!ok){cityRing.visible=false;throw Error('Primary Blender ring failed');}return true;});
+const primaryRing=loadExistingCityRing(T,renderer,existingCityRing,48).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(23.2,.035,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);
+  // Ground this instance from its transformed bounds; leave the source geometry intact.
+  existingCityRing.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(existingCityRing);existingCityRing.position.y+=Math.max(0,22.025-bounds.min.y);
+}canvasHost.dataset.cityRing=ok?'blender':'failed';if(!ok){cityRing.visible=false;throw Error('Primary Blender ring failed');}return true;});
 const cityGlow=canvasTexture(256,256,(c,w,h)=>{const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(100,235,255,.68)');g.addColorStop(.35,'rgba(25,170,220,.3)');g.addColorStop(1,'rgba(0,100,200,0)');c.fillStyle=g;c.fillRect(0,0,w,h);});
-const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.7,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-9,44,-80);scene.add(cityGlowPlane);
+const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.18,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-9,44,-80);scene.add(cityGlowPlane);
 light(-9,44,-42,0xff5bc6,32,70);light(-9,40,-80,0x48dfff,38,95);
 const waterMaterial=new T.MeshStandardMaterial({color:0x547d95,metalness:.35,roughness:.28});
 const water=new T.Mesh(new T.PlaneGeometry(130,1100),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(70,-61,-350);scene.add(water);
 for(let i=0;i<95;i++)box(range(10,126),-60.96,range(-650,130),range(.1,.6),.014,range(.8,6),i%3?'cyan':'pink');
 
-// Neon shop signs are original, readable Chinese typography on physical housings.
-function sign(text,x,y,z,w,h,color,rotation=0){
-  const tex=canvasTexture(256,512,(c,W,H)=>{c.fillStyle='#07131b';c.fillRect(0,0,W,H);c.strokeStyle=color;c.lineWidth=5;c.strokeRect(9,9,W-18,H-18);c.fillStyle=color;c.textAlign='center';c.textBaseline='middle';c.font='bold 62px Microsoft YaHei';const chars=[...text];chars.forEach((ch,i)=>c.fillText(ch,W/2,55+i*(H-100)/Math.max(chars.length-1,1)));});
-  const m=new T.MeshStandardMaterial({map:tex,emissiveMap:tex,emissive:0xffffff,emissiveIntensity:2.5,roughness:.38});
-  const group=new T.Group();group.position.set(x,y,z);group.rotation.y=rotation;
-  const housing=new T.Mesh(new T.BoxGeometry(w+.25,h+.25,.35),mat.steel);group.add(housing);
-  const panel=new T.Mesh(new T.PlaneGeometry(w,h),m);panel.position.z=.184;group.add(panel);scene.add(group);return group;
-}
-for(let i=0;i<4;i++){const z=64-i*60;sign(i%2?'夜行酒馆':'未来生活',-35.4,32+((i+1)%3)*3,z,1.9,7.5,i%2?'#ff55ba':'#9affef',Math.PI/2);box(-35.9,34,z,1.1,.2,.25,'steel');}
-// Same signage on the right-hand shop row, so the corridor is lit on both sides.
-for(let i=0;i<3;i++){const z=56-i*60;sign(i%2?'未来生活':'夜行酒馆',8.9,30+((i+2)%3)*3.4,z,1.85,7.2,i%2?'#9affef':'#ff55ba',-Math.PI/2);box(9.4,32,z,1.1,.2,.25,'steel');}
+// Unattached procedural signs were removed from the street view; the authored
+// building signs remain on their original facades.
 
 // Six approved Blender prefabs. Model origins are floor-centred and in metres.
 const manager=sceneAssets.manager;
@@ -181,7 +176,8 @@ function loadYuheng(){
   yuhengState='loading';canvasHost.dataset.yuheng='loading';
   new T.GLTFLoader().load('models/yuheng-preview.glb',gltf=>{
     const vehicle=gltf.scene;vehicle.name='玉衡展示车';
-    vehicle.position.copy(parked.position);vehicle.rotation.y=0;
+    // Present the long side of the existing display car to the street view.
+    vehicle.position.copy(parked.position);vehicle.rotation.y=-1;
     vehicle.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
     vehicle.updateMatrixWorld(true);
     const bounds=new T.Box3().setFromObject(vehicle);

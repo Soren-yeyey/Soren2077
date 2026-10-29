@@ -327,7 +327,7 @@
     "id": "home-car-a",
     "asset": "car-red",
     "position": [
-     -28,
+     28,
      22,
      44
     ],
@@ -340,7 +340,7 @@
     "id": "home-car-b",
     "asset": "car-red",
     "position": [
-     36,
+     33,
      22,
      26
     ],
