@@ -3,6 +3,13 @@
   "units": "metres",
   "runtimeUpAxis": "Y",
   "files": {
+  "models/kit/tower-a.glb": {"bytes": 5249716, "sha256": "d8854d09a7e654065f9f2ba2fc749a3745bb218b1e93ef2e0dbaa3525fbdbdbf"},
+  "models/kit/shopfront-a.glb": {"bytes": 3202056, "sha256": "0a3b7585c341723d3a7cd7bf257ff5c8c14e4c86b894d5e645aeda26ea3e28dc"},
+  "models/kit/spire-a.glb": {"bytes": 2032404, "sha256": "b99d3ba29859fe595e84e479da04e3ec45cecc938e3f08ac0a82d358cafcb60a"},
+  "models/kit/billboard-column.glb": {"bytes": 1925364, "sha256": "7b4ac5977503f6acf4fe1a657c14cc7e6a6bae98b232d67cbb157995f2ea37a2"},
+  "models/kit/mechanical-block.glb": {"bytes": 1916760, "sha256": "4618519479a2aa3595d394c2641dae49efd7f2be491871026a0697c5dd9c8214"},
+  "models/kit/car-red.glb": {"bytes": 2412260, "sha256": "25ad38beceecd0d5ca75bf00180c6149a48a2b84f16685bbd243da8fb560a889"},
+  "models/kit/girl-rigged.glb": {"bytes": 1741300, "sha256": "a3dcaec9f81324b41c2290efc406ab8ca66cf69b8fd699e618d9b70bb366bde7"},
     "models/operative-walk.glb": {
       "bytes": 1321316,
       "sha256": "97ffeb737def6b75ffd1fd0796bdddd30a3eae3eeea0e8faaccca43dd5a73b9c"
@@ -136,8 +143,8 @@
       "sha256": "0a00993feb761be13572f63e7ded54032686b3adf2e0385806f56d7b35d4787f"
     },
     "data/city-scenes.json": {
-      "bytes": 7708,
-      "sha256": "9f76f8eb2d0448fae0b7dfc0e93acbd30965a95e29abdda2dffb9185b753333d"
+      "bytes": 8151,
+      "sha256": "2fb5ffbe222c14aeceefdb1a5192f6bbe15a00847094397a7b9f6fe332f82b93"
     },
     "images/booze-portrait.png": {
       "bytes": 188586,

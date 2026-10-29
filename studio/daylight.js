@@ -10,7 +10,7 @@ function create(T,renderer,scene,{radius=2000,fog=.0004,sunPosition=[-120,280,11
  fragmentShader:`varying vec3 direction;uniform float time;uniform vec3 skyTint;uniform float skyGain;
  float h(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
  float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1)),f.x),f.y),f.z);}
- void main(){vec3 d=normalize(direction);float horizon=pow(1.-max(d.y,0.),2.6);vec3 color=mix(vec3(.16,.42,.74),vec3(.66,.80,.92),horizon);vec3 p=d*5.+vec3(time*.0015,0,0);float n=noise(p)*.57+noise(p*2.1)*.28+noise(p*4.2)*.15;float clouds=smoothstep(.62,.76,n)*smoothstep(-.05,.25,d.y);color=mix(color,vec3(.97,.98,1.),clouds*.80);gl_FragColor=vec4(color*skyTint*skyGain,1.);
+ void main(){vec3 d=normalize(direction);float horizon=pow(1.-max(d.y,0.),2.6);vec3 color=mix(vec3(.10,.34,.70),vec3(.55,.72,.90),horizon);vec3 p=d*5.+vec3(time*.0015,0,0);float n=noise(p)*.57+noise(p*2.1)*.28+noise(p*4.2)*.15;float clouds=smoothstep(.66,.80,n)*smoothstep(-.05,.25,d.y);color=mix(color,vec3(.97,.98,1.),clouds*.72);gl_FragColor=vec4(color*skyTint*skyGain,1.);
  #include <tonemapping_fragment>
  #include <encodings_fragment>
  }`}));sky.frustumCulled=false;scene.add(sky);
