@@ -176,8 +176,9 @@ function loadYuheng(){
   yuhengState='loading';canvasHost.dataset.yuheng='loading';
   new T.GLTFLoader().load('models/yuheng-preview.glb',gltf=>{
     const vehicle=gltf.scene;vehicle.name='玉衡展示车';
-    // Present the long side of the existing display car to the street view.
-    vehicle.position.copy(parked.position);vehicle.rotation.y=-1;
+    // Present the long side of the existing display car to the street view. The asset is
+    // authored Z-up, so it needs a quarter turn to stand on its wheels instead of lying flat.
+    vehicle.position.copy(parked.position);vehicle.rotation.set(-Math.PI/2,0,-1);
     vehicle.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
     vehicle.updateMatrixWorld(true);
     const bounds=new T.Box3().setFromObject(vehicle);
