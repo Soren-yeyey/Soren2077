@@ -244,9 +244,19 @@ for(let i=0;i<4;i++){
   const thruster=new T.Mesh(new T.BoxGeometry(1.6,.12,.18),mat.cyan);thruster.position.set(0,.55,2.52);o.add(thruster);
 }
 
-// The problematic operative is removed from the scene; source files remain intact.
+// Third-person body: the rigged character with its baked 24-frame walk cycle.
+// studio/player-avatar.js handles scaling, facing correction and walk/idle blending.
 const operatives=[];
-canvasHost.dataset.player='none';
+canvasHost.dataset.player='loading';
+if(window.CityPlayerAvatar){
+  new T.GLTFLoader().load('models/operative-walk.glb',gltf=>{
+    playerAvatar=CityPlayerAvatar.create(T,gltf,1.74);
+    playerAvatar.root.position.copy(playerFeet);
+    scene.add(playerAvatar.root);
+    canvasHost.dataset.player='ready';
+    canvasHost.dataset.playerClips=String(gltf.animations?gltf.animations.length:0);
+  },undefined,error=>{canvasHost.dataset.player='failed';console.warn('Optional player avatar:',error);});
+}else{canvasHost.dataset.player='unavailable';}
 
 // Camera-local rain occupies a bounded volume and never crosses the UI layer.
 const rainCount=1600,rainGeo=new T.BufferGeometry(),rainPos=new Float32Array(rainCount*6),rainSeeds=[];
