@@ -2,18 +2,17 @@
 (()=>{'use strict';
 const T=THREE,$=id=>document.getElementById(id),host=$('race-world');
 const track=BoozeRacing.makeTrack(),driver=new BoozeRacing.Driver(track);
-const scene=new T.Scene();scene.background=new T.Color(0x091b35);scene.fog=new T.FogExp2(0x4b78a2,.00028);
+const scene=new T.Scene();scene.background=new T.Color(0x09121e);scene.fog=new T.FogExp2(0x1a304b,.00038);
 T.ColorManagement.legacyMode=false;
 const renderer=new T.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.05;renderer.setPixelRatio(Math.min(devicePixelRatio,1));
 renderer.setSize(innerWidth,innerHeight);host.appendChild(renderer.domElement);
+const sceneAssets=CitySceneAssets.create(T,renderer,host);
 // Count the whole frame, including every post-processing pass in high quality.
 renderer.info.autoReset=false;
 const camera=new T.PerspectiveCamera(63,innerWidth/innerHeight,.25,5500);
-scene.add(new T.HemisphereLight(0xa6d5fb,0x101c31,.85));
-const moon=new T.DirectionalLight(0xa6d5fc,1.65);moon.position.set(-300,700,150);scene.add(moon);
-const magenta=new T.DirectionalLight(0xdf83ca,.20);magenta.position.set(600,200,-300);scene.add(magenta);
+const daylight=CityDaylight.create(T,renderer,scene,{radius:4800,fog:.00028,sunPosition:[-300,700,150]});host.dataset.lighting='daylight';
 const clock=new T.Clock(),keys=new Set();let ready=false,active=false,paused=false,time=0,camMode=3;
 let perfSeconds=0,perfFrames=0,perfCpuMs=0,hudDirty=true;
 // Explicit diagnostic URL only: compare an empty framebuffer against the full scene.
@@ -80,15 +79,15 @@ for(const [offset,color] of [[-19.3,0x6ef2ff],[19.3,0xff4aa8]]){
 }
 function canvasMap(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const tex=new T.CanvasTexture(c);tex.encoding=T.sRGBEncoding;return tex;}
 const roadTexture=canvasMap(512,512,(c,w,h)=>{
-  c.fillStyle='#182333';c.fillRect(0,0,w,h);let seed=77;
+  c.fillStyle='#596a77';c.fillRect(0,0,w,h);let seed=77;
   const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let i=0;i<19000;i++){const a=.025+rnd()*.08;c.fillStyle=`rgba(130,170,190,${a})`;c.fillRect(rnd()*w,rnd()*h,1+rnd()*3,1);}
   c.fillStyle='#70a0b31a';for(let y=0;y<h;y+=128)c.fillRect(0,y,w,2);
-  c.fillStyle='#95b7bd';c.fillRect(254,20,4,40);c.fillRect(254,276,4,40);
+  c.fillStyle='#dce6e9';c.fillRect(254,20,4,40);c.fillRect(254,276,4,40);
   for(const x of [12,498]){c.fillStyle='#324755';c.fillRect(x,0,3,h);}
 });
 roadTexture.wrapS=roadTexture.wrapT=T.RepeatWrapping;roadTexture.anisotropy=4;
-const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0x34445b,metalness:.72,roughness:.27});
+const roadMat=new T.MeshStandardMaterial({map:roadTexture,color:0xffffff,metalness:.22,roughness:.48});
 // Road-local light streaks follow every bend. Broken longitudinal ripples keep
 // the wet surface legible without reflecting an unrelated static sky picture.
 roadMat.onBeforeCompile=shader=>{
@@ -101,7 +100,7 @@ roadMat.onBeforeCompile=shader=>{
     float rose=exp(-pow((vUv.x-.92)/.13,2.));
     float interior=pow(max(0.,sin(vUv.x*39.+sin(vUv.y*.63)*2.)),12.)*.14;
     vec3 reflected=vec3(.015,.45,.90)*(blue+interior)+vec3(.90,.008,.22)*rose;
-    totalEmissiveRadiance+=reflected*(.18+fine*.8)*ripple*.7;`);
+    totalEmissiveRadiance+=reflected*(.18+fine*.8)*ripple*.24;`);
 };
 roadMat.customProgramCacheKey=()=> 'wet-neon-road-v3';
 // Broad blue and magenta light sources give the assembled metallic car readable reflections.
@@ -118,11 +117,11 @@ const reflectionGenerator=new T.PMREMGenerator(renderer);
 const reflectionTarget=reflectionGenerator.fromEquirectangular(reflectionSource);
 reflectionGenerator.dispose();reflectionSource.dispose();
 roadMat.envMap=reflectionTarget.texture;roadMat.envMapIntensity=.55;
-scene.environment=reflectionTarget.texture;
+// Daylight environment stays active for city materials; the car retains its own softbox map.
 // Checkpoint rings and the road infrastructure are part of the Blender scene.
 // Geometry and layout are authored and checked in Blender before importing.
-const environment=RacingEnvironment.create(T,scene,renderer);
-const importedWorld=RacingWorld.create(T,scene,renderer,roadMat);
+const environment=RacingEnvironment.create(T,scene,renderer,sceneAssets);
+const importedWorld=RacingWorld.create(T,scene,renderer,roadMat,sceneAssets);
 // Inspect the complete sky and lower environment without changing vehicle controls.
 let orbitYaw=0,orbitPitch=0,orbitZoom=1,orbitDrag=null;
 renderer.domElement.addEventListener('pointerdown',e=>{
@@ -146,12 +145,11 @@ function ensureComposer(){
 if(composer)return composer;
 composer=new T.EffectComposer(renderer);composer.addPass(new T.RenderPass(scene,camera));
 const bloom=new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.55,.55,1.05);composer.addPass(bloom);
-const grade=new T.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 uv0;void main(){uv0=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-fragmentShader:'uniform sampler2D tDiffuse;varying vec2 uv0;void main(){vec3 c=texture2D(tDiffuse,uv0).rgb*1.08;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(1./2.2)),1.);}'});grade.material.toneMapped=false;composer.addPass(grade);
+const grade=CityDaylight.grade(T,renderer,composer,bloom);grade.uniforms.exposure.value=1.08;bloom.strength=.14;bloom.threshold=1.4;
 return composer;
 }
 function toast(t){$('race-toast').textContent=t;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('race-toast').textContent='',2600);}
-function getModel(url){return new Promise((resolve,reject)=>new T.GLTFLoader().load(url,resolve,undefined,reject));}
+function getModel(url){return sceneAssets.load(url);}
 const ai=[],rotors=[],wheels=[],steering=[];
 const exhaustMaterial=new T.MeshBasicMaterial({color:0x52edff,transparent:true,opacity:.65,depthWrite:false,side:T.DoubleSide});
 let exhaust=[];
@@ -229,7 +227,7 @@ $('sound').onclick=async()=>{
   }catch(error){soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');toast('声音未能开启，可稍后重试');console.warn('BOOZE_SOUND_FAILED',error);}
   finally{$('sound').disabled=false;}
 };
-addEventListener('pagehide',()=>raceSound?.dispose());
+addEventListener('pagehide',event=>{raceSound?.dispose();raceSound=null;soundEnabled=false;$('sound').textContent='声音 · 关';$('sound').setAttribute('aria-pressed','false');if(event.persisted)return;sceneAssets.dispose();daylight.dispose();reflectionTarget.dispose();if(composer)composer.dispose();renderer.dispose();});
 $('cruise').onclick=()=>{if(phase==='racing'&&!paused){setCruise(!cruise);host.focus();}};
 $('camera').onclick=()=>{camMode=(camMode+1)%4;orbitYaw=0;orbitPitch=0;orbitZoom=1;toast(['追逐视角','近车视角','俯瞰视角','参考构图'][camMode]);};
 $('quality').onclick=()=>{quality=!quality;renderer.setPixelRatio(Math.min(devicePixelRatio,quality?1.6:1));if(quality)ensureComposer();if(composer)composer.setPixelRatio(renderer.getPixelRatio());$('quality').textContent=quality?'画质 · 高':'画质 · 均衡';resize();};
@@ -310,8 +308,8 @@ function animate(){requestAnimationFrame(animate);const realDelta=clock.getDelta
       host.dataset.speed=driver.speed.toFixed(3);host.dataset.position=`${driver.x.toFixed(2)},${driver.y.toFixed(2)},${driver.z.toFixed(2)}`;host.dataset.heading=driver.yaw.toFixed(4);host.dataset.route=driver.lastS.toFixed(2);
       host.dataset.paused=String(paused);host.dataset.checkpoint=String(driver.checkpoint);host.dataset.completed=String(driver.completed);miniMap();}
   }else{const p=track.sample(8);camera.position.set(p.x+12,p.y+6,p.z+19);camera.lookAt(p.x,p.y+2,p.z-10);}
-  environment.update(time,camera);importedWorld.update(time,camera);renderer.info.reset();
-  if(diagnosticMode==='empty')renderer.clear();else if(quality)ensureComposer().render();else renderer.render(scene,camera);
+  daylight.update(camera,time);environment.update(time,camera);importedWorld.update(time,camera);renderer.info.reset();
+  if(diagnosticMode==='empty')renderer.clear();else if(quality){renderer.toneMapping=T.NoToneMapping;ensureComposer().render();}else{renderer.toneMapping=T.ACESFilmicToneMapping;renderer.render(scene,camera);}
   perfSeconds+=realDelta;perfFrames++;perfCpuMs+=performance.now()-cpuStart;
   if(perfSeconds>=2){host.dataset.fps=(perfFrames/perfSeconds).toFixed(1);
     host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);

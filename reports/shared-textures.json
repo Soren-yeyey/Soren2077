@@ -1,0 +1,36 @@
+{
+  "sharedImagePayloads": 6,
+  "sidecarBytes": 2730051,
+  "models": [
+    {
+      "file": "city-ring.glb",
+      "before": 963096,
+      "after": 693632,
+      "geometryAndImagePayloadsIdentical": true
+    },
+    {
+      "file": "homepage-buildings.glb",
+      "before": 3668168,
+      "after": 2781596,
+      "geometryAndImagePayloadsIdentical": true
+    },
+    {
+      "file": "racing-world.glb",
+      "before": 19067432,
+      "after": 17911336,
+      "geometryAndImagePayloadsIdentical": true
+    },
+    {
+      "file": "yuheng-drive.glb",
+      "before": 2485608,
+      "after": 911736,
+      "geometryAndImagePayloadsIdentical": true
+    },
+    {
+      "file": "yuheng-preview.glb",
+      "before": 3188336,
+      "after": 1614472,
+      "geometryAndImagePayloadsIdentical": true
+    }
+  ]
+}

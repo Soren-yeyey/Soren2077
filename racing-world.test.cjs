@@ -50,7 +50,7 @@ function readGLB(file){
   const bytes=fs.readFileSync(path.join(__dirname,'models',file)),length=bytes.readUInt32LE(12);
   const doc=JSON.parse(bytes.subarray(20,20+length));
   const binary=bytes.subarray(28+length);
-  const view=i=>{const v=doc.bufferViews[i];return binary.subarray(v.byteOffset||0,(v.byteOffset||0)+v.byteLength);};
+  const view=i=>{const v=doc.bufferViews[i],buffer=doc.buffers[v.buffer||0];const payload=buffer.uri?fs.readFileSync(path.join(__dirname,'models',buffer.uri)):binary;return payload.subarray(v.byteOffset||0,(v.byteOffset||0)+v.byteLength);};
   return {doc,view};
 }
 const source=readGLB('racing-world.glb'),subset=readGLB('homepage-buildings.glb');
@@ -70,5 +70,19 @@ for(const number of [3,4,26])test(`reused Tripo building ${number} preserves geo
     return asset.view(asset.doc.images[texture.source].bufferView);
   };
   assert.deepEqual(image(source,high),image(subset,copy));
+  assert.equal(after.extras.source_id,before.extras.source_id);
+});
+const additional=readGLB('additional-city-buildings.glb');
+for(const number of [5,9,13,14,16,25])test(`additional Tripo building ${number} preserves source geometry and texture`,()=>{
+  const before=source.doc.nodes.find(n=>n.extras?.principal_building&&n.extras.asset_number===number);
+  const after=additional.doc.nodes.find(n=>n.extras?.asset_number===number);
+  const a=source.doc.meshes[before.mesh].primitives[0],b=additional.doc.meshes[after.mesh].primitives[0];
+  for(const semantic of Object.keys(a.attributes)){
+    const x=source.doc.accessors[a.attributes[semantic]],y=additional.doc.accessors[b.attributes[semantic]];
+    assert.deepEqual(source.view(x.bufferView),additional.view(y.bufferView));
+  }
+  assert.deepEqual(source.view(source.doc.accessors[a.indices].bufferView),additional.view(additional.doc.accessors[b.indices].bufferView));
+  const image=(asset,primitive)=>{const material=asset.doc.materials[primitive.material],texture=asset.doc.textures[material.pbrMetallicRoughness.baseColorTexture.index];return asset.view(asset.doc.images[texture.source].bufferView);};
+  assert.deepEqual(image(source,a),image(additional,b));
   assert.equal(after.extras.source_id,before.extras.source_id);
 });

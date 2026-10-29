@@ -1,14 +1,13 @@
 /* Blender-authored racing sky, closed cloud sea, and floating lower city. */
 (() => {
 'use strict';
-window.RacingEnvironment={create(T,scene,renderer){
+window.RacingEnvironment={create(T,scene,renderer,sceneAssets){
   let sky=null,cloudMaterial=null,root=null;
   const uniforms={time:{value:0}};
-  const loadModel=url=>new Promise((resolve,reject)=>new T.GLTFLoader().load(url,resolve,undefined,reject));
-  const loadTexture=url=>new Promise((resolve,reject)=>new T.TextureLoader().load(url,resolve,undefined,reject));
+  const loadModel=url=>sceneAssets?sceneAssets.load(url):new Promise((resolve,reject)=>new T.GLTFLoader().load(url,resolve,undefined,reject));
   function cloudShader(){
     const m=new T.MeshStandardMaterial({color:0xffffff,roughness:1,metalness:0,
-      emissive:0x263d58,emissiveIntensity:.32});
+      emissive:0x101c30,emissiveIntensity:.12});
     m.onBeforeCompile=shader=>{
       shader.uniforms.cloudTime=uniforms.time;
       shader.vertexShader=shader.vertexShader.replace('#include <common>',
@@ -29,27 +28,22 @@ window.RacingEnvironment={create(T,scene,renderer){
       shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
         float density=cloudFbm(cloudWorld*.009+vec3(cloudTime*.0014,0.,0.));
         float detail=cloudFbm(cloudWorld*.038);
-        diffuseColor.rgb=mix(vec3(.17,.30,.49),vec3(.72,.84,.98),smoothstep(.26,.68,density*.82+detail*.18));`);
+        diffuseColor.rgb=mix(vec3(.015,.028,.055),vec3(.075,.11,.17),smoothstep(.26,.68,density*.82+detail*.18));`);
     };
     m.customProgramCacheKey=()=> 'racing-cloud-world-v1';return m;
   }
-  function skyShader(tex){
-    tex.flipY=false;tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
-    return new T.ShaderMaterial({side:T.FrontSide,depthWrite:false,fog:false,toneMapped:false,
-      uniforms:{skyMap:{value:tex}},
-      vertexShader:`varying vec2 skyUv;varying vec3 skyDirection;
-        void main(){skyUv=uv;skyDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`precision highp float;uniform sampler2D skyMap;varying vec2 skyUv;varying vec3 skyDirection;
-        float starHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-        void main(){vec3 d=normalize(skyDirection);float altitude=max(d.y,0.);
-          vec3 base=mix(vec3(.16,.28,.46),vec3(.009,.025,.07),pow(altitude,.6));
-          vec3 picture=pow(texture2D(skyMap,skyUv).rgb,vec3(2.2));
-          float edge=smoothstep(0.,.025,skyUv.x)*smoothstep(0.,.025,1.-skyUv.x);
-          float pole=smoothstep(0.,.045,skyUv.y)*smoothstep(0.,.045,1.-skyUv.y);
-          vec3 color=mix(base,picture,edge*pole*.93);
-          float star=step(.99925,starHash(floor(d*1350.)))*smoothstep(.2,.7,d.y);
-          gl_FragColor=vec4(color+vec3(.45,.65,1.)*star*.55,1.);
-          #include <encodings_fragment>
+  function skyShader(){
+    // Night clouds are environment geometry/shading, independent of building textures.
+    return new T.ShaderMaterial({side:T.FrontSide,depthWrite:false,fog:false,
+      uniforms:{time:uniforms.time},
+      vertexShader:`varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`precision highp float;varying vec3 direction;uniform float time;
+        float hash(vec3 p){p=fract(p*.3183099+vec3(.13,.29,.73));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+        float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+        float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.07+13.1;a*=.5;}return v;}
+        void main(){vec3 d=normalize(direction);float horizon=pow(1.-max(d.y,0.),3.);vec3 col=mix(vec3(.006,.012,.025),vec3(.045,.075,.12),horizon);vec3 p=d*5.6+vec3(time*.001,0.,0.);float n=fbm(p+fbm(p*2.));col+=smoothstep(.35,.69,n)*vec3(.028,.045,.073);gl_FragColor=vec4(col,1.);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
         }`});
   }
   function batchStaticMeshes(model){
@@ -57,7 +51,7 @@ window.RacingEnvironment={create(T,scene,renderer){
     model.traverse(o=>{
       if(!o.isMesh||o===sky||o.name==='cloud-sea')return;
       const cloud=o.name.startsWith('cloud-bank-');
-      if(cloud)o.material=cloudMaterial;
+      if(cloud){o.visible=false;return;}
       else{
         const mats=Array.isArray(o.material)?o.material:[o.material];
         for(const m of mats)if(m.map)m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
@@ -76,16 +70,17 @@ window.RacingEnvironment={create(T,scene,renderer){
   }
   return {
     async load(){
-      const [gltf,texture]=await Promise.all([loadModel('models/racing-environment.glb'),loadTexture('images/racing-sky.jpg')]);
+      const gltf=await loadModel('models/racing-environment.glb');
       root=gltf.scene;root.name='blender-racing-environment';scene.add(root);
       sky=root.getObjectByName('sky-dome');const sea=root.getObjectByName('cloud-sea');
       if(!sky||!sea)throw new Error('赛车环境缺少天空或云海');
-      sky.material=skyShader(texture);sky.renderOrder=-20;sky.frustumCulled=false;
-      cloudMaterial=cloudShader();sea.material=cloudMaterial;
+      sky.material=skyShader();sky.visible=false;sky.renderOrder=-20;sky.frustumCulled=false;
+      cloudMaterial=cloudShader();sea.material=cloudMaterial;sea.visible=false;
       const batches=batchStaticMeshes(root);
+      if(sceneAssets)sceneAssets.track(root);
       const host=document.getElementById('race-world');
       host.dataset.environment='ready';host.dataset.environmentSource='blender';
-      host.dataset.lowerCities='0';host.dataset.cloudBanks='62';host.dataset.environmentBatches=String(batches+2);
+      host.dataset.lowerCities='0';host.dataset.cloudBanks='0';host.dataset.environmentBatches=String(batches+1);
       return root;
     },
     update(time,camera){uniforms.time.value=time;if(sky)sky.position.copy(camera.position);}

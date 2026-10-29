@@ -1,0 +1,71 @@
+[
+  {
+    "file": "yuheng-preview.glb",
+    "saved": 1360416,
+    "geometryUVAndIndicesIdentical": true,
+    "images": [
+      {
+        "image": "A01-Yuheng-Racing-v1_normal",
+        "size": [
+          1024,
+          1024
+        ],
+        "decodedPixelsIdentical": true,
+        "webpQuality": 100,
+        "before": 732065,
+        "after": 458782
+      },
+      {
+        "image": "A01-Yuheng-Racing-v1_basecolor",
+        "size": [
+          1024,
+          1024
+        ],
+        "decodedPixelsIdentical": true,
+        "webpQuality": 100,
+        "before": 1761031,
+        "after": 1188436
+      },
+      {
+        "image": "A01-Yuheng-Racing-v1_rm",
+        "size": [
+          1024,
+          1024
+        ],
+        "decodedPixelsIdentical": true,
+        "webpQuality": 100,
+        "before": 1629855,
+        "after": 1115132
+      }
+    ]
+  },
+  {
+    "file": "yuheng-drive.glb",
+    "saved": 787876,
+    "geometryUVAndIndicesIdentical": true,
+    "images": [
+      {
+        "image": "A01-Yuheng-Racing-v1_normal",
+        "size": [
+          1024,
+          1024
+        ],
+        "decodedPixelsIdentical": true,
+        "webpQuality": 100,
+        "before": 732065,
+        "after": 458782
+      },
+      {
+        "image": "A01-Yuheng-Racing-v1_rm",
+        "size": [
+          1024,
+          1024
+        ],
+        "decodedPixelsIdentical": true,
+        "webpQuality": 100,
+        "before": 1629855,
+        "after": 1115132
+      }
+    ]
+  }
+]

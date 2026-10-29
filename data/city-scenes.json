@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "units": "metres",
+  "upAxis": "Y",
+  "assets": {
+    "neon-facade": {
+      "source": "models/neon-facade.glb",
+      "category": "building",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "embedded-base-color",
+      "nightEmission": true
+    },
+    "portrait-tower": {
+      "source": "models/portrait-tower-detail.glb",
+      "category": "building",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-4k-base-color",
+      "nightEmission": true,
+      "detail": "120k-source-copy"
+    },
+    "commercial-island": {
+      "source": "models/commercial-island-detail.glb",
+      "category": "building",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-4k-base-color",
+      "nightEmission": true,
+      "detail": "120k-source-copy"
+    },
+    "suspended-platform": {
+      "source": "models/sky-platform-b.glb",
+      "category": "environment",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "embedded-base-color"
+    },
+    "mechanical-tower": {
+      "source": "models/mechanical-tower-detail.glb",
+      "category": "building",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-4k-base-color",
+      "detail": "120k-source-copy",
+      "nightEmission": true
+    },
+    "central-tower": {
+      "source": "models/city-kit.gltf",
+      "nodePrefix": "11_",
+      "category": "landmark",
+      "scenes": [
+        "home",
+        "race"
+      ],
+      "anchor": "floor-centre",
+      "materials": "authored-materials"
+    },
+    "orion-tower": {
+      "source": "models/city-kit.gltf",
+      "nodePrefix": "08_",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "authored-materials"
+    },
+    "nc77-tower": {
+      "source": "models/city-kit.gltf",
+      "nodePrefix": "09_",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "authored-materials"
+    },
+    "ad-column": {
+      "source": "models/city-kit.gltf",
+      "nodePrefix": "10_",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "authored-materials"
+    },
+    "kael-tower": {
+      "source": "models/city-kit.gltf",
+      "nodePrefix": "12_",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "authored-materials"
+    },
+    "existing-city-05": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-05",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    },
+    "existing-city-09": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-09",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    },
+    "existing-city-13": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-13",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    },
+    "existing-city-14": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-14",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    },
+    "existing-city-16": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-16",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    },
+    "existing-city-25": {
+      "source": "models/additional-city-buildings.glb",
+      "node": "tripo-building-25",
+      "category": "building",
+      "scenes": [
+        "home"
+      ],
+      "anchor": "floor-centre",
+      "materials": "source-base-color"
+    }
+  },
+  "home": {
+    "camera": {
+      "position": [
+        -7,
+        24.4,
+        62
+      ],
+      "yaw": 0.025,
+      "pitch": 0.25
+    },
+    "clearance": {
+      "left": -39,
+      "right": 6
+    },
+    "placements": [
+      {
+        "id": "home-left-facade",
+        "asset": "neon-facade",
+        "position": [
+          -58,
+          22,
+          12
+        ],
+        "height": 88,
+        "yaw": 1.570796,
+        "bank": "left",
+        "foundation": true,
+        "shadow": true
+      },
+      {
+        "id": "home-right-facade",
+        "asset": "neon-facade",
+        "position": [
+          54,
+          22,
+          -18
+        ],
+        "height": 96,
+        "yaw": -1.570796,
+        "bank": "right",
+        "foundation": true,
+        "shadow": true
+      },
+      {
+        "id": "home-left-portrait",
+        "asset": "portrait-tower",
+        "position": [
+          -145,
+          22,
+          -170
+        ],
+        "height": 148,
+        "yaw": 0.4,
+        "bank": "left",
+        "foundation": true,
+        "shadow": true
+      },
+      {
+        "id": "home-right-portrait",
+        "asset": "portrait-tower",
+        "position": [
+          165,
+          22,
+          -215
+        ],
+        "height": 174,
+        "yaw": -0.6,
+        "bank": "right",
+        "foundation": true,
+        "shadow": true
+      },
+      {
+        "id": "home-left-spire",
+        "asset": "mechanical-tower",
+        "position": [
+          -92,
+          -62,
+          -410
+        ],
+        "height": 265,
+        "yaw": 0.14,
+        "bank": "left",
+        "foundation": false
+      },
+      {
+        "id": "home-right-spire",
+        "asset": "mechanical-tower",
+        "position": [
+          104,
+          -62,
+          -365
+        ],
+        "height": 245,
+        "yaw": -0.1,
+        "bank": "right"
+      },
+      {
+        "id": "home-left-mid-city",
+        "asset": "commercial-island",
+        "position": [
+          -178,
+          -62,
+          -380
+        ],
+        "height": 205,
+        "yaw": 0.16,
+        "bank": "left"
+      },
+      {
+        "id": "home-right-mid-city",
+        "asset": "commercial-island",
+        "position": [
+          190,
+          -62,
+          -480
+        ],
+        "height": 240,
+        "yaw": -0.24,
+        "bank": "right"
+      },
+      {
+        "id": "home-left-canopy",
+        "asset": "suspended-platform",
+        "position": [
+          -190,
+          200,
+          -400
+        ],
+        "height": 40,
+        "yaw": 0.08
+      },
+      {
+        "id": "home-right-canopy",
+        "asset": "suspended-platform",
+        "position": [
+          220,
+          240,
+          -600
+        ],
+        "height": 35,
+        "yaw": -0.12
+      },
+      {
+        "id": "home-orion-left",
+        "asset": "orion-tower",
+        "position": [
+          -104,
+          22,
+          -75
+        ],
+        "height": 92,
+        "yaw": 1.2,
+        "bank": "left",
+        "foundation": true
+      },
+      {
+        "id": "home-nc77-right",
+        "asset": "nc77-tower",
+        "position": [
+          105,
+          22,
+          -105
+        ],
+        "height": 108,
+        "yaw": -1.1,
+        "bank": "right",
+        "foundation": true
+      },
+      {
+        "id": "home-ad-left",
+        "asset": "ad-column",
+        "position": [
+          -48,
+          22,
+          -76
+        ],
+        "height": 26,
+        "yaw": 0.65,
+        "bank": "left",
+        "foundation": true
+      },
+      {
+        "id": "home-kael-right",
+        "asset": "kael-tower",
+        "position": [
+          150,
+          -62,
+          -300
+        ],
+        "height": 145,
+        "yaw": -0.5,
+        "bank": "right"
+      },
+      {
+        "id": "home-cantilever-tower",
+        "asset": "existing-city-14",
+        "position": [
+          -150,
+          -62,
+          -390
+        ],
+        "height": 145,
+        "yaw": 0.1,
+        "bank": "left",
+        "foundation": false
+      },
+      {
+        "id": "home-industrial-tower",
+        "asset": "existing-city-25",
+        "position": [
+          160,
+          -62,
+          -410
+        ],
+        "height": 145,
+        "yaw": -0.2,
+        "bank": "right",
+        "foundation": false
+      },
+      {
+        "id": "home-mechanical-island",
+        "asset": "existing-city-13",
+        "position": [
+          -278,
+          -90,
+          -510
+        ],
+        "height": 110,
+        "yaw": 0.5,
+        "bank": "left"
+      },
+      {
+        "id": "home-industrial-platform",
+        "asset": "existing-city-05",
+        "position": [
+          280,
+          -90,
+          -540
+        ],
+        "height": 75,
+        "yaw": -0.1,
+        "bank": "right"
+      },
+      {
+        "id": "home-lower-island-left",
+        "asset": "existing-city-09",
+        "position": [
+          -320,
+          -190,
+          -590
+        ],
+        "height": 78,
+        "yaw": 0.4,
+        "bank": "left"
+      },
+      {
+        "id": "home-lower-island-right",
+        "asset": "existing-city-16",
+        "position": [
+          350,
+          -190,
+          -650
+        ],
+        "height": 82,
+        "yaw": -0.4,
+        "bank": "right"
+      }
+    ]
+  },
+  "race": {
+    "atmosphere": {
+      "background": "#c5dcee",
+      "fog": "#bad0df",
+      "density": 0.00028
+    },
+    "referenceCamera": {
+      "position": [
+        304,
+        214,
+        278
+      ],
+      "target": [
+        -650,
+        295,
+        314
+      ],
+      "fov": 58,
+      "aspect": 1.7777777777777777
+    },
+    "placements": [
+      {
+        "id": "race-central-landmark",
+        "asset": "central-tower",
+        "position": [
+          -1450,
+          -65,
+          310
+        ],
+        "height": 1000,
+        "yaw": 1.57,
+        "foundation": true
+      },
+      {
+        "id": "race-near-left",
+        "asset": "neon-facade",
+        "position": [
+          -40,
+          22,
+          565
+        ],
+        "height": 310,
+        "yaw": 1.57,
+        "shadow": true
+      },
+      {
+        "id": "race-near-right",
+        "asset": "portrait-tower",
+        "position": [
+          -350,
+          22,
+          -38
+        ],
+        "height": 470,
+        "yaw": 1.57,
+        "shadow": true
+      },
+      {
+        "id": "race-mid-left",
+        "asset": "portrait-tower",
+        "position": [
+          -900,
+          -160,
+          740
+        ],
+        "height": 525,
+        "yaw": 1.57
+      },
+      {
+        "id": "race-mid-right",
+        "asset": "neon-facade",
+        "position": [
+          -1030,
+          -130,
+          -105
+        ],
+        "height": 520,
+        "yaw": 1.57
+      },
+      {
+        "id": "race-depth-00",
+        "asset": "mechanical-tower",
+        "position": [
+          -600,
+          -175,
+          740
+        ],
+        "height": 300,
+        "yaw": 1.4500000000000002
+      },
+      {
+        "id": "race-depth-01",
+        "asset": "neon-facade",
+        "position": [
+          -760,
+          -175,
+          890
+        ],
+        "height": 365,
+        "yaw": 1.8
+      },
+      {
+        "id": "race-depth-02",
+        "asset": "mechanical-tower",
+        "position": [
+          -1040,
+          -175,
+          1040
+        ],
+        "height": 430,
+        "yaw": 1.27
+      },
+      {
+        "id": "race-depth-03",
+        "asset": "portrait-tower",
+        "position": [
+          -1250,
+          -175,
+          780
+        ],
+        "height": 450,
+        "yaw": 1.6300000000000001
+      },
+      {
+        "id": "race-depth-04",
+        "asset": "mechanical-tower",
+        "position": [
+          -1350,
+          -175,
+          620
+        ],
+        "height": 490,
+        "yaw": 1.4500000000000002
+      },
+      {
+        "id": "race-depth-05",
+        "asset": "neon-facade",
+        "position": [
+          -1510,
+          -175,
+          850
+        ],
+        "height": 475,
+        "yaw": 1.8
+      },
+      {
+        "id": "race-depth-06",
+        "asset": "mechanical-tower",
+        "position": [
+          -1250,
+          -175,
+          -310
+        ],
+        "height": 450,
+        "yaw": 1.27
+      },
+      {
+        "id": "race-depth-07",
+        "asset": "neon-facade",
+        "position": [
+          -1550,
+          -175,
+          -530
+        ],
+        "height": 390,
+        "yaw": 1.6300000000000001
+      },
+      {
+        "id": "race-depth-08",
+        "asset": "mechanical-tower",
+        "position": [
+          -1780,
+          -175,
+          -180
+        ],
+        "height": 480,
+        "yaw": 1.4500000000000002
+      },
+      {
+        "id": "race-depth-09",
+        "asset": "portrait-tower",
+        "position": [
+          -1860,
+          -175,
+          140
+        ],
+        "height": 470,
+        "yaw": 1.8
+      },
+      {
+        "id": "race-depth-10",
+        "asset": "mechanical-tower",
+        "position": [
+          -2050,
+          -175,
+          480
+        ],
+        "height": 400,
+        "yaw": 1.27
+      },
+      {
+        "id": "race-depth-11",
+        "asset": "neon-facade",
+        "position": [
+          -2020,
+          -175,
+          750
+        ],
+        "height": 420,
+        "yaw": 1.6300000000000001
+      },
+      {
+        "id": "race-depth-12",
+        "asset": "mechanical-tower",
+        "position": [
+          -320,
+          -175,
+          820
+        ],
+        "height": 210,
+        "yaw": 1.4500000000000002
+      },
+      {
+        "id": "race-depth-13",
+        "asset": "neon-facade",
+        "position": [
+          -580,
+          -175,
+          -160
+        ],
+        "height": 210,
+        "yaw": 1.8
+      },
+      {
+        "id": "race-depth-14",
+        "asset": "portrait-tower",
+        "position": [
+          -220,
+          -175,
+          45
+        ],
+        "height": 230,
+        "yaw": 1.27
+      },
+      {
+        "id": "race-depth-15",
+        "asset": "mechanical-tower",
+        "position": [
+          -735,
+          -175,
+          90
+        ],
+        "height": 230,
+        "yaw": 1.6300000000000001
+      }
+    ],
+    "existingCityScale": 0.78
+  }
+}

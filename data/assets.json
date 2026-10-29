@@ -3,10 +3,22 @@
   "units": "metres",
   "runtimeUpAxis": "Y",
   "files": {
-  "models/operative-walk.glb": {"bytes": 1321316, "sha256": "97ffeb737def6b75ffd1fd0796bdddd30a3eae3eeea0e8faaccca43dd5a73b9c"},
-  "models/sky-platform-a.glb": {"bytes": 3363412, "sha256": "bb52b044f7e4207e9b86987932b079e4d21791cd6cae66d323d48fd7a5e7e272"},
-  "models/sky-platform-b.glb": {"bytes": 2544188, "sha256": "49487344fb04196c3c860047ad8428c8e74c0ee9d0eb27c5540c34b5c92b06d6"},
-  "models/billboard-tower.glb": {"bytes": 4725864, "sha256": "ea25fc4057bede70418f76056301178f872a3caccb1a00d60595c732362a1069"},
+    "models/operative-walk.glb": {
+      "bytes": 1321316,
+      "sha256": "97ffeb737def6b75ffd1fd0796bdddd30a3eae3eeea0e8faaccca43dd5a73b9c"
+    },
+    "models/sky-platform-a.glb": {
+      "bytes": 3363412,
+      "sha256": "bb52b044f7e4207e9b86987932b079e4d21791cd6cae66d323d48fd7a5e7e272"
+    },
+    "models/sky-platform-b.glb": {
+      "bytes": 2544188,
+      "sha256": "49487344fb04196c3c860047ad8428c8e74c0ee9d0eb27c5540c34b5c92b06d6"
+    },
+    "models/billboard-tower.glb": {
+      "bytes": 4725864,
+      "sha256": "ea25fc4057bede70418f76056301178f872a3caccb1a00d60595c732362a1069"
+    },
     "images/city-ring-detail.webp": {
       "bytes": 758996,
       "sha256": "9ec35ea044c943cafc38b1b0323c121a7305054cc0adfbac55a9dad80ecb8626"
@@ -96,12 +108,12 @@
       "sha256": "85b5bbfc510b2432af159ee6935522c086352a082af7e954ded5e074d7439116"
     },
     "models/homepage-buildings.glb": {
-      "bytes": 3668168,
-      "sha256": "7adb5eaf73264cc371427888796cde01e5bb2a58f5c9a22e231fa7e88c2bad73"
+      "bytes": 2781596,
+      "sha256": "27a02be9b966e8396d973c0611d03538ac2eb77f45c59e46395224353574f32b"
     },
     "models/city-ring.glb": {
-      "bytes": 963096,
-      "sha256": "fc2a92985a51cb5acbdd96e86dad607199e164a2e2bed823603a87883f1ec5c2"
+      "bytes": 693632,
+      "sha256": "57cb64fc2a6d888269d436b573a41bc197e816f5d0875965fac786bb195e89fe"
     },
     "images/building-04-detail.webp": {
       "bytes": 910686,
@@ -112,8 +124,8 @@
       "sha256": "46ed2d279877d24246b76b47277826e400dcb63dde60e52183370efb92a6c63f"
     },
     "models/floating-city.glb": {
-      "bytes": 2427944,
-      "sha256": "81b68ed901657ba2daf29de3847cb139ca6db7290840bc6bf8ea164fb05038a0"
+      "bytes": 1547448,
+      "sha256": "bdceebd6e0c3dd624747f049576760f49b78b4c14eda08acf04b057f4e74d74d"
     },
     "models/neon-facade.glb": {
       "bytes": 6719812,
@@ -122,6 +134,74 @@
     "images/neon-wet-asphalt.webp": {
       "bytes": 402192,
       "sha256": "0a00993feb761be13572f63e7ded54032686b3adf2e0385806f56d7b35d4787f"
+    },
+    "data/city-scenes.json": {
+      "bytes": 15170,
+      "sha256": "16c06e35dae51c44cc6abe08255a32e26f2ef8153244e70e67da84cceee78306"
+    },
+    "images/booze-portrait.png": {
+      "bytes": 188586,
+      "sha256": "309b1fc230519c1b68f4a8466261e9c007eae2f1531807d2e78d34e1fe1aa92b"
+    },
+    "images/day25-preflight-failure.png": {
+      "bytes": 97431,
+      "sha256": "46e08e26939145e8a33e521c4f459d1fd98c392064a96a03e619501ffbd92d15"
+    },
+    "images/racing-sky.jpg": {
+      "bytes": 517483,
+      "sha256": "37879cce701e7e92b298d48fdebc5f2e499ff12e9ee37c12a89cdc98feef5800"
+    },
+    "models/booze-city-kit.glb": {
+      "bytes": 693244,
+      "sha256": "879786b2e4597c4859261a413b808ae58fe1448155fb547ed020d7a42aff76d5"
+    },
+    "models/racing-environment.glb": {
+      "bytes": 621672,
+      "sha256": "041c09de0b1ae1c75febbd1ce712d17b869cd9b88a0c57ebd46bc89ae1366280"
+    },
+    "models/racing-portal.glb": {
+      "bytes": 132184,
+      "sha256": "b9d6acd1d7cd33c75c71a435fc6ab4b91749b236af3d30303776eb5269b8b363"
+    },
+    "models/racing-vehicle.glb": {
+      "bytes": 3279708,
+      "sha256": "ef9bc96144eb49d0de4f174854ac12bf325f3ff1ad5fee18ba58172fe7174940"
+    },
+    "models/racing-world.glb": {
+      "bytes": 17911336,
+      "sha256": "f5f88ae0ee269a570709261f284f61c0caac52863a8fe69ae9e11367f4419321"
+    },
+    "models/shared-textures.bin": {
+      "bytes": 2730051,
+      "sha256": "e6eba82063c155063107d0855adf3f564e442de2cf4dec699ce392452c326535"
+    },
+    "models/yuheng-drive.glb": {
+      "bytes": 911736,
+      "sha256": "95a06ac7d59f5e01f0d96cbbe7b0d6bc3e2b4daf5e52a2a8777fd01821e59257"
+    },
+    "models/yuheng-preview.glb": {
+      "bytes": 1614472,
+      "sha256": "8dc16c44b531afe451ef4ebfe58c265bf6f581ed2e662fdd16a80d16b1ac2e28"
+    },
+    "images/district-mark.svg": {
+      "bytes": 314,
+      "sha256": "3679c2e91cf30e7c24c3c6bf65405f864730f9e0685071a67c8b9acc1aafe2e0"
+    },
+    "models/commercial-island-detail.glb": {
+      "bytes": 11111072,
+      "sha256": "3fa6513c7627cb11bc485c4ffcaf4abfa8ae198008318c53e027101cf3db6b2f"
+    },
+    "models/mechanical-tower-detail.glb": {
+      "bytes": 10017268,
+      "sha256": "88a03c7d86fc40cf4b4b7e0a75c6e43e0a2dc9e383950409fe54530255fdcf6f"
+    },
+    "models/portrait-tower-detail.glb": {
+      "bytes": 10823360,
+      "sha256": "300292b8e76db9f3c16a07a53b41b0a49aa1d9c1cb3941c91916c82016c2413f"
+    },
+    "models/additional-city-buildings.glb": {
+      "bytes": 6925796,
+      "sha256": "d1fafb54d4e98b9f226ee18d03d8f142bf552972a271f7bff6e18ec8e3fa7178"
     }
   },
   "assets": [

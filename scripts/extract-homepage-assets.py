@@ -10,6 +10,7 @@ source = (ROOT / 'models/racing-world.glb').read_bytes()
 json_size = struct.unpack_from('<I', source, 12)[0]
 original = json.loads(source[20:20 + json_size])
 binary = source[28 + json_size:]
+buffers = [binary] + [(ROOT / 'models' / b['uri']).read_bytes() for b in original['buffers'][1:]]
 chosen = [3, 4, 26]
 nodes = []
 mesh_ids = []
@@ -65,8 +66,8 @@ for i in view_ids:
     while len(payload) % 4:
         payload.append(0)
     v['byteOffset'] = len(payload)
+    payload.extend(buffers[v.get('buffer', 0)][start:start + v['byteLength']])
     v['buffer'] = 0
-    payload.extend(binary[start:start + v['byteLength']])
     views.append(v)
 doc = {'asset': {'version': '2.0', 'generator': 'Existing Blender Tripo asset subset; original payloads preserved'},
        'scene': 0, 'scenes': [{'nodes': list(range(len(nodes)))}], 'nodes': nodes,

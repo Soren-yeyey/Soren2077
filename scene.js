@@ -1,4 +1,4 @@
-/* Rain District. All six foreground building prefabs come from the Blender delivery. */
+/* Asset-led city street with shared Blender/Tripo prefabs and authored placements. */
 (() => {
 'use strict';
 const $=id=>document.getElementById(id), T=THREE;
@@ -9,28 +9,27 @@ let renderer;
 try{renderer=new T.WebGLRenderer({antialias:false,powerPreference:'high-performance',alpha:false});}
 catch(e){fail('当前浏览器无法启动三维渲染，请使用支持硬件加速的桌面浏览器。');return;}
 renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight);
 canvasHost.appendChild(renderer.domElement);
-// Decorative imports (facades, sky platforms, billboard) are ~13 MB together. They are
-// started only after the street is walkable, so they never hold up the enter button.
+const sceneAssets=CitySceneAssets.create(T,renderer,canvasHost);
+addEventListener('pagehide',event=>{if(event.persisted)return;sceneAssets.dispose();reflection.dispose();composer.dispose();renderer.dispose();});
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+// The distant floating city streams after all ten primary placements are ready.
 function loadDecorations(){
 loadImportedScenery(T,scene,renderer,canvasHost,[
- ['importedFacade','models/neon-facade.glb',[[-48,22,5,50,Math.PI/2],[22,22,-30,48,-Math.PI/2]]],
- ['importedSkyCity','models/floating-city.glb',[[95,70,-120,35,.15]]],
- // Tripo masters (1.9M faces, 4K textures) re-exported at 55k/1024: the library is a
- // sky-city kit, so these hang over the street the way the reference does.
- ['importedSkyA','models/sky-platform-a.glb',[[-34,116,-72,72,.35],[86,152,-250,62,-.22]]],
- ['importedSkyB','models/sky-platform-b.glb',[[46,102,-150,58,.1],[-96,132,-196,54,-.4]]],
- ['importedBillboard','models/billboard-tower.glb',[[31,22,-104,44,Math.PI]]]
+ ['importedSkyCity','models/floating-city.glb',[[240,-48,-660,150,.15]]]
 ]);
-// The overhead platforms sit above every street lamp, so give them their own rim lights.
-light(-34,96,-72,0x6ad8ff,46,120);light(46,84,-150,0xff5fbe,40,120);light(-96,112,-196,0x59e8ff,34,110);
 }
-const camera=new T.PerspectiveCamera(65,innerWidth/innerHeight,.12,2600);camera.rotation.order='YXZ';
+// Logical eye remains the collision/interaction origin; only followCamera renders.
+const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.12,2600);camera.rotation.order='YXZ';
+const followCamera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.12,2600);
+const follow=CityThirdPerson.create(T,followCamera,{distance:6.4,bounds:CityNavigation.bounds});
+const playerFeet=new T.Vector3();let playerAvatar=null,playerHeading=0;
+canvasHost.dataset.cameraMode='third-person';
 const clock=new T.Clock(),obstacles=[],traffic=[],humans=[],animated=[];
-let active=false,ready=false,quality='high',dragging=false,yaw=-.155,pitch=.073,elapsed=0,frame=0;
+let active=false,ready=false,quality='high',dragging=false,yaw=.025,pitch=.11,elapsed=0,frame=0;
 const keys=new Set(),mouse={x:0,y:0},speed=new T.Vector2();
-const views={street:{x:-5,z:62,yaw:.09,pitch:.073,name:'南侧街口'},overlook:{x:-1.8,z:-60,yaw:-.38,pitch:.11,name:'中央塔观景台'},neon:{x:-20,z:-20,yaw:.88,pitch:.17,name:'霓虹长街'}};
+const views={street:{x:-7,z:62,yaw:.025,pitch:.25,name:'南侧街口'},overlook:{x:-2.5,z:-65,yaw:-.32,pitch:.24,name:'中央塔观景台'},neon:{x:-18,z:12,yaw:.75,pitch:.30,name:'霓虹长街'}};
 let seed=2077;
 function rand(){seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;}
 const range=(a,b)=>a+(b-a)*rand();
@@ -40,9 +39,10 @@ function canvasTexture(w,h,draw){const c=document.createElement('canvas');c.widt
 function standard(color,metalness=.4,roughness=.5){return new T.MeshStandardMaterial({color,metalness,roughness});}
 const mat={steel:standard(0x17232d,.68,.39),edge:standard(0x34444e,.65,.3),concrete:standard(0x222d38,.12,.88),black:standard(0x080e16,.55,.24),lane:standard(0x99a5a5,.12,.65),soil:standard(0x091615,0,1),leaf:standard(0x182c28,0,1)};
 for(const [key,color] of Object.entries({cyan:0x59ccff,pink:0xfc389e,white:0xc6e9ff,amber:0xffc482,red:0xff354e}))mat[key]=new T.MeshStandardMaterial({color,emissive:color,emissiveIntensity:key==='white'?2.2:3.2,metalness:.1,roughness:.4});
-scene.add(new T.HemisphereLight(0x8cbbdf,0x172735,.9));
-const sun=new T.DirectionalLight(0x97bee6,.85);sun.position.set(-140,250,80);scene.add(sun);
-const rim=new T.DirectionalLight(0x406d99,.7);rim.position.set(140,90,-200);scene.add(rim);
+const daylight=CityDaylight.create(T,renderer,scene,{radius:1800,fog:.00046});
+const sun=daylight.sun;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-180,right:180,top:180,bottom:-180,near:1,far:650});sun.shadow.bias=-.0002;sun.shadow.normalBias=.10;sun.target.position.set(-8,22,-60);scene.add(sun.target);
+addEventListener('pagehide',event=>{if(!event.persisted)daylight.dispose();});
+canvasHost.dataset.lighting='daylight';
 
 // Static street geometry is instanced by material, rather than hundreds of draw calls.
 const batches=new Map(),dummy=new T.Object3D(),cube=new T.BoxGeometry(1,1,1);
@@ -50,18 +50,13 @@ function box(x,y,z,w,h,d,material='steel',ry=0){
   const m=typeof material==='string'?mat[material]:material;
   if(!batches.has(m))batches.set(m,[]);batches.get(m).push({x,y,z,w,h,d,ry});
 }
-function finishBatches(){for(const [m,items] of batches){const geom=m===mat.leaf?new T.IcosahedronGeometry(.64,1):cube;const inst=new T.InstancedMesh(geom,m,items.length);for(let i=0;i<items.length;i++){const a=items[i];dummy.position.set(a.x,a.y,a.z);dummy.scale.set(a.w,a.h,a.d);dummy.rotation.set(0,a.ry,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);}inst.instanceMatrix.needsUpdate=true;inst.frustumCulled=false;scene.add(inst);}batches.clear();}
+function finishBatches(){for(const [m,items] of batches){const geom=m===mat.leaf?new T.IcosahedronGeometry(.64,1):cube;const inst=new T.InstancedMesh(geom,m,items.length);for(let i=0;i<items.length;i++){const a=items[i];dummy.position.set(a.x,a.y,a.z);dummy.scale.set(a.w,a.h,a.d);dummy.rotation.set(0,a.ry,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);}inst.instanceMatrix.needsUpdate=true;inst.frustumCulled=false;inst.receiveShadow=m===mat.concrete;scene.add(inst);}batches.clear();}
 function beam(a,b,width,material='steel'){const d=new T.Vector3().subVectors(b,a),mesh=new T.Mesh(new T.BoxGeometry(width,d.length,width),mat[material]);mesh.position.copy(a).add(b).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());scene.add(mesh);return mesh;}
-function light(x,y,z,color,intensity=12,distance=22){const l=new T.PointLight(color,intensity*.07,distance,2);l.position.set(x,y,z);scene.add(l);return l;}
+const lightCandidates=[],localLights=Array.from({length:4},()=>{const l=new T.PointLight(0xffffff,0,40,2);scene.add(l);return l;});
+function light(x,y,z,color,intensity=12,distance=22){lightCandidates.push({x,y,z,color,intensity,distance});}
+function updateLocalLights(){const near=lightCandidates.map(l=>({l,score:l.intensity/(64+camera.position.distanceToSquared(new T.Vector3(l.x,l.y,l.z)))})).sort((a,b)=>b.score-a.score);localLights.forEach((light,i)=>{const d=near[i]?.l;if(!d)return;light.position.set(d.x,d.y,d.z);light.color.setHex(d.color);light.intensity=d.intensity*.07;light.distance=d.distance;});}
 
-// A continuous procedural cloud dome, never a billboard with a visible edge.
-const sky=new T.Mesh(new T.SphereGeometry(1400,40,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,uniforms:{time:{value:0}},vertexShader:`varying vec3 direction; void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`
-precision highp float;varying vec3 direction;uniform float time;
-float hash(vec3 p){p=fract(p*.3183099+vec3(.13,.29,.73));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
-float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.07+13.1;a*=.5;}return v;}
-void main(){vec3 dir=normalize(direction);float horizon=pow(1.-max(dir.y,0.),3.);vec3 col=mix(vec3(.008,.017,.035),vec3(.09,.16,.24),horizon);vec3 p=dir*5.6+vec3(time*.003,0.,0.);float n=fbm(p+fbm(p*2.));float cloud=smoothstep(.35,.69,n);float silver=pow(max(dot(dir,normalize(vec3(-.3,.6,-.6))),0.),8.);col+=cloud*(vec3(.04,.065,.095)+silver*vec3(.10,.15,.20));col*=1.-.3*smoothstep(.62,.82,n);gl_FragColor=vec4(col,1.);}
-`}));scene.add(sky);
+const sky=daylight.sky;
 
 // Shared night-window maps provide facade rhythm without increasing mesh count.
 const windows=canvasTexture(256,512,(c,w,h)=>{
@@ -72,7 +67,7 @@ const farMat=new T.MeshStandardMaterial({map:windows,emissiveMap:windows,emissiv
 const midMat=farMat.clone();midMat.color.set(0x7193ab);midMat.emissiveIntensity=.7;
 function backgroundCity(){
   const placements=[];
-  for(let i=0;i<200;i++){
+  for(let i=0;i<100;i++){
     let x=range(-470,500),z=range(-850,140),w=range(9,25),d=range(10,25),h=range(30,140);
     if(z>-340&&x>-95&&x<130)continue;
     if(Math.abs(x-66)<142&&z>-615&&z<-310)continue;
@@ -83,13 +78,7 @@ function backgroundCity(){
   }
   const inst=new T.InstancedMesh(cube,farMat,placements.length);
   placements.forEach((p,i)=>{dummy.position.set(p.x,p.base+p.h/2,p.z);dummy.scale.set(p.w,p.h,p.d);dummy.rotation.set(0,0,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);});inst.frustumCulled=false;scene.add(inst);
-  // Foreground canyon buildings have real roofs and close the city below the promenade.
-  for(let i=0;i<34;i++){
-    const x=range(20,122),z=range(-240,140),h=range(18,47),w=range(9,17),d=range(10,21);
-    box(x,-64+h/2,z,w,h,d,midMat);box(x,-64+h+.6,z,w+1,1.2,d+1,'steel');
-    box(x,-64+h+1.8,z,3,2.4,4,'edge');
-    if(i%3===0)box(x+w/2+.1,-64+h*.6,z,.15,h*.6,.6,'cyan');
-  }
+
 }
 backgroundCity();
 
@@ -131,12 +120,12 @@ box(82,-67,-180,1000,4,1700,'black');
 const reflection=new T.WebGLRenderTarget(1024,768,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthBuffer:true});
 const mirrorCam=new T.PerspectiveCamera(),reflectionMatrix=new T.Matrix4(),bias=new T.Matrix4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1);
 const groundFallback=new T.DataTexture(new Uint8Array([0,0,0,255]),1,1,T.RGBAFormat);groundFallback.needsUpdate=true;
-const wetMaterial=new T.ShaderMaterial({uniforms:{reflection:{value:reflection.texture},groundTexture:{value:groundFallback},groundStrength:{value:0},reflectionMatrix:{value:reflectionMatrix},time:{value:0},eye:{value:camera.position},fogColor:{value:new T.Color(0x203347)}},vertexShader:`uniform mat4 reflectionMatrix;varying vec4 projected;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;projected=reflectionMatrix*p;gl_Position=projectionMatrix*viewMatrix*p;}`,fragmentShader:`
+const wetMaterial=new T.ShaderMaterial({uniforms:{reflection:{value:reflection.texture},groundTexture:{value:groundFallback},groundStrength:{value:0},reflectionMatrix:{value:reflectionMatrix},time:{value:0},eye:{value:followCamera.position},fogColor:{value:new T.Color(0xbad0df)}},vertexShader:`uniform mat4 reflectionMatrix;varying vec4 projected;varying vec3 world;void main(){vec4 p=modelMatrix*vec4(position,1.);world=p.xyz;projected=reflectionMatrix*p;gl_Position=projectionMatrix*viewMatrix*p;}`,fragmentShader:`
 precision highp float;uniform sampler2D reflection;uniform sampler2D groundTexture;uniform float groundStrength;uniform float time;uniform vec3 eye;uniform vec3 fogColor;varying vec4 projected;varying vec3 world;
 vec3 groundLinear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
 vec3 groundSample(vec2 p){vec2 edge=smoothstep(vec2(.30),vec2(.48),abs(fract(p)-.5));vec3 a=texture2D(groundTexture,p).rgb,b=texture2D(groundTexture,p+vec2(.5,0.)).rgb,c=texture2D(groundTexture,p+vec2(0.,.5)).rgb,d=texture2D(groundTexture,p+vec2(.5)).rgb;return groundLinear(mix(mix(a,b,edge.x),mix(c,d,edge.x),edge.y));}
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}
-void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float puddle=smoothstep(.22,.74,noise(world.xz*.23));vec2 ripple=vec2(sin(world.z*52.+world.x*29.+time*2.),cos(world.x*43.-time*3.))*.00075;uv+=ripple+vec2(n-.5,noise(world.xz*4.3)-.5)*.003;vec3 refl=texture2D(reflection,clamp(uv,0.,1.)).rgb;float fres=pow(1.-max(normalize(eye-world).y,0.),3.);vec3 base=vec3(.014,.022,.028)*( .75+n*.5);vec3 asphalt=groundSample(world.xz/12.);base=mix(base,asphalt,groundStrength);vec3 col=mix(base,refl,.18+.64*puddle*fres);float seam=step(.98,fract(world.z*.5));col*=1.-seam*.23;float fog=1.-exp(-pow(distance(eye,world)*.0017,2.));gl_FragColor=vec4(mix(col,fogColor,fog),1.);
+void main(){vec2 uv=projected.xy/projected.w;float n=noise(world.xz*2.5);float puddle=smoothstep(.22,.74,noise(world.xz*.23));vec2 ripple=vec2(sin(world.z*52.+world.x*29.+time*2.),cos(world.x*43.-time*3.))*.00012;uv+=ripple+vec2(n-.5,noise(world.xz*4.3)-.5)*.003;vec3 refl=texture2D(reflection,clamp(uv,0.,1.)).rgb;float fres=pow(1.-max(normalize(eye-world).y,0.),3.);vec3 base=vec3(.10,.13,.16)*( .85+n*.25);vec3 asphalt=groundSample(world.xz/12.)*1.8+vec3(.045,.055,.065);base=mix(base,asphalt,groundStrength);vec3 col=mix(base,refl,.08+.30*puddle*fres);float seam=step(.98,fract(world.z*.5));col*=1.-seam*.23;float fog=1.-exp(-pow(distance(eye,world)*.0017,2.));gl_FragColor=vec4(mix(col,fogColor,fog),1.);
 #include <tonemapping_fragment>
 #include <encodings_fragment>
 }`});
@@ -144,16 +133,16 @@ canvasHost.dataset.groundTexture='loading';
 new T.TextureLoader().load('images/neon-wet-asphalt.webp',texture=>{texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());wetMaterial.uniforms.groundTexture.value=texture;wetMaterial.uniforms.groundStrength.value=.65;canvasHost.dataset.groundTexture='ready';},undefined,()=>{canvasHost.dataset.groundTexture='fallback';});
 const wetRoad=new T.Mesh(new T.PlaneGeometry(35.4,308),wetMaterial);wetRoad.rotation.x=-Math.PI/2;wetRoad.position.set(-18,22.025,-48);scene.add(wetRoad);
 // Shared landmark language with the playable commission street.
-const cityRing=new T.Group();cityRing.position.set(-10.2,31,16);scene.add(cityRing);
+const cityRing=new T.Group();cityRing.position.set(-9,44,-42);scene.add(cityRing);
 for(const [radius,tube,material,z] of [[12,.55,mat.steel,0],[11.45,.16,mat.pink,.45],[12.6,.1,mat.cyan,-.1]]){
  const part=new T.Mesh(new T.TorusGeometry(radius,tube,10,100),material);part.position.z=z;cityRing.add(part);
 }
 const existingCityRing=new T.Group();existingCityRing.position.copy(cityRing.position);scene.add(existingCityRing);
-loadExistingCityRing(T,renderer,existingCityRing,30).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(14.2,.055,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'fallback';});
+const primaryRing=loadExistingCityRing(T,renderer,existingCityRing,48).then(ok=>{if(ok){cityRing.visible=false;const accent=new T.Mesh(new T.TorusGeometry(23.2,.035,8,100),mat.pink);accent.position.z=.5;existingCityRing.add(accent);}canvasHost.dataset.cityRing=ok?'blender':'failed';if(!ok){cityRing.visible=false;throw Error('Primary Blender ring failed');}return true;});
 const cityGlow=canvasTexture(256,256,(c,w,h)=>{const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(100,235,255,.68)');g.addColorStop(.35,'rgba(25,170,220,.3)');g.addColorStop(1,'rgba(0,100,200,0)');c.fillStyle=g;c.fillRect(0,0,w,h);});
-const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.7,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-10.2,38,-15);scene.add(cityGlowPlane);
-light(-10.2,31,16,0xff5bc6,32,52);light(-10.2,35,-15,0x48dfff,38,75);
-const waterMaterial=new T.MeshStandardMaterial({color:0x0b2232,metalness:.85,roughness:.18,emissive:0x0c1e2d,emissiveIntensity:.3});
+const cityGlowPlane=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshBasicMaterial({map:cityGlow,transparent:true,opacity:.7,depthWrite:false,fog:false,blending:T.AdditiveBlending}));cityGlowPlane.position.set(-9,44,-80);scene.add(cityGlowPlane);
+light(-9,44,-42,0xff5bc6,32,70);light(-9,40,-80,0x48dfff,38,95);
+const waterMaterial=new T.MeshStandardMaterial({color:0x547d95,metalness:.35,roughness:.28});
 const water=new T.Mesh(new T.PlaneGeometry(130,1100),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(70,-61,-350);scene.add(water);
 for(let i=0;i<95;i++)box(range(10,126),-60.96,range(-650,130),range(.1,.6),.014,range(.8,6),i%3?'cyan':'pink');
 
@@ -165,54 +154,20 @@ function sign(text,x,y,z,w,h,color,rotation=0){
   const housing=new T.Mesh(new T.BoxGeometry(w+.25,h+.25,.35),mat.steel);group.add(housing);
   const panel=new T.Mesh(new T.PlaneGeometry(w,h),m);panel.position.z=.184;group.add(panel);scene.add(group);return group;
 }
-for(let i=0;i<8;i++){const z=64-i*30;sign(i%2?'夜行酒馆':'未来生活',-35.4,32+((i+1)%3)*3,z,1.9,7.5,i%2?'#ff55ba':'#9affef',Math.PI/2);box(-35.9,34,z,1.1,.2,.25,'steel');}
+for(let i=0;i<4;i++){const z=64-i*60;sign(i%2?'夜行酒馆':'未来生活',-35.4,32+((i+1)%3)*3,z,1.9,7.5,i%2?'#ff55ba':'#9affef',Math.PI/2);box(-35.9,34,z,1.1,.2,.25,'steel');}
 // Same signage on the right-hand shop row, so the corridor is lit on both sides.
-for(let i=0;i<6;i++){const z=56-i*30;sign(i%2?'未来生活':'夜行酒馆',8.9,30+((i+2)%3)*3.4,z,1.85,7.2,i%2?'#9affef':'#ff55ba',-Math.PI/2);box(9.4,32,z,1.1,.2,.25,'steel');}
+for(let i=0;i<3;i++){const z=56-i*60;sign(i%2?'未来生活':'夜行酒馆',8.9,30+((i+2)%3)*3.4,z,1.85,7.2,i%2?'#9affef':'#ff55ba',-Math.PI/2);box(9.4,32,z,1.1,.2,.25,'steel');}
 
 // Six approved Blender prefabs. Model origins are floor-centred and in metres.
-const manager=new T.LoadingManager();
+const manager=sceneAssets.manager;
 manager.onProgress=(url,loaded,total)=>{$('loading-bar').style.width=Math.round(loaded/total*92)+'%';};
-const loader=new T.GLTFLoader(manager);
-function loadCity(){return new Promise((resolve,reject)=>loader.load('models/city-kit.gltf',resolve,undefined,reject));}
-// Three existing Tripo buildings, extracted from the approved Blender racing
-// export without rebaking, decimating, recolouring or changing their UVs.
-function loadDetailedBuildings(){return new Promise(resolve=>new T.GLTFLoader().load('models/homepage-buildings.glb',gltf=>{
-  const detailMaterials=new Map([[3,new Set()],[4,new Set()],[26,new Set()]]);
-  const placements=[
-    [3,130,-62,-120,118,.20],
-    [4,120,-62,-43,92,-.30],
-    [26,160,-62,-272,162,-.12],
-    [4,-80,-62,-70,125,.35],
-    [26,153,-62,-90,145,.12],
-    [3,-120,-62,-280,155,-.25]
-  ];
-  for(const [number,x,y,z,height,rotation] of placements){
-    const source=gltf.scene.getObjectByName('tripo-building-'+String(number).padStart(2,'0'));
-    if(!source)continue;
-    const obj=source.clone(true),bounds=new T.Box3().setFromObject(obj),size=bounds.getSize(new T.Vector3());
-    const scale=height/size.y,center=bounds.getCenter(new T.Vector3());
-    // A wrapper preserves original mesh coordinates, and gives a floor-centred pivot.
-    const group=new T.Group();obj.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);obj.scale.setScalar(scale);
-    group.add(obj);group.position.set(x,y,z);group.rotation.y=rotation;
-    group.updateMatrixWorld(true);bounds.setFromObject(group);
-    // Keep the entire building envelope outside the walkable deck, including
-    // rotated overhangs. Existing collision and portal paths stay usable.
-    if(x>0&&bounds.min.x<4)group.position.x+=4-bounds.min.x;
-    if(x<0&&bounds.max.x>-40)group.position.x-=bounds.max.x+40;
-    scene.add(group);
-    obj.traverse(o=>{if(!o.isMesh)return;if(detailMaterials.has(number))o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();for(const m of Array.isArray(o.material)?o.material:[o.material]){
-      if(m.map)m.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-      // The Tripo prototypes are baked from pale grey concrete. Cool and darken them so
-      // they read as night-time massing instead of lit rubble next to the neon street.
-      m.color.setRGB(.34,.40,.52);m.emissiveIntensity=.55;
-      if(m.map)detailMaterials.get(number)?.add(m);
-    }});
-  }
-  // Only the base colour is swapped. The baked emissive map keeps its own mask, so
-  // windows and screens glow while concrete stays in shadow.
-  for(const [number,materials] of detailMaterials)new T.TextureLoader().load('images/building-'+String(number).padStart(2,'0')+'-detail.webp',texture=>{texture.flipY=false;texture.encoding=T.sRGBEncoding;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());for(const m of materials){m.map=texture;m.needsUpdate=true;}canvasHost.dataset['building'+number+'Texture']='2048';},undefined,()=>{canvasHost.dataset['building'+number+'Texture']='original';});
-  canvasHost.dataset.tripoBuildings=String(placements.length);canvasHost.dataset.buildingDetail='ready';resolve();
-},undefined,error=>{canvasHost.dataset.buildingDetail='fallback';console.warn('CITY_OPTIONAL_BUILDINGS',error);resolve();}));}
+function loadCity(){return sceneAssets.load('models/city-kit.gltf');}
+function loadDetailedBuildings(){return sceneAssets.populate('home',scene,(object,placement,bounds)=>{
+ if(placement.foundation){const size=bounds.getSize(new T.Vector3()),centre=bounds.getCenter(new T.Vector3());
+  box(centre.x,20.6,centre.z,size.x+1.6,2.8,size.z+1.6,'concrete');
+  for(const x of [bounds.min.x+2,bounds.max.x-2])box(x,-20,centre.z,2.4,80,3.4,'steel');
+ }
+}).then(result=>{const view=result.config.home.camera;Object.assign(views.street,{x:view.position[0],z:view.position[2],yaw:view.yaw,pitch:view.pitch});if(!active)setView('street');canvasHost.dataset.buildingDetail='ready';canvasHost.dataset.tripoBuildings=String(result.objects.length);canvasHost.dataset.materialPolicy='source-textures';return result;});}
 function addPrefab(prefabs,id,x,y,z,scale=1,rotation=0){
   const source=prefabs.find(o=>o.name.startsWith(id));if(!source)throw new Error('建筑资源缺失：'+id);
   const obj=source.clone(true);obj.position.set(x,y,z);obj.scale.setScalar(scale);obj.rotation.y=rotation;scene.add(obj);
@@ -306,60 +261,27 @@ for(let i=0;i<4;i++){
   const thruster=new T.Mesh(new T.BoxGeometry(1.6,.12,.18),mat.cyan);thruster.position.set(0,.55,2.52);o.add(thruster);
 }
 
-// Simplified physical pedestrians, distributed clear of the player spawn and street furniture.
-function pedestrian(x,z,coatColor){
-  const group=new T.Group(),coat=standard(coatColor,.05,.85),skin=standard(0x735c57,0,.9);
-  const body=new T.Mesh(new T.CylinderGeometry(.19,.27,.78,5),coat);body.position.y=1.03;group.add(body);
-  const head=new T.Mesh(new T.SphereGeometry(.14,6,5),skin);head.position.y=1.6;group.add(head);
-  const legs=[];for(const side of [-1,1]){const leg=new T.Mesh(new T.BoxGeometry(.15,.70,.18),mat.black);leg.position.set(side*.13,.4,0);group.add(leg);legs.push(leg);const arm=new T.Mesh(new T.BoxGeometry(.11,.65,.13),coat);arm.position.set(side*.29,1.06,0);group.add(arm);}
-  group.position.set(x,22.06,z);scene.add(group);humans.push({object:group,legs,phase:rand()*6.28});
-  obstacles.push({minX:x-.38,maxX:x+.38,minZ:z-.38,maxZ:z+.38});
-}
-for(const p of [[-4,42],[-8,8],[-28,24],[-29,-34],[-4,-123],[-6,-155]])pedestrian(p[0],p[1],[0x25283b,0x142b34,0x382039][Math.floor(rand()*3)]);
-
-// The rigged Blender character (2.2万面, 41 bones) replaces three of the block
-// pedestrians. Each copy loads the same 1.26 MB file, which the HTTP cache serves once.
-const operativeSpots=[[-7,46,.35],[-7,-89,3.1],[-27,-108,-1.2]];
+// The problematic operative is removed from the scene; source files remain intact.
 const operatives=[];
-function loadOperatives(){
-for(const [x,z,ry] of operativeSpots){
-  new T.GLTFLoader().load('models/operative-walk.glb',gltf=>{
-    const model=gltf.scene,box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3());
-    if(!size.y)return;
-    const s=1.74/size.y;
-    model.scale.setScalar(s);
-    model.position.y=-box.min.y*s;
-    model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;if(o.material&&o.material.map)o.material.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}});
-    const wrap=new T.Group();wrap.add(model);wrap.position.set(x,22.06,z);scene.add(wrap);
-    // Baked 24-frame walk clip; a short patrol makes the in-place cycle read as walking.
-    let mixer=null;
-    if(gltf.animations.length){mixer=new T.AnimationMixer(model);const act=mixer.clipAction(gltf.animations[0]);act.play();act.timeScale=.9+rand()*.25;}
-    operatives.push({wrap,mixer,baseX:x,baseZ:z,baseRot:Math.PI+ry,phase:rand()*6.28,span:5+rand()*4});
-    obstacles.push({minX:x-.4,maxX:x+.4,minZ:z-.4,maxZ:z+.4});
-    canvasHost.dataset.operative=String((Number(canvasHost.dataset.operative)||0)+1);
-  },undefined,error=>{canvasHost.dataset.operative='fallback';console.warn('Optional character:',error);});
-}
-}
+canvasHost.dataset.player='none';
 
 // Camera-local rain occupies a bounded volume and never crosses the UI layer.
 const rainCount=1600,rainGeo=new T.BufferGeometry(),rainPos=new Float32Array(rainCount*6),rainSeeds=[];
 for(let i=0;i<rainCount;i++)rainSeeds.push([range(-47,47),range(0,43),range(-75,30),range(.45,1.3)]);
 rainGeo.setAttribute('position',new T.BufferAttribute(rainPos,3).setUsage(T.DynamicDrawUsage));
 const rain=new T.LineSegments(rainGeo,new T.LineBasicMaterial({color:0x9bbdd0,transparent:true,opacity:.12,depthWrite:false}));rain.frustumCulled=false;scene.add(rain);
-const composer=new T.EffectComposer(renderer);composer.addPass(new T.RenderPass(scene,camera));
+const composer=new T.EffectComposer(renderer);composer.addPass(new T.RenderPass(scene,followCamera));
 const bloom=new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.48,.62,.95);composer.addPass(bloom);
-// Convert the composer's linear HDR output once, after bloom. Without this pass,
-// mid-tones are crushed and luminous displays clip to featureless white.
-const grade=new T.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb*.93;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);c=pow(clamp(c,0.,1.),vec3(1./2.2));gl_FragColor=vec4(c,1.);}`});grade.material.toneMapped=false;composer.addPass(grade);
+const grade=CityDaylight.grade(T,renderer,composer,bloom);bloom.strength=.16;bloom.threshold=1.4;
 
-function setView(name){const v=views[name];camera.position.set(v.x,24.4,v.z);yaw=v.yaw;pitch=v.pitch;speed.set(0,0);keys.clear();camera.rotation.set(pitch,yaw,0,'YXZ');$('location-name').textContent=v.name;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));}
+function setView(name){const v=views[name];camera.position.set(v.x,24.4,v.z);yaw=v.yaw;pitch=v.pitch;speed.set(0,0);keys.clear();camera.rotation.set(pitch,yaw,0,'YXZ');playerHeading=yaw;follow.reset();$('location-name').textContent=v.name;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));}
 setView('street');
-function setQuality(value){quality=value;const ratio=Math.min(devicePixelRatio,value==='high'?1.6:1);renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);reflection.setSize(value==='high'?1024:640,value==='high'?768:480);bloom.strength=value==='high'?.48:.36;rain.geometry.setDrawRange(0,value==='high'?rainCount*2:rainCount);resize();}
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
+function setQuality(value){quality=value;const ratio=Math.min(devicePixelRatio,value==='high'?1.25:1);renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);reflection.setSize(value==='high'?1024:640,value==='high'?768:480);bloom.strength=value==='high'?.16:.10;rain.geometry.setDrawRange(0,value==='high'?rainCount*2:rainCount);resize();}
+function resize(){camera.aspect=followCamera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();followCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
 const touchOnly=matchMedia('(hover: none) and (pointer: coarse)').matches;
 if(touchOnly){const note=document.querySelector('.desktop-note');if(note)note.textContent='手机暂不支持行走 · 请用电脑体验完整街区';}
-$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast(touchOnly?'手机暂不支持行走 · 可拖动环顾，请用电脑体验完整街区':'按住鼠标拖动环顾；W A S D 沿步道行走');loadYuheng();});
+$('enter').addEventListener('click',()=>{if(!ready)return;active=true;$('welcome').hidden=true;$('walking-hud').hidden=false;canvasHost.focus();toast(touchOnly?'手机暂不支持行走 · 可拖动环顾，请用电脑体验完整街区':'WASD 探索街区，鼠标拖动环顾，滚轮调远近');});
 $('reset').addEventListener('click',()=>{setView('street');toast('已返回南侧街口');});
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{setView(b.dataset.view);if(b.dataset.view==='yuheng')loadYuheng();canvasHost.focus();}));
 $('quality').addEventListener('change',e=>setQuality(e.target.value));
@@ -369,6 +291,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(!active)return;draggin
 renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;yaw-=(e.clientX-mouse.x)*.0023;pitch-= (e.clientY-mouse.y)*.0023;pitch=T.MathUtils.clamp(pitch,-.9,1.12);mouse.x=e.clientX;mouse.y=e.clientY;});
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(ev,()=>dragging=false);
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel',e=>{if(active){e.preventDefault();follow.zoom(e.deltaY*.006);}},{passive:false});
 addEventListener('keydown',e=>{if(!active||/SELECT|INPUT|TEXTAREA/.test(e.target.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.code==='KeyH'&&!e.repeat){document.body.classList.toggle('clean');if(document.body.classList.contains('clean'))toast('按 H 恢复界面');}if(e.code==='Escape'){dragging=false;document.body.classList.remove('clean');}});
 addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();dragging=false;speed.set(0,0);});
 document.addEventListener('visibilitychange',()=>{keys.clear();speed.set(0,0);clock.getDelta();});
@@ -376,8 +299,8 @@ renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();f
 
 const cameraDir=new T.Vector3(),target=new T.Vector3(),clipPlane=new T.Plane(new T.Vector3(0,1,0),-22.04);
 function renderReflection(){
-  camera.updateMatrixWorld();camera.getWorldDirection(cameraDir);target.copy(camera.position).add(cameraDir);target.y=44.05-target.y;
-  mirrorCam.copy(camera);mirrorCam.position.copy(camera.position);mirrorCam.position.y=44.05-camera.position.y;mirrorCam.up.set(0,-1,0);mirrorCam.lookAt(target);mirrorCam.updateMatrixWorld();mirrorCam.projectionMatrix.copy(camera.projectionMatrix);
+  followCamera.updateMatrixWorld();followCamera.getWorldDirection(cameraDir);target.copy(followCamera.position).add(cameraDir);target.y=44.05-target.y;
+  mirrorCam.copy(followCamera);mirrorCam.position.copy(followCamera.position);mirrorCam.position.y=44.05-followCamera.position.y;mirrorCam.up.set(0,-1,0);mirrorCam.lookAt(target);mirrorCam.updateMatrixWorld();mirrorCam.projectionMatrix.copy(followCamera.projectionMatrix);
   reflectionMatrix.copy(bias).multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse);
   wetRoad.visible=false;rain.visible=false;renderer.clippingPlanes=[clipPlane];renderer.setRenderTarget(reflection);renderer.clear();renderer.render(scene,mirrorCam);renderer.setRenderTarget(null);renderer.clippingPlanes=[];wetRoad.visible=true;rain.visible=true;
 }
@@ -393,33 +316,36 @@ function animate(){
     const length=Math.max(1,Math.hypot(side,forward)),pace=keys.has('ShiftLeft')||keys.has('ShiftRight')?7:3.6;
     const dx=(side*Math.cos(yaw)-forward*Math.sin(yaw))/length*pace,dz=(-side*Math.sin(yaw)-forward*Math.cos(yaw))/length*pace;
     speed.x=T.MathUtils.damp(speed.x,dx,12,dt);speed.y=T.MathUtils.damp(speed.y,dz,12,dt);
-    const next=CityNavigation.move(camera.position,speed.x*dt,speed.y*dt,obstacles);camera.position.x=next.x;camera.position.z=next.z;
+    const next=CityNavigation.move(camera.position,speed.x*dt,speed.y*dt,obstacles);const movedX=next.x-camera.position.x,movedZ=next.z-camera.position.z;if(Math.hypot(movedX,movedZ)>.0001)playerHeading=Math.atan2(-movedX,-movedZ);camera.position.x=next.x;camera.position.z=next.z;
     camera.position.y=24.4+Math.sin(elapsed*8)*Math.min(speed.length(),4)*.008;
   }
-  camera.rotation.set(pitch,yaw,0,'YXZ');sky.position.copy(camera.position);sky.material.uniforms.time.value=elapsed;wetMaterial.uniforms.time.value=elapsed;
+  camera.rotation.set(pitch,yaw,0,'YXZ');playerFeet.set(camera.position.x,22.04,camera.position.z);
+  if(playerAvatar){playerAvatar.root.position.copy(playerFeet);playerAvatar.update(dt,active?speed.length():0,playerHeading);}
+  follow.update(playerFeet,yaw,pitch,dt,{obstacles});daylight.update(followCamera,elapsed);grade.uniforms.exposure.value=renderer.toneMappingExposure;
+  if(frame%20===0)updateLocalLights();wetMaterial.uniforms.time.value=elapsed;
   for(const a of traffic){a.object.position.x=a.baseX+Math.sin(elapsed*a.speed+a.phase)*a.radius;a.object.position.y=a.baseY+Math.sin(elapsed*.7+a.phase)*.3;}
   humans.forEach(h=>{h.object.rotation.y=Math.sin(elapsed*.25+h.phase)*.08;});
   // Patrol the three rigged characters: the baked clip is in place, so the wrapper
   // slides along the street and flips heading at each end of its short beat.
   for(const o of operatives){
-    if(o.mixer)o.mixer.update(dt);
+
     const swing=Math.sin(elapsed*.55+o.phase);
     o.wrap.position.z=o.baseZ+swing*o.span;
     o.wrap.position.x=o.baseX+Math.sin(elapsed*.32+o.phase)*1.1;
-    o.wrap.rotation.y=o.baseRot+(Math.cos(elapsed*.55+o.phase)>0?0:Math.PI);
+    o.avatar.update(dt,Math.abs(Math.cos(elapsed*.55+o.phase))*o.span*.55,Math.cos(elapsed*.55+o.phase)>0?Math.PI:0);
   }
   rain.position.set(camera.position.x,22,camera.position.z);
   for(let i=0;i<rainCount;i++){const s=rainSeeds[i],j=i*6;const y=((s[1]-elapsed*16)%43+43)%43;rainPos[j]=s[0];rainPos[j+1]=y;rainPos[j+2]=s[2];rainPos[j+3]=s[0]-.13;rainPos[j+4]=y+s[3];rainPos[j+5]=s[2]+.04;}
   rainGeo.attributes.position.needsUpdate=true;
   if(quality==='high'||frame%2===0)renderReflection();composer.render();
-  if(frame%15===0){$('map-player').setAttribute('transform',`translate(${39+(camera.position.x+6)*.4},${17+(80-camera.position.z)/250*111}) rotate(${-yaw*180/Math.PI})`);canvasHost.dataset.position=`${camera.position.x.toFixed(2)},${camera.position.z.toFixed(2)}`;}
+  if(frame%15===0){$('map-player').setAttribute('transform',`translate(${39+(camera.position.x+6)*.4},${17+(80-camera.position.z)/250*111}) rotate(${-yaw*180/Math.PI})`);canvasHost.dataset.position=`${camera.position.x.toFixed(2)},${camera.position.z.toFixed(2)}`;canvasHost.dataset.playerPosition=playerFeet.toArray().map(n=>n.toFixed(2)).join(',');canvasHost.dataset.cameraPosition=followCamera.position.toArray().map(n=>n.toFixed(2)).join(',');canvasHost.dataset.playerClip=playerAvatar?.root.userData.clip||'loading';canvasHost.dataset.playerHeading=playerHeading.toFixed(3);}
   if(ready&&!adapted){perfFrames++;perfTime+=realDelta;if(perfTime>7){adapted=true;canvasHost.dataset.initialFps=(perfFrames/perfTime).toFixed(1);if(perfFrames/perfTime<27&&quality==='high'){setQuality('balanced');$('quality').value='balanced';toast('已切换均衡画质，让漫游更流畅');}}}
 }
 
-// Only the street prefabs block the enter button. Tripo towers, imported facades,
-// sky platforms and the rigged characters stream in after the walk is already usable.
+// Primary Tripo buildings and materials must succeed before entering the street.
 setTimeout(()=>{if(!ready)$('loading').textContent='网络较慢，街道仍在载入…';},12000);
-loadCity().then(gltf=>{
+loadYuheng();
+Promise.all([loadCity(),loadDetailedBuildings(),primaryRing]).then(([gltf])=>{
   const prefabs=gltf.scene.children;
   prefabs.forEach(o=>o.traverse(m=>{if(m.isMesh){const mats=Array.isArray(m.material)?m.material:[m.material];mats.forEach(mm=>{if(mm.name==='Glass'){mm.depthWrite=false;mm.opacity=.12;}if(mm.map){mm.map.minFilter=T.LinearMipmapLinearFilter;mm.map.magFilter=T.LinearFilter;mm.map.anisotropy=8;}if(['ORION','AD','HOLO'].includes(mm.name))mm.emissiveIntensity=.85;
     // Baked window factors are 0.10 (Apartment) and 0.32 (Windows), and their emissive
@@ -438,11 +364,8 @@ loadCity().then(gltf=>{
     // Ground-floor shop interiors glow warm through the glass.
     if(mm.name==='Interior'){mm.emissive.setRGB(.62,.36,.15);mm.emissiveIntensity=.38;}
   });}}));
-  // Eight shopfronts from one prefab read as a copy-paste wall, so heights and yaw drift
-  // slightly per slot; the roofline and the sign spacing stop marching in lockstep.
-  for(const [z,sc,ry] of [[68,1.82,.02],[36,1.73,-.03],[4,1.91,.015],[-28,1.77,.035],[-60,1.86,-.02],[-92,1.7,.03],[-124,1.88,-.03],[-156,1.75,.012]])addPrefab(prefabs,'07',-44,22,z,sc,Math.PI/2+ry);
-  // Right-hand terrace and shop row: without it the street reads as a bridge with a
-  // single wall. This mirrors the left row so the corridor closes on both sides.
+  // Low shop entries support the imported towers; the Tripo silhouettes carry the skyline.
+  for(const z of [72,-166])addPrefab(prefabs,'07',-43,22,z,.58,Math.PI/2);
   const terrace=standard(0x0d1621,.18,.94);
   box(19,20.6,-48,38,2.8,310,terrace);
   box(37.9,22.6,-48,.34,1.15,310,'edge');
@@ -450,27 +373,14 @@ loadCity().then(gltf=>{
   for(let z=-186;z<98;z+=32){box(35,4.6,z,2.6,36,3.0,'steel');}
   for(let z=92;z>-170;z-=4){box(37.6,22.05,z,.1,.02,3.2,'lane');}
   for(const z of [44,4,-36,-76,-116,-152])light(9,28.5,z,z%2?0xff58c0:0x59ccff,10,30);
-  for(const [z,id,sc] of [[58,'07',1.75],[26,'09',1.05],[-8,'07',1.9],[-80,'07',1.65],[-116,'10',1.45],[-148,'07',1.8]])addPrefab(prefabs,id,22,22,z,sc,-Math.PI/2);
-  // The hologram pylon faces down the street rather than sideways, so its screen reads
-  // head-on from the walkway instead of edge-on.
-  addPrefab(prefabs,'12',11,22,-52,0.9,0);
-  addPrefab(prefabs,'08',-57,18,-97,2.05,Math.PI/4);
-  addPrefab(prefabs,'09',-49,-8,-225,2.0,.1);
-  addPrefab(prefabs,'10',-17,22,-112,1.36,0);
-  const central=addPrefab(prefabs,'11',66,-68,-458,4.4,0);central.scale.x*=1.65;central.scale.z*=1.65;
-  addPrefab(prefabs,'12',143,-30,-126,2.6,-.17);
-  addPrefab(prefabs,'08',163,-58,59,1.3,0);
-  addPrefab(prefabs,'09',196,-60,-355,2.6,0);
-  addPrefab(prefabs,'12',-113,-48,-326,1.7,.22);
-  addPrefab(prefabs,'10',67,-62,-43,1.1,0);
-  addPrefab(prefabs,'09',209,-60,-84,1.7,0);
-  addPrefab(prefabs,'08',-122,-42,75,1.5,0);
-  finishBatches();ready=true;$('enter').disabled=false;$('enter-label').textContent='观景漫游';$('loading').textContent='街道已就绪 · 细节陆续到场';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
+  for(const z of [76,-175])addPrefab(prefabs,'07',17,22,z,.52,-Math.PI/2);
+  // Existing Blender landmark retains its actual proportions and a grounded pivot.
+  addPrefab(prefabs,'11',-10,-68,-540,4.4,0);
+  addPrefab(prefabs,'12',160,-62,-410,1.7,-.17);
+  finishBatches();renderer.compile(scene,followCamera);renderReflection();composer.render();ready=true;$('enter').disabled=false;$('enter-label').textContent='探索街区';$('loading').textContent='主体建筑与原材质已就绪';$('loading-bar').style.width='100%';canvasHost.dataset.ready='true';canvasHost.dataset.assets='6';
   console.info('CITY_READY',{sourceModels:6,sourceTriangles:11984,colliders:obstacles.length});
   // Everything below is decoration: it must not delay the first walkable frame.
-  loadDetailedBuildings();
   loadDecorations();
-  loadOperatives();
   $('enter').addEventListener('click',()=>{canvasHost.dataset.decorations='streaming';},{once:true});
 }).catch(e=>{console.error('CITY_LOAD_FAILED',e);fail('建筑资源未能载入。请从本地服务器或网站链接打开页面，并检查网络后重试。');});
 animate();

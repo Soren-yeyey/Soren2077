@@ -6,8 +6,8 @@ const MATERIALS=Object.freeze({
  industrial:{label:'暖色工业',facade:0xad8866,metal:0xb6a08b,ground:0x837468,glass:0x9cb7c5,sign:0xffc08a}
 });
 const ENVIRONMENTS=Object.freeze({
- night:{label:'雨夜霓虹',background:0x122638,fog:.0055,ambient:.86,sun:1.05,exposure:1.06,bloom:.38,sky:0xc7dcff,skyGain:.8},
- mist:{label:'冷色薄雾',background:0x647d94,fog:.009,ambient:1.12,sun:.72,exposure:1.14,bloom:.24,sky:0xaad0ec,skyGain:1.8}
+ night:{label:'明亮城区',background:0xc5dcee,fog:.0024,ambient:1.8,sun:2.2,exposure:1.08,bloom:.12,sky:0xffffff,skyGain:1},
+ mist:{label:'明亮薄雾',background:0xdce7ef,fog:.0032,ambient:1.95,sun:1.7,exposure:1.10,bloom:.10,sky:0xf1f8ff,skyGain:1}
 });
 function category(name){
  name=String(name||'').toLowerCase();

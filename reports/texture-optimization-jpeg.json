@@ -1,0 +1,28 @@
+[
+  {
+    "file": "floating-city.glb",
+    "saved": 880496,
+    "geometryUVAndIndicesIdentical": true,
+    "images": [
+      {
+        "image": "tripo_image_c8802220-d204-4188-9f6b-47e69bb27105_0_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "decodedPixelsIdentical": false,
+        "webpQuality": 90,
+        "before": 1871757,
+        "after": 991168
+      }
+    ]
+  },
+  {
+    "file": "neon-facade.glb",
+    "saved": 0
+  },
+  {
+    "file": "billboard-tower.glb",
+    "saved": 0
+  }
+]

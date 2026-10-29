@@ -54,12 +54,29 @@ function check(root=path.resolve(__dirname,'..')){
  for(const folder of ['images','models'])for(const file of fs.readdirSync(path.join(root,folder),{recursive:true})){
   const target=path.join(root,folder,file);if(fs.statSync(target).isFile()){const size=fs.statSync(target).size;assetBytes+=size;if(/\.(png|jpe?g|webp)$/i.test(file)&&size>1000000)errors.push('Image exceeds 1 MB: '+file);}
  }
- // Desktop-only build. The ceiling was raised to 100 MB so imported Blender/Tripo
- // buildings can replace the procedural placeholders; single files above 20 MB
- // should still move to LFS or object storage per AGENTS.md.
- const ASSET_BUDGET_BYTES=100*1000*1000;
- if(assetBytes>ASSET_BUDGET_BYTES)errors.push('Assets exceed 100 MB');
- return {valid:errors.length===0,version:manifest.version,assets:assets.length,checkedFiles,assetBytes,triangles:assets.reduce((n,a)=>n+a.triangles,0),errors,warnings};
+ let scenePlacements=0;
+ const scenePath=path.join(root,'data/city-scenes.json');
+ if(fs.existsSync(scenePath)){
+  const config=JSON.parse(fs.readFileSync(scenePath,'utf8'));
+  if(config.version!==1||config.units!=='metres'||config.upAxis!=='Y')errors.push('Invalid scene coordinate system');
+  for(const [id,asset]of Object.entries(config.assets||{})){
+   if(!manifest.files[asset.source])errors.push('Scene source not registered: '+id);
+   const doc=docs.get(asset.source);
+   if(!doc)errors.push('Scene source not parsed: '+id);
+   else if(asset.node||asset.nodePrefix){const matches=doc.nodes.filter(n=>asset.node?n.name===asset.node:n.name?.startsWith(asset.nodePrefix));if(matches.length!==1)errors.push('Scene node missing/ambiguous: '+id);}
+  }
+  const ids=new Set();
+  for(const scene of ['home','race'])for(const item of config[scene]?.placements||[]){
+   scenePlacements++;const asset=config.assets?.[item.asset];
+   if(ids.has(item.id)||!asset||!asset.scenes.includes(scene)||!Array.isArray(item.position)||item.position.length!==3||!item.position.every(Number.isFinite)||!Number.isFinite(item.height)||item.height<=0||!Number.isFinite(item.yaw||0))errors.push('Invalid scene placement: '+item.id);
+   ids.add(item.id);
+  }
+ }
+ // User lifted the 60 MB ceiling for clearer source assets on 2026-10-29.
+ // Report size; keep integrity, path and texture checks enforced.
+ const ASSET_BUDGET_BYTES=Number(process.env.ASSET_BUDGET_MB||0)*1000*1000;
+ if(ASSET_BUDGET_BYTES>0&&assetBytes>ASSET_BUDGET_BYTES)errors.push('Assets exceed configured budget');
+ return {valid:errors.length===0,version:manifest.version,assets:assets.length,scenePlacements,checkedFiles,assetBytes,triangles:assets.reduce((n,a)=>n+a.triangles,0),errors,warnings};
 }
 if(require.main===module){try{const result=check();console.log(JSON.stringify(result,null,2));if(!result.valid)process.exitCode=1;}catch(e){console.error(e.message);process.exitCode=1;}}
 module.exports={check};
