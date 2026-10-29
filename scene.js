@@ -65,22 +65,8 @@ const windows=canvasTexture(256,512,(c,w,h)=>{
 });
 const farMat=new T.MeshStandardMaterial({map:windows,emissiveMap:windows,emissive:0x779abd,emissiveIntensity:.8,color:0x6b8599,roughness:.76,metalness:.25});
 const midMat=farMat.clone();midMat.color.set(0x7193ab);midMat.emissiveIntensity=.7;
-function backgroundCity(){
-  const placements=[];
-  for(let i=0;i<100;i++){
-    let x=range(-470,500),z=range(-850,140),w=range(9,25),d=range(10,25),h=range(30,140);
-    if(z>-340&&x>-95&&x<130)continue;
-    if(Math.abs(x-66)<142&&z>-615&&z<-310)continue;
-    if(z<-600)h*=1.5;
-    placements.push({x,z,w,d,h,base:-65});
-    if(rand()<.7){box(x,-65+h+.7,z,w*1.04,1.4,d*1.04,'steel');box(x,-65+h+range(3,11),z,.36,range(6,18),.36,'steel');box(x,-65+h+2,z+.5,w*.55,.20,.22,rand()<.8?'cyan':'pink');}
-    if(rand()<.23)box(x+w*.5+.08,-65+h*.53,z,.16,h*.76,.2,rand()<.75?'cyan':'pink');
-  }
-  const inst=new T.InstancedMesh(cube,farMat,placements.length);
-  placements.forEach((p,i)=>{dummy.position.set(p.x,p.base+p.h/2,p.z);dummy.scale.set(p.w,p.h,p.d);dummy.rotation.set(0,0,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);});inst.frustumCulled=false;scene.add(inst);
-
-}
-backgroundCity();
+// Procedural box skyline removed: in the bright build it read as a wall of flat grey
+// slabs. The imported towers and the daylight sky now carry the horizon instead.
 
 // Road construction: solid deck, piers, pavement, collision boundaries and guard rails.
 box(-18,20.7,-48,36,2.6,310,'concrete');box(-18,19.1,-48,35,1.0,310,'steel');
