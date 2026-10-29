@@ -53,20 +53,68 @@
    "anchor": "floor-centre",
    "materials": "embedded-base-color"
   },
-  "car-red": {
-   "source": "models/kit/car-red.glb",
-   "category": "vehicle",
+  "bld-13": {
+   "source": "models/additional-city-buildings.glb",
+   "node": "tripo-building-13",
+   "category": "building",
    "scenes": [
-    "home"
+    "home",
+    "race"
    ],
    "anchor": "floor-centre",
    "materials": "embedded-base-color"
   },
-  "girl-rigged": {
-   "source": "models/kit/girl-rigged.glb",
-   "category": "character",
+  "bld-14": {
+   "source": "models/additional-city-buildings.glb",
+   "node": "tripo-building-14",
+   "category": "building",
    "scenes": [
-    "home"
+    "home",
+    "race"
+   ],
+   "anchor": "floor-centre",
+   "materials": "embedded-base-color"
+  },
+  "bld-25": {
+   "source": "models/additional-city-buildings.glb",
+   "node": "tripo-building-25",
+   "category": "building",
+   "scenes": [
+    "home",
+    "race"
+   ],
+   "anchor": "floor-centre",
+   "materials": "embedded-base-color"
+  },
+  "bld-03": {
+   "source": "models/homepage-buildings.glb",
+   "node": "tripo-building-03",
+   "category": "building",
+   "scenes": [
+    "home",
+    "race"
+   ],
+   "anchor": "floor-centre",
+   "materials": "embedded-base-color"
+  },
+  "bld-04": {
+   "source": "models/homepage-buildings.glb",
+   "node": "tripo-building-04",
+   "category": "building",
+   "scenes": [
+    "home",
+    "race"
+   ],
+   "anchor": "floor-centre",
+   "materials": "embedded-base-color"
+  },
+  "bld-26": {
+   "source": "models/homepage-buildings.glb",
+   "node": "tripo-building-26",
+   "category": "building",
+   "scenes": [
+    "home",
+    "race"
    ],
    "anchor": "floor-centre",
    "materials": "embedded-base-color"
@@ -84,6 +132,14 @@
     0,
     0
    ]
+  },
+  "car-red": {
+   "source": "models/kit/car-red.glb",
+   "category": "vehicle",
+   "scenes": [
+    "home"
+   ],
+   "anchor": "floor-centre"
   }
  },
  "home": {
@@ -111,9 +167,9 @@
     ],
     "height": 112,
     "yaw": 1.5708,
-    "bank": "left",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "left"
    },
    {
     "id": "home-right-hero",
@@ -125,9 +181,9 @@
     ],
     "height": 118,
     "yaw": -1.5708,
-    "bank": "right",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "right"
    },
    {
     "id": "home-left-mid",
@@ -139,9 +195,9 @@
     ],
     "height": 92,
     "yaw": 1.4,
-    "bank": "left",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "left"
    },
    {
     "id": "home-right-mid",
@@ -153,149 +209,191 @@
     ],
     "height": 96,
     "yaw": -1.4,
-    "bank": "right",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "right"
    },
    {
-    "id": "home-left-bill",
-    "asset": "billboard-column",
+    "id": "home-left-third",
+    "asset": "bld-13",
     "position": [
      -118,
      22,
-     -170
+     -188
     ],
-    "height": 88,
-    "yaw": 1.25,
-    "bank": "left",
+    "height": 104,
+    "yaw": 1.28,
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "left"
    },
    {
-    "id": "home-right-block",
-    "asset": "mechanical-block",
+    "id": "home-right-third",
+    "asset": "bld-14",
     "position": [
-     126,
+     122,
      22,
-     -186
+     -196
     ],
-    "height": 92,
-    "yaw": -1.25,
-    "bank": "right",
+    "height": 110,
+    "yaw": -1.28,
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "right"
    },
    {
-    "id": "home-bg-01",
-    "asset": "tower-a",
+    "id": "home-left-fourth",
+    "asset": "bld-25",
     "position": [
-     -168,
+     -150,
      22,
-     -300
+     -262
     ],
     "height": 96,
-    "yaw": 1.15,
-    "bank": "left",
-    "foundation": false,
-    "shadow": true
+    "yaw": 1.18,
+    "foundation": true,
+    "shadow": true,
+    "bank": "left"
    },
    {
-    "id": "home-bg-02",
-    "asset": "mechanical-block",
+    "id": "home-right-fourth",
+    "asset": "bld-26",
     "position": [
-     -206,
+     156,
      22,
-     -370
-    ],
-    "height": 84,
-    "yaw": 1.05,
-    "bank": "left",
-    "foundation": false,
-    "shadow": true
-   },
-   {
-    "id": "home-bg-03",
-    "asset": "spire-a",
-    "position": [
-     -246,
-     22,
-     -440
-    ],
-    "height": 76,
-    "yaw": 0.95,
-    "bank": "left",
-    "foundation": false,
-    "shadow": true
-   },
-   {
-    "id": "home-bg-04",
-    "asset": "tower-a",
-    "position": [
-     176,
-     22,
-     -320
+     -268
     ],
     "height": 100,
-    "yaw": -1.15,
-    "bank": "right",
-    "foundation": false,
-    "shadow": true
-   },
-   {
-    "id": "home-bg-05",
-    "asset": "mechanical-block",
-    "position": [
-     214,
-     22,
-     -392
-    ],
-    "height": 86,
-    "yaw": -1.05,
-    "bank": "right",
-    "foundation": false,
-    "shadow": true
-   },
-   {
-    "id": "home-bg-06",
-    "asset": "spire-a",
-    "position": [
-     252,
-     22,
-     -456
-    ],
-    "height": 78,
-    "yaw": -0.95,
-    "bank": "right",
-    "foundation": false,
-    "shadow": true
+    "yaw": -1.18,
+    "foundation": true,
+    "shadow": true,
+    "bank": "right"
    },
    {
     "id": "home-near-left",
-    "asset": "shopfront-a",
+    "asset": "bld-04",
     "position": [
      -62,
      22,
      14
     ],
-    "height": 38,
+    "height": 44,
     "yaw": 1.62,
-    "bank": "left",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "left"
    },
    {
     "id": "home-near-right",
-    "asset": "shopfront-a",
+    "asset": "bld-26",
     "position": [
      64,
      22,
      -2
     ],
-    "height": 40,
+    "height": 46,
     "yaw": -1.62,
-    "bank": "right",
     "foundation": true,
-    "shadow": true
+    "shadow": true,
+    "bank": "right"
+   },
+   {
+    "id": "home-near-left-2",
+    "asset": "shopfront-a",
+    "position": [
+     -60,
+     22,
+     -46
+    ],
+    "height": 40,
+    "yaw": 1.62,
+    "foundation": true,
+    "shadow": true,
+    "bank": "left"
+   },
+   {
+    "id": "home-bg-01",
+    "asset": "bld-03",
+    "position": [
+     -180,
+     22,
+     -330
+    ],
+    "height": 92,
+    "yaw": 1.12,
+    "foundation": false,
+    "shadow": true,
+    "bank": "left"
+   },
+   {
+    "id": "home-bg-02",
+    "asset": "mechanical-block",
+    "position": [
+     -214,
+     22,
+     -404
+    ],
+    "height": 84,
+    "yaw": 1.02,
+    "foundation": false,
+    "shadow": true,
+    "bank": "left"
+   },
+   {
+    "id": "home-bg-03",
+    "asset": "bld-14",
+    "position": [
+     -250,
+     22,
+     -470
+    ],
+    "height": 78,
+    "yaw": 0.94,
+    "foundation": false,
+    "shadow": true,
+    "bank": "left"
+   },
+   {
+    "id": "home-bg-04",
+    "asset": "bld-25",
+    "position": [
+     188,
+     22,
+     -346
+    ],
+    "height": 96,
+    "yaw": -1.12,
+    "foundation": false,
+    "shadow": true,
+    "bank": "right"
+   },
+   {
+    "id": "home-bg-05",
+    "asset": "tower-a",
+    "position": [
+     224,
+     22,
+     -420
+    ],
+    "height": 88,
+    "yaw": -1.02,
+    "foundation": false,
+    "shadow": true,
+    "bank": "right"
+   },
+   {
+    "id": "home-bg-06",
+    "asset": "spire-a",
+    "position": [
+     258,
+     22,
+     -486
+    ],
+    "height": 80,
+    "yaw": -0.94,
+    "foundation": false,
+    "shadow": true,
+    "bank": "right"
    },
    {
     "id": "home-canopy-left",
@@ -327,7 +425,7 @@
     "id": "home-car-a",
     "asset": "car-red",
     "position": [
-     28,
+     -28,
      22,
      44
     ],
@@ -340,7 +438,7 @@
     "id": "home-car-b",
     "asset": "car-red",
     "position": [
-     33,
+     36,
      22,
      26
     ],
@@ -400,52 +498,52 @@
    },
    {
     "id": "race-bld-03",
-    "asset": "shopfront-a",
+    "asset": "bld-13",
     "position": [
      -150,
      -62,
      -260
     ],
-    "height": 120,
+    "height": 130,
     "yaw": 1.3,
     "bank": "left",
     "shadow": true
    },
    {
     "id": "race-bld-04",
-    "asset": "spire-a",
+    "asset": "bld-14",
     "position": [
      158,
      -62,
      -270
     ],
-    "height": 130,
+    "height": 135,
     "yaw": -1.3,
     "bank": "right",
     "shadow": true
    },
    {
     "id": "race-bld-05",
-    "asset": "mechanical-block",
+    "asset": "bld-25",
     "position": [
      -210,
      -62,
      -400
     ],
-    "height": 110,
+    "height": 115,
     "yaw": 1.1,
     "bank": "left",
     "shadow": true
    },
    {
     "id": "race-bld-06",
-    "asset": "tower-a",
+    "asset": "bld-26",
     "position": [
      216,
      -62,
      -410
     ],
-    "height": 115,
+    "height": 118,
     "yaw": -1.1,
     "bank": "right",
     "shadow": true
@@ -465,7 +563,7 @@
    },
    {
     "id": "race-bld-08",
-    "asset": "mechanical-block",
+    "asset": "shopfront-a",
     "position": [
      276,
      -62,
